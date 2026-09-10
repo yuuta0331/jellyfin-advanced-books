@@ -98,7 +98,7 @@
             .advancedBooksNavigatorPanel{position:absolute;z-index:20;top:0;right:0;bottom:0;width:min(28rem,92vw);display:flex;flex-direction:column;background:#111;color:#fff;box-shadow:-8px 0 32px rgba(0,0,0,.55);border-left:1px solid rgba(255,255,255,.12)}
             .advancedBooksNavigatorHeader{display:flex;align-items:center;gap:.5rem;min-height:3.5rem;padding:.55rem .75rem;border-bottom:1px solid rgba(255,255,255,.12);background:#181818;box-sizing:border-box}
             .advancedBooksNavigatorHeader strong{font-size:1.05rem}.advancedBooksNavigatorHeader span{opacity:.65;font-variant-numeric:tabular-nums}.advancedBooksNavigatorHeader button{margin-left:auto;inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;padding:0;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:#282828;color:#fff;font:inherit}
-            .advancedBooksNavigatorGrid{flex:1 1 auto;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(7.25rem,1fr));align-content:start;gap:.65rem;padding:.75rem;overscroll-behavior:contain;scrollbar-gutter:stable}
+            .advancedBooksNavigatorGrid{position:relative;flex:1 1 auto;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(7.25rem,1fr));align-content:start;gap:.65rem;padding:.75rem;overscroll-behavior:contain;scrollbar-gutter:stable}
             .advancedBooksNavigatorCard{appearance:none;display:flex;flex-direction:column;gap:.35rem;min-width:0;padding:.35rem;border:2px solid transparent;border-radius:.45rem;background:#1c1c1c;color:#fff;text-align:center;font:inherit;cursor:pointer;transition:border-color .12s ease,background .12s ease;contain:layout paint style}
             .advancedBooksNavigatorCard:hover,.advancedBooksNavigatorCard:focus-visible{background:#292929;outline:none;border-color:rgba(255,255,255,.42)}
             .advancedBooksNavigatorCard.ab-current{border-color:#00a4dc;background:#17313b}
@@ -350,7 +350,15 @@
                 this.applyThumbnail(index, cached);
                 return;
             }
-            if (this.pending.has(index) || this.queued.has(index)) return;
+            if (this.pending.has(index)) return;
+            if (this.queued.has(index)) {
+                const queued = this.queue.find(item => item.index === index);
+                if (queued) {
+                    queued.priority = priority;
+                    this.queue.sort((a, b) => a.priority - b.priority);
+                }
+                return;
+            }
 
             this.queue.push({ index, priority });
             this.queue.sort((a, b) => a.priority - b.priority);
