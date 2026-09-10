@@ -104,9 +104,9 @@
         if (!toolbar || selects.length < 3) return null;
         return {
             toolbar,
-            layout: selects[0],
-            direction: selects[1],
-            fit: selects[2],
+            layout: overlay.querySelector('[data-ab-control="layout"]') ?? selects[0],
+            direction: overlay.querySelector('[data-ab-control="direction"]') ?? selects[1],
+            fit: overlay.querySelector('[data-ab-control="fit"]') ?? selects[2],
             zoomOut: toolbar.querySelector('button[title="Zoom out"]'),
             zoomReset: toolbar.querySelector('button[title="Reset zoom"]'),
             zoomIn: toolbar.querySelector('button[title="Zoom in"]'),
@@ -175,7 +175,7 @@
             setSelect(controls.layout, preferences.layout);
             setSelect(controls.direction, preferences.direction);
             if (preferences.layout !== 'webtoon') setSelect(controls.fit, preferences.fit);
-            applyZoom(controls, preferences.layout === 'vertical' || preferences.layout === 'webtoon' ? 1 : preferences.zoom);
+            applyZoom(controls, preferences.zoom);
         } finally {
             session.suppressSave = false;
         }
