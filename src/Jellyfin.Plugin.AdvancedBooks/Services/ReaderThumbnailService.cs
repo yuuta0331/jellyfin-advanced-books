@@ -87,7 +87,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         Directory.CreateDirectory(cacheDirectory);
 
         var cacheStem = BuildCacheStem(info, page, pageIndex, maxWidth);
-        var existing = FindCachedFile(cacheDirectory, cacheStem);
+        var existing = FindCachedFile(cacheDirectory, cacheStem)
+            ?? FindCompatibleLargerCachedFile(cacheDirectory, cacheStem, pageIndex, maxWidth);
         if (existing is not null)
         {
             return existing;
@@ -96,7 +97,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         await GenerationSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            existing = FindCachedFile(cacheDirectory, cacheStem);
+            existing = FindCachedFile(cacheDirectory, cacheStem)
+                ?? FindCompatibleLargerCachedFile(cacheDirectory, cacheStem, pageIndex, maxWidth);
             if (existing is not null)
             {
                 return existing;
@@ -255,6 +257,50 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         }
 
         return null;
+    }
+
+    private static ReaderThumbnailFile? FindCompatibleLargerCachedFile(
+        string directory,
+        string cacheStem,
+        int pageIndex,
+        int minimumWidth)
+    {
+        var separator = cacheStem.LastIndexOf('-');
+        if (separator < 0 || separator == cacheStem.Length - 1)
+        {
+            return null;
+        }
+
+        var hash = cacheStem[(separator + 1)..];
+        ReaderThumbnailFile? best = null;
+        var bestWidth = int.MaxValue;
+
+        foreach (var path in Directory.EnumerateFiles(directory, $"{pageIndex:D6}-*-{hash}.*"))
+        {
+            var extension = Path.GetExtension(path).ToLowerInvariant();
+            if (extension is not ".webp" and not ".jpg" and not ".png")
+            {
+                continue;
+            }
+
+            var stem = Path.GetFileNameWithoutExtension(path);
+            var parts = stem.Split('-', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 3
+                || !int.TryParse(parts[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var width)
+                || width < minimumWidth
+                || width >= bestWidth)
+            {
+                continue;
+            }
+
+            bestWidth = width;
+            best = new ReaderThumbnailFile(
+                path,
+                GetImageContentType(extension),
+                File.GetLastWriteTimeUtc(path));
+        }
+
+        return best;
     }
 
     private static void RemoveSupersededFiles(string directory, int pageIndex, int maxWidth, string keepPath)
