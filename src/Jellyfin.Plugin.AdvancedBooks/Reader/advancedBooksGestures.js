@@ -181,9 +181,12 @@
             this.originalTransformOrigin = this.pages.style.transformOrigin;
             this.originalTransition = this.pages.style.transition;
             this.originalWillChange = this.pages.style.willChange;
-            const originX = this.startMidpoint.x + this.startScrollLeft;
-            const originY = this.startMidpoint.y + this.startScrollTop;
-            this.pages.style.transformOrigin = `${originX}px ${originY}px`;
+            if (this.isContinuous()) {
+                const pagesRect = this.pages.getBoundingClientRect();
+                const originX = this.startMidpoint.x - pagesRect.left;
+                const originY = this.startMidpoint.y - pagesRect.top;
+                this.pages.style.transformOrigin = `${originX}px ${originY}px`;
+            }
             this.pages.style.transition = 'none';
             this.pages.style.willChange = 'transform';
 
