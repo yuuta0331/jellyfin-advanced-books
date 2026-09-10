@@ -33,7 +33,7 @@ The reader UI is optimized to disappear while reading. A compact top chrome and 
 
 The bottom strip is available in Single, Double, Vertical Continuous and Webtoon modes. It contains Previous/Next controls, the current page/range, and a range scrubber for direct jumps across long books. A thin progress rail remains visible at the bottom edge even when the larger controls are hidden.
 
-Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit and zoom remain available from the same sheet.
+Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit and zoom remain available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome.
 
 ## Per-user reader preferences
 
@@ -49,7 +49,9 @@ The following settings are persisted for the current authenticated Jellyfin user
 - layout: Single / Double / Vertical Continuous / Webtoon;
 - reading direction: RTL / LTR;
 - fit mode: Screen / Width / Height / Original; and
-- paged zoom: 50%-400%.
+- reader zoom: 50%-400%;
+- continuous side padding: 0%, 2%, 5%, 10%, 15% or 20%; and
+- continuous page gap: 0, 4, 8, 12, 16, 24 or 32 pixels.
 
 Preferences use a fixed Advanced Books display-preference namespace, so the same Jellyfin user receives the same reader controls in another Jellyfin Web browser/client. Different Jellyfin users remain isolated.
 
@@ -131,12 +133,13 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 
 | Input | Paged modes | Continuous / Webtoon |
 | --- | --- | --- |
-| Escape | Close | Close |
+| Escape | Close settings, then reader | Close settings, then reader |
 | Arrow Left / Right | Direction-aware previous/next | Native/no reader action |
 | Arrow Up / Down | Native | Previous/next page |
 | Page Up / Page Down | Previous/next group | Previous/next page |
 | Space | Next group | Next page |
 | Home / End | First/last page | First/last page |
+| F | Toggle fullscreen when supported | Toggle fullscreen when supported |
 | + / - / 0 | Reader zoom | Reader zoom |
 | Left/right click or tap | Direction-aware navigation | Native scrolling |
 | Horizontal swipe | Direction-aware navigation | Native scrolling |
