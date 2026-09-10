@@ -29,10 +29,15 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Validate reader JavaScript syntax
+      - name: Validate reader JavaScript syntax and registration size
         run: |
           for file in src/Jellyfin.Plugin.AdvancedBooks/Reader/*.js; do
             node --check "$file"
+            bytes="$(wc -c < "$file")"
+            if [ "$bytes" -gt 98304 ]; then
+              echo "::error file=$file::Reader script is $bytes bytes; split it before JS Injector registration (limit: 98304 bytes)."
+              exit 1
+            fi
           done
 
       - name: Validate release metadata

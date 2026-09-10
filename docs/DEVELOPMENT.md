@@ -229,6 +229,8 @@ Run these checks on a real touch device or browser/device mode that emits touch 
 
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.
 
+Advanced Books registers each embedded reader bridge as a separate JS Injector entry. Keep each individual reader JavaScript asset below 96 KiB UTF-8; CI and release validation enforce this defensive boundary. The runtime loader also uses strict UTF-8 decoding, rejects unexpected control characters, removes the legacy combined registration, and rolls back all Advanced Books registrations if any split entry fails.
+
 ## Coding rules
 
 - Keep Jellyfin-specific types out of `Jellyfin.AdvancedBooks.Core`.
