@@ -181,6 +181,7 @@
             this.sliderPreviewHideTimer = null;
             this.sliderPreviewSequence = 0;
             this.sliderScrubbing = false;
+            this.sliderPointerX = null;
             this.sliderThumbnailCache = new Map();
             this.sliderThumbnailPending = null;
             this.boundKeyDown = event => this.onKeyDown(event);
@@ -198,6 +199,8 @@
             this.boundFullscreenChange = () => this.updateFullscreenButton();
             this.boundViewportResize = () => this.updateViewportMetrics();
             this.viewportResizeObserver = null;
+            this.viewportWidth = 0;
+            this.viewportHeight = 0;
         }
 
         async open() {
@@ -651,10 +654,13 @@
 
         updateViewportMetrics() {
             if (!this.overlay?.isConnected || !this.stage) return;
-            const width = Math.max(1, this.stage.clientWidth || window.visualViewport?.width || window.innerWidth);
-            const height = Math.max(1, this.stage.clientHeight || window.visualViewport?.height || window.innerHeight);
-            this.overlay.style.setProperty('--ab-stage-width', `${Math.round(width)}px`);
-            this.overlay.style.setProperty('--ab-stage-height', `${Math.round(height)}px`);
+            const width = Math.max(1, Math.round(this.stage.clientWidth || window.visualViewport?.width || window.innerWidth));
+            const height = Math.max(1, Math.round(this.stage.clientHeight || window.visualViewport?.height || window.innerHeight));
+            if (width === this.viewportWidth && height === this.viewportHeight) return;
+            this.viewportWidth = width;
+            this.viewportHeight = height;
+            this.overlay.style.setProperty('--ab-stage-width', `${width}px`);
+            this.overlay.style.setProperty('--ab-stage-height', `${height}px`);
             if (this.isContinuous()) this.refreshContinuousImageSizing();
         }
 
@@ -662,6 +668,7 @@
             this.externalPinchActive = true;
             this.pointerStart = null;
             this.suppressNextStageClick = true;
+            if (this.stage) this.stage.style.touchAction = 'none';
         }
 
         endExternalPinch() {
@@ -1197,10 +1204,7 @@
                 }
 
                 if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
-                if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-                    slot.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
-                    slot.style.minHeight = '0';
-                }
+                this.stabilizeContinuousSlot(index, slot, image);
                 this.applyContinuousImageSizing(image);
                 slot.querySelector('.advancedBooksReaderPagePlaceholder')?.remove();
                 slot.appendChild(image);
@@ -1208,11 +1212,37 @@
             }
 
             if (image.src !== url) image.src = url;
-            if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-                slot.style.aspectRatio = `${image.naturalWidth} / ${image.naturalHeight}`;
-                slot.style.minHeight = '0';
-            }
+            this.stabilizeContinuousSlot(index, slot, image);
             this.applyContinuousImageSizing(image);
+        }
+
+        stabilizeContinuousSlot(index, slot, image) {
+            if (!slot || !image || image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
+
+            const anchor = this.continuousElements[this.currentPage];
+            const beforeAnchorTop = index < this.currentPage && anchor?.isConnected ? anchor.offsetTop : null;
+            const aspectHeight = image.naturalHeight / image.naturalWidth;
+            const stageHeight = Math.max(1, this.stage?.clientHeight || this.viewportHeight || window.innerHeight);
+            const slotWidth = Math.max(1, slot.clientWidth || this.pagesElement.clientWidth || this.viewportWidth || window.innerWidth);
+
+            let expectedHeight;
+            if (this.fit === 'height') {
+                expectedHeight = stageHeight * this.zoom;
+            } else if (this.fit === 'original') {
+                expectedHeight = image.naturalHeight * this.zoom;
+            } else if (this.fit === 'screen') {
+                expectedHeight = Math.min(stageHeight, slotWidth * aspectHeight);
+            } else {
+                expectedHeight = slotWidth * aspectHeight;
+            }
+
+            slot.style.aspectRatio = '';
+            slot.style.minHeight = `${Math.max(1, Math.round(expectedHeight))}px`;
+
+            if (beforeAnchorTop !== null && anchor?.isConnected) {
+                const delta = anchor.offsetTop - beforeAnchorTop;
+                if (Math.abs(delta) >= 1) this.stage.scrollTop += delta;
+            }
         }
 
         applyContinuousImageSizing(image) {
@@ -1241,6 +1271,9 @@
         refreshContinuousImageSizing() {
             if (!this.isContinuous()) return;
             for (const image of this.pagesElement.querySelectorAll('img')) {
+                const index = Number(image.dataset.pageIndex);
+                const slot = Number.isInteger(index) ? this.continuousElements[index] : null;
+                if (slot) this.stabilizeContinuousSlot(index, slot, image);
                 this.applyContinuousImageSizing(image);
             }
         }
