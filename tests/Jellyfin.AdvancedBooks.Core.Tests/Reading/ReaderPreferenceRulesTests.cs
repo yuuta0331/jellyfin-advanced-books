@@ -48,6 +48,53 @@ public sealed class ReaderPreferenceRulesTests
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(15)]
+    [InlineData(20)]
+    public void SidePadding_AcceptsSupportedValues(int value)
+    {
+        Assert.True(ReaderPreferenceRules.IsValidSidePadding(value));
+        Assert.Equal(value, ReaderPreferenceRules.NormalizeSidePadding(value));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    [InlineData(25)]
+    public void SidePadding_FallsBackForUnsupportedValues(int value)
+    {
+        Assert.False(ReaderPreferenceRules.IsValidSidePadding(value));
+        Assert.Equal(ReaderPreferenceRules.DefaultSidePadding, ReaderPreferenceRules.NormalizeSidePadding(value));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    [InlineData(8)]
+    [InlineData(12)]
+    [InlineData(16)]
+    [InlineData(24)]
+    [InlineData(32)]
+    public void PageGap_AcceptsSupportedValues(int value)
+    {
+        Assert.True(ReaderPreferenceRules.IsValidPageGap(value));
+        Assert.Equal(value, ReaderPreferenceRules.NormalizePageGap(value));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(6)]
+    [InlineData(64)]
+    public void PageGap_FallsBackForUnsupportedValues(int value)
+    {
+        Assert.False(ReaderPreferenceRules.IsValidPageGap(value));
+        Assert.Equal(ReaderPreferenceRules.DefaultPageGap, ReaderPreferenceRules.NormalizePageGap(value));
+    }
+
+    [Theory]
     [InlineData(0.5, 0.5)]
     [InlineData(1.0, 1.0)]
     [InlineData(1.14, 1.15)]
