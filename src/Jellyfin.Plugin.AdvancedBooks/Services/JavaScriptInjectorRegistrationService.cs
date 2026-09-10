@@ -209,7 +209,6 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             if (unregisterAllMethod is not null)
             {
                 unregisterAllMethod.Invoke(null, [pluginId]);
-                return;
             }
 
             var unregisterMethod = interfaceType.GetMethod(
