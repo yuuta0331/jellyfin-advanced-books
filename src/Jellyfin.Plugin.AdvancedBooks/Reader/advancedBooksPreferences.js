@@ -197,36 +197,64 @@
         return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}`;
     }
 
-    function scheduleSave(session) {
-        if (!session || session.cleaned || session.suppressSave) return;
-        window.clearTimeout(session.saveTimer);
-        session.saveTimer = window.setTimeout(() => flushPreferences(session), saveDelayMs);
+    function capturePreferences(session) {
+        session.latestPreferences = readPreferences(session);
+        return session.latestPreferences;
     }
 
-    function flushPreferences(session) {
-        if (!session || session.cleaned || session.saving) return;
-        const preferences = readPreferences(session);
+    function scheduleSave(session) {
+        if (!session || session.cleaned || session.suppressSave) return;
+        capturePreferences(session);
+        window.clearTimeout(session.saveTimer);
+        session.saveTimer = window.setTimeout(() => flushPreferences(session, false), saveDelayMs);
+    }
+
+    function flushPreferences(session, allowAfterCleanup) {
+        if (!session || (session.cleaned && !allowAfterCleanup)) return;
+        const preferences = session.latestPreferences ?? capturePreferences(session);
         const serialized = serialize(preferences);
         if (serialized === session.lastSaved) return;
 
+        if (session.saving) {
+            session.queuedPreferences = preferences;
+            return;
+        }
+
         session.saving = true;
+        let succeeded = false;
         putPreferences(preferences).then(() => {
+            succeeded = true;
             session.lastSaved = serialized;
         }).catch(() => {
-            // Reader controls remain usable if preference persistence is temporarily unavailable.
+            // Reader controls remain usable when preference persistence is temporarily unavailable.
+            // Do not create an automatic retry loop; the next user change can try again.
         }).finally(() => {
             session.saving = false;
-            if (!session.cleaned && serialize(readPreferences(session)) !== session.lastSaved) {
-                scheduleSave(session);
+            const queued = session.queuedPreferences;
+            session.queuedPreferences = null;
+
+            if (queued && serialize(queued) !== session.lastSaved) {
+                session.latestPreferences = queued;
+                if (session.cleaned) flushPreferences(session, true);
+                else scheduleSave(session);
+                return;
+            }
+
+            if (succeeded && !session.cleaned) {
+                const current = capturePreferences(session);
+                if (serialize(current) !== session.lastSaved) scheduleSave(session);
             }
         });
     }
 
     function cleanupSession(session, flush) {
         if (!session || session.cleaned) return;
-        if (flush) flushPreferences(session);
-        session.cleaned = true;
         window.clearTimeout(session.saveTimer);
+        if (flush) {
+            capturePreferences(session);
+            flushPreferences(session, true);
+        }
+        session.cleaned = true;
         session.zoomObserver?.disconnect();
         session.removalObserver?.disconnect();
         session.controls.toolbar?.removeEventListener('change', session.onControlChange, true);
@@ -252,6 +280,8 @@
             saveTimer: null,
             saving: false,
             lastSaved: null,
+            latestPreferences: null,
+            queuedPreferences: null,
             cleaned: false,
             zoomObserver: null,
             removalObserver: null,
@@ -261,7 +291,8 @@
 
         const preferences = normalizePreferences(await preferencesPromise.catch(() => null));
         applyPreferences(session, preferences);
-        session.lastSaved = serialize(readPreferences(session));
+        session.latestPreferences = readPreferences(session);
+        session.lastSaved = serialize(session.latestPreferences);
 
         session.onControlChange = () => scheduleSave(session);
         controls.toolbar.addEventListener('change', session.onControlChange, true);
@@ -286,6 +317,8 @@
     }, true);
 
     window.addEventListener('beforeunload', () => {
-        if (currentSession) flushPreferences(currentSession);
+        if (!currentSession) return;
+        capturePreferences(currentSession);
+        flushPreferences(currentSession, true);
     });
 })();
