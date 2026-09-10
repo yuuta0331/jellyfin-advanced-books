@@ -52,6 +52,28 @@
         };
     }
 
+    function waitForCounterPage(counter, wantedPageIndex, timeoutMs = 2500) {
+        return new Promise(resolve => {
+            const isReady = () => parseCounter(counter)?.last === wantedPageIndex;
+            if (isReady()) {
+                resolve(true);
+                return;
+            }
+
+            const observer = new MutationObserver(() => {
+                if (isReady()) {
+                    observer.disconnect();
+                    resolve(true);
+                }
+            });
+            observer.observe(counter, { childList: true, characterData: true, subtree: true });
+            window.setTimeout(() => {
+                observer.disconnect();
+                resolve(isReady());
+            }, timeoutMs);
+        });
+    }
+
     async function getMetadata(apiClient, itemId) {
         if (!apiClient || typeof apiClient.ajax !== 'function') return null;
         const raw = await apiClient.ajax({
@@ -182,6 +204,8 @@
         closePanel() {
             this.intersectionObserver?.disconnect();
             this.intersectionObserver = null;
+            for (const pending of this.pending.values()) pending.controller.abort();
+            this.pending.clear();
             this.panel?.remove();
             this.panel = null;
             this.grid = null;
@@ -260,7 +284,7 @@
             const response = await this.apiClient.fetch({ url, method: 'GET', signal }, true);
             if (!response || response.ok === false) throw new Error(`HTTP ${response?.status ?? 'error'}`);
             const blob = await response.blob();
-            if (this.closed) return;
+            if (this.closed || !this.panel?.isConnected) return;
             const objectUrl = URL.createObjectURL(blob);
             this.cache.set(index, objectUrl);
             this.applyThumbnail(index, objectUrl);
@@ -331,7 +355,7 @@
             if (stage) stage.scrollTop = Math.max(0, slot.offsetTop - 4);
             else slot.scrollIntoView({ block: 'start' });
 
-            await new Promise(resolve => window.setTimeout(resolve, 80));
+            await waitForCounterPage(this.counter, index);
             if (originalLayout !== 'vertical' && this.overlay.isConnected) {
                 layoutSelect.value = originalLayout;
                 layoutSelect.dispatchEvent(new Event('change', { bubbles: true }));
