@@ -22,6 +22,8 @@ public sealed class ReaderPreferencesController : ControllerBase
     private const string DirectionKey = "direction";
     private const string FitKey = "fit";
     private const string ZoomKey = "zoom";
+    private const string SidePaddingKey = "sidePadding";
+    private const string PageGapKey = "pageGap";
 
     // Stable pseudo-item namespace reserved for global Advanced Reader preferences.
     private static readonly Guid PreferencesItemId = new("9d7f1b84-7d41-4f9f-bf32-9f26d8601a72");
@@ -61,6 +63,8 @@ public sealed class ReaderPreferencesController : ControllerBase
         stored.TryGetValue(DirectionKey, out var direction);
         stored.TryGetValue(FitKey, out var fit);
         stored.TryGetValue(ZoomKey, out var zoomText);
+        stored.TryGetValue(SidePaddingKey, out var sidePaddingText);
+        stored.TryGetValue(PageGapKey, out var pageGapText);
 
         var zoom = ReaderPreferenceRules.DefaultZoom;
         if (!string.IsNullOrWhiteSpace(zoomText)
@@ -69,11 +73,27 @@ public sealed class ReaderPreferencesController : ControllerBase
             zoom = ReaderPreferenceRules.NormalizeZoom(parsedZoom);
         }
 
+        var sidePadding = ReaderPreferenceRules.DefaultSidePadding;
+        if (!string.IsNullOrWhiteSpace(sidePaddingText)
+            && int.TryParse(sidePaddingText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedSidePadding))
+        {
+            sidePadding = ReaderPreferenceRules.NormalizeSidePadding(parsedSidePadding);
+        }
+
+        var pageGap = ReaderPreferenceRules.DefaultPageGap;
+        if (!string.IsNullOrWhiteSpace(pageGapText)
+            && int.TryParse(pageGapText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedPageGap))
+        {
+            pageGap = ReaderPreferenceRules.NormalizePageGap(parsedPageGap);
+        }
+
         return Ok(new ReaderPreferencesDto(
             ReaderPreferenceRules.NormalizeLayout(layout),
             ReaderPreferenceRules.NormalizeDirection(direction),
             ReaderPreferenceRules.NormalizeFit(fit),
-            zoom));
+            zoom,
+            sidePadding,
+            pageGap));
     }
 
     /// <summary>Replaces the current user's global Advanced Reader preferences.</summary>
@@ -113,13 +133,25 @@ public sealed class ReaderPreferencesController : ControllerBase
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
+        if (!ReaderPreferenceRules.IsValidSidePadding(request.SidePadding))
+        {
+            return InvalidPreference("side padding", request.SidePadding.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (!ReaderPreferenceRules.IsValidPageGap(request.PageGap))
+        {
+            return InvalidPreference("page gap", request.PageGap.ToString(CultureInfo.InvariantCulture));
+        }
+
         var normalizedZoom = ReaderPreferenceRules.NormalizeZoom(request.Zoom);
         var values = new Dictionary<string, string?>
         {
             [LayoutKey] = request.Layout,
             [DirectionKey] = request.Direction,
             [FitKey] = request.Fit,
-            [ZoomKey] = normalizedZoom.ToString("0.00", CultureInfo.InvariantCulture)
+            [ZoomKey] = normalizedZoom.ToString("0.00", CultureInfo.InvariantCulture),
+            [SidePaddingKey] = request.SidePadding.ToString(CultureInfo.InvariantCulture),
+            [PageGapKey] = request.PageGap.ToString(CultureInfo.InvariantCulture)
         };
 
         _displayPreferencesManager.SetCustomItemDisplayPreferences(
@@ -132,7 +164,9 @@ public sealed class ReaderPreferencesController : ControllerBase
             request.Layout,
             request.Direction,
             request.Fit,
-            normalizedZoom));
+            normalizedZoom,
+            request.SidePadding,
+            request.PageGap));
     }
 
     private async Task<User?> GetCurrentUser()
