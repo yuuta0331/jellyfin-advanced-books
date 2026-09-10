@@ -66,6 +66,12 @@
 
     function commitZoom(session, targetZoom) {
         if (!session?.overlay?.isConnected) return;
+        const reader = session.overlay.__advancedBooksReaderSession;
+        if (reader && typeof reader.setZoom === 'function') {
+            reader.setZoom(targetZoom);
+            return;
+        }
+
         const toolbar = session.overlay.querySelector('.advancedBooksReaderToolbar');
         const reset = toolbar?.querySelector('button[title="Reset zoom"]');
         const plus = toolbar?.querySelector('button[title="Zoom in"]');
