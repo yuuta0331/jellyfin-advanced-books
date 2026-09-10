@@ -8,12 +8,14 @@ overview: "Komga-compatible book handling and an advanced comic reader for Jelly
 description: >
   Adds advanced book and comic features to Jellyfin 12, including Komga-compatible
   One-Shots, safe per-page CBZ delivery, paged/continuous reading, resume, a lazy
-  thumbnail navigator, and per-user reader preferences.
+  thumbnail page navigator, and per-user reader preferences.
 category: "General"
 owner: "yuuta0331"
 artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: >
-  Persist layout, reading direction, fit mode and paged zoom per Jellyfin user using
-  Jellyfin's display-preferences database and restore them after reading-position resume.
+  Persist Advanced Reader layout, reading direction, fit mode and paged zoom per
+  Jellyfin user using the server's display-preferences database. Restore reader
+  preferences after reading-position resume and safely queue the newest preference
+  state when the reader closes during an in-flight save.
