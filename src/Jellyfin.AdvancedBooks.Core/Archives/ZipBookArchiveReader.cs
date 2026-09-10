@@ -205,7 +205,7 @@ public sealed class ZipBookArchiveReader : IZipBookArchiveReader
         }
 
         var normalized = NormalizeEntryName(path);
-        if (normalized.StartsWith('/', StringComparison.Ordinal))
+        if (normalized.StartsWith("/", StringComparison.Ordinal))
         {
             throw new ArchiveSafetyException($"Archive entry '{path}' uses an absolute path.");
         }
