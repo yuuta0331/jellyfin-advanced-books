@@ -82,6 +82,8 @@ Reader preferences are also stored per Jellyfin user. Single/Double/Vertical/Web
 
 To expose the **Advanced Reader** button inside Jellyfin Web, install the community [Jellyfin JavaScript Injector](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector) plugin. Advanced Books detects it at runtime and registers its embedded reader scripts automatically; you do **not** need to copy/paste the Advanced Books reader JavaScript manually.
 
+Starting with **Advanced Books 0.10.1.0**, the integration is deliberately registered as five independent JS Injector entries (**Core, Progress, Preferences, Navigator, Gestures**) instead of one very large combined script. This avoids a single oversized/corrupted registration disabling the complete reader. On startup, Advanced Books removes the legacy `jellyfin-advanced-books-reader` combined entry before registering the split entries.
+
 For **Jellyfin 12**, add this JavaScript Injector repository URL in **Dashboard -> Plugins -> Repositories**:
 
 ```text
@@ -91,6 +93,8 @@ https://raw.githubusercontent.com/n00bcodr/jellyfin-plugins/main/12/manifest.jso
 Then install **JavaScript Injector** from the Jellyfin plugin catalog and restart Jellyfin. Jellyfin 12 support was introduced in JavaScript Injector `v4.0.0.0`; use the current Jellyfin 12-compatible release.
 
 Without JavaScript Injector, the Advanced Books server-side resolver and APIs can still load, but the **Advanced Reader** button is not automatically inserted into Jellyfin Web.
+
+If the button disappears after upgrading from 0.10.0.0 or older, update Advanced Books, restart Jellyfin, then hard-refresh Jellyfin Web. In JS Injector you should see the five Advanced Books Reader entries above and no legacy single **Advanced Books Reader** combined entry.
 
 See [Advanced Reader](docs/READER.md) for controls and implementation details.
 
