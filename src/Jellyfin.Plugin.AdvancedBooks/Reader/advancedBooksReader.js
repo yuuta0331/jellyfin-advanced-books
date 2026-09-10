@@ -146,7 +146,6 @@
         constructor(apiClient, itemId, metadata) {
             this.apiClient = apiClient;
             this.itemId = itemId;
-            this.pages = metadata.pages;
             this.pageCount = metadata.pages.length;
             this.currentPage = 0;
             this.layout = 'single';
