@@ -149,6 +149,7 @@
             this.sidePadding = 0;
             this.pageGap = 0;
             this.fullscreenOwned = false;
+            this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             this.panX = 0;
             this.panY = 0;
             this.renderSequence = 0;
@@ -186,6 +187,7 @@
             document.body.style.overflow = 'hidden';
             await this.render();
             this.showControls();
+            this.stage?.focus?.({ preventScroll: true });
         }
 
         close() {
@@ -205,6 +207,7 @@
             }
             this.overlay?.remove();
             document.body.style.overflow = this.previousBodyOverflow;
+            this.previousFocus?.focus?.({ preventScroll: true });
             if (activeReader === this) activeReader = null;
         }
 
@@ -219,7 +222,8 @@
             style.textContent = `
                 .advancedBooksReaderButton .detailButton-content{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
                 .advancedBooksReaderOverlay{position:fixed;inset:0;z-index:2147483000;background:#080808;color:#fff;font-family:inherit;overflow:hidden;--ab-accent:var(--theme-primary-color,#00a4dc);--ab-progress:0%}
-                .advancedBooksReaderStage{position:absolute;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:#080808;touch-action:pan-y;user-select:none;overscroll-behavior:contain;scrollbar-gutter:stable}
+                .advancedBooksReaderStage{position:absolute;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:#080808;touch-action:pan-y;user-select:none;overscroll-behavior:contain;scrollbar-width:none}
+                .advancedBooksReaderStage::-webkit-scrollbar{display:none}
                 .advancedBooksReaderPages{min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;transform-origin:center center;will-change:transform;box-sizing:border-box;padding:.4rem}
                 .advancedBooksReaderPages img{display:block;object-fit:contain;flex:0 1 auto;box-shadow:0 0 20px rgba(0,0,0,.35)}
                 .advancedBooksReaderPages.ab-fit-screen img{max-width:calc(100vw - 1rem);max-height:calc(100dvh - 1rem);width:auto;height:auto}
@@ -296,6 +300,8 @@
 
             this.stage = document.createElement('div');
             this.stage.className = 'advancedBooksReaderStage';
+            this.stage.tabIndex = 0;
+            this.stage.setAttribute('aria-label', 'Comic page viewport');
             this.pagesElement = document.createElement('div');
             this.pagesElement.className = 'advancedBooksReaderPages';
             this.message = document.createElement('div');
@@ -441,6 +447,7 @@
                 return wrapper;
             };
 
+            this.directionRow = row('Reading direction', this.directionSelect);
             this.sidePaddingRow = row('Side padding', this.sidePaddingSelect);
             this.pageGapRow = row('Page gap', this.pageGapSelect);
 
@@ -451,7 +458,7 @@
             this.toolbar.append(
                 settingsHeader,
                 row('Layout', this.layoutSelect),
-                row('Paged direction', this.directionSelect),
+                this.directionRow,
                 row('Fit', this.fitSelect),
                 row('Zoom', zoomRow),
                 this.sidePaddingRow,
@@ -606,6 +613,7 @@
             this.fitSelect.disabled = false;
             this.zoomOutButton.disabled = this.zoom <= .5;
             this.zoomInButton.disabled = this.zoom >= 4;
+            if (this.directionRow) this.directionRow.hidden = continuous;
             if (this.sidePaddingRow) this.sidePaddingRow.hidden = !continuous;
             if (this.pageGapRow) this.pageGapRow.hidden = !continuous;
             this.updateFullscreenButton();
