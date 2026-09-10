@@ -50,6 +50,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Responsive auto-hiding reader chrome
 - [x] Direct page scrubber across all reader modes
 - [x] Responsive desktop settings panel / mobile bottom sheet
+- [x] Continuous/Webtoon side padding and page-gap preferences
+- [x] Reader fullscreen toggle where browser APIs are available
 
 ## Phase 4 - Continuous reader and progress
 
