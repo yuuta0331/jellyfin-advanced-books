@@ -9,7 +9,7 @@ Four reading modes are available for CBZ/ZIP-backed Jellyfin Book items:
 - **Single page** - one page at a time;
 - **Double page** - two-page spreads with RTL/LTR ordering;
 - **Vertical continuous** - independent comic pages stacked vertically;
-- **Webtoon** - edge-to-edge continuous vertical pages with no page gap.
+- **Webtoon** - edge-to-edge continuous vertical reading with zero gap by default and optional page-gap/side-padding tuning.
 
 All four modes support Fit Screen, Fit Width, Fit Height and Original Size plus 50%-400% reader zoom. Paged modes retain click/tap zones, horizontal swipe, keyboard navigation and drag-to-pan. Vertical Continuous and Webtoon retain native one-finger/mouse-wheel scrolling; their zoom changes the continuous canvas width so high zoom can be panned with normal scrolling/touch or desktop drag panning.
 
@@ -48,7 +48,7 @@ The following settings are persisted for the current authenticated Jellyfin user
 
 - layout: Single / Double / Vertical Continuous / Webtoon;
 - reading direction: RTL / LTR;
-- fit mode: Screen / Width / Height / Original; and
+- fit mode: Screen / Width / Height / Original;
 - reader zoom: 50%-400%;
 - continuous side padding: 0%, 2%, 5%, 10%, 15% or 20%; and
 - continuous page gap: 0, 4, 8, 12, 16, 24 or 32 pixels.
