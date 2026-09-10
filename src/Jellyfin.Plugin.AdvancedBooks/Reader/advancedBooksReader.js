@@ -165,6 +165,7 @@
             this.closed = false;
             this.controlsTimer = null;
             this.settingsOpen = false;
+            this.suppressNextStageClick = false;
             this.boundKeyDown = event => this.onKeyDown(event);
             this.boundWheel = event => this.onWheel(event);
             this.boundPointerDown = event => this.onPointerDown(event);
@@ -481,7 +482,14 @@
             this.pageSlider.step = '1';
             this.pageSlider.value = '1';
             this.pageSlider.setAttribute('aria-label', 'Jump to page');
-            this.pageSlider.addEventListener('input', () => this.previewSlider());
+            this.pageSlider.addEventListener('pointerdown', () => this.showControls(false));
+            this.pageSlider.addEventListener('input', () => {
+                this.previewSlider();
+                this.showControls(false);
+            });
+            const finishSliderInteraction = () => this.showControls();
+            this.pageSlider.addEventListener('pointerup', finishSliderInteraction);
+            this.pageSlider.addEventListener('pointercancel', finishSliderInteraction);
             this.pageSlider.addEventListener('change', () => {
                 const index = Number(this.pageSlider.value) - 1;
                 if (Number.isFinite(index)) this.goTo(index, 'auto');
@@ -647,6 +655,10 @@
 
         onStageClick(event) {
             if (!this.isContinuous()) return;
+            if (this.suppressNextStageClick) {
+                this.suppressNextStageClick = false;
+                return;
+            }
             if (event.target?.closest?.('button,select,input,.advancedBooksReaderSettingsPanel,.advancedBooksNavigatorPanel')) return;
             this.toggleControls();
         }
@@ -1124,6 +1136,8 @@
             this.stage.releasePointerCapture?.(event.pointerId);
 
             if (start.continuous) {
+                const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+                if (moved > 8) this.suppressNextStageClick = true;
                 this.applyTransform();
                 return;
             }
