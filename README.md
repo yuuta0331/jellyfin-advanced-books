@@ -3,7 +3,7 @@
 Advanced book, comic, manga and magazine support for **Jellyfin 12**.
 
 > **Status: early development / not yet a stable release.**
-> Komga-compatible One-Shot handling, safe CBZ/ZIP per-page delivery, paged/continuous Advanced Reader modes, Jellyfin-backed reading progress, a lazy thumbnail page navigator, and per-user reader preferences are implemented.
+> Komga-compatible One-Shot handling, safe CBZ/ZIP per-page delivery, paged/continuous Advanced Reader modes, Jellyfin-backed reading progress, a lazy thumbnail page navigator, per-user reader preferences, and paged pinch zoom are implemented.
 
 ## What this project is for
 
@@ -23,6 +23,7 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - RTL/LTR page navigation for paged modes.
 - Fit Screen / Width / Height / Original sizing.
 - 50%-400% paged zoom and drag-to-pan.
+- **Dedicated two-finger pinch-to-zoom in paged modes.**
 - Keyboard, click/tap, swipe and wheel controls.
 - IntersectionObserver-based continuous lazy loading.
 - Bounded page cache, nearby prefetch and distant-request cancellation.
@@ -58,6 +59,8 @@ The reader consumes individual pages through Advanced Books rather than download
 
 Available modes are Single Page, Double Page, Vertical Continuous and Webtoon. Continuous modes place lightweight placeholders for the document but fetch image bytes only near the reader viewport. Distant pages are evicted from the Blob cache and can be loaded again when revisited.
 
+Single and Double Page modes support two-finger pinch zoom from 50%-400%. During the gesture a temporary smooth preview follows finger distance and midpoint; on release the final value is committed through the reader's existing zoom controls, keeping the toolbar and per-user saved zoom synchronized. Multi-touch completion is isolated from single-touch swipe handling so releasing a pinch does not become an accidental page turn.
+
 The **Pages** button opens a thumbnail navigator. Thumbnails are loaded only near the navigator viewport and are requested from a bounded server-side thumbnail endpoint. Jellyfin's normal image processor creates the small cached files; the temporary full-resolution extracted page is deleted immediately after processing. Selecting a thumbnail jumps directly to that page.
 
 Reading position is saved to Jellyfin's normal per-user item data after navigation settles and is flushed when the reader closes. Unfinished books reopen at the saved page. Reaching the final page marks the Book as played. Non-final progress updates do not clear an existing played state, so starting a reread does not silently mark a completed book unread.
@@ -92,7 +95,7 @@ The page API currently recognizes JPEG, PNG, WebP, GIF, BMP and AVIF image entri
 
 ## Still planned
 
-Important next milestones are improved pinch/touch behavior, live Jellyfin integration testing, and additional book formats. See [the roadmap](docs/ROADMAP.md).
+Important next milestones are further mobile/touch tuning, live Jellyfin integration testing, and additional book formats. See [the roadmap](docs/ROADMAP.md).
 
 ## Requirements
 
@@ -130,6 +133,7 @@ Progress writes affect only Jellyfin's normal per-user Book state (`PlaybackPosi
 ## Documentation
 
 - [Advanced Reader](docs/READER.md)
+- [Pinch Zoom](docs/PINCH_ZOOM.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Development Guide](docs/DEVELOPMENT.md)
 - [Roadmap](docs/ROADMAP.md)

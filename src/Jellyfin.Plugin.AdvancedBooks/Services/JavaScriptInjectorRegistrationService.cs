@@ -17,6 +17,7 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
     private const string ProgressResourceName = "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksProgress.js";
     private const string PreferencesResourceName = "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksPreferences.js";
     private const string NavigatorResourceName = "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksNavigator.js";
+    private const string GesturesResourceName = "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksGestures.js";
     private const string ReaderScriptId = "jellyfin-advanced-books-reader";
 
     private readonly ILogger<JavaScriptInjectorRegistrationService> _logger;
@@ -119,7 +120,7 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             var result = registerMethod.Invoke(null, [payload]);
             if (result is bool success && success)
             {
-                _logger.LogInformation("Registered the Advanced Books reader, progress, preferences and page navigator bridges with JavaScript Injector.");
+                _logger.LogInformation("Registered the Advanced Books reader, progress, preferences, page navigator and touch gesture bridges with JavaScript Injector.");
             }
             else
             {
@@ -175,7 +176,9 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             Environment.NewLine,
             LoadEmbeddedText(PreferencesResourceName),
             Environment.NewLine,
-            LoadEmbeddedText(NavigatorResourceName));
+            LoadEmbeddedText(NavigatorResourceName),
+            Environment.NewLine,
+            LoadEmbeddedText(GesturesResourceName));
     }
 
     private static string LoadEmbeddedText(string resourceName)
