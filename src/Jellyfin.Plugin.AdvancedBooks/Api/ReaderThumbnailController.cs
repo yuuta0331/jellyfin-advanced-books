@@ -89,12 +89,14 @@ public sealed class ReaderThumbnailController : ControllerBase
 
         try
         {
+            var cacheWidth = NormalizeCacheWidth(width);
             var thumbnail = await _thumbnailService
-                .GetThumbnailAsync(book, pageIndex, width, cancellationToken)
+                .GetThumbnailAsync(book, pageIndex, cacheWidth, cancellationToken)
                 .ConfigureAwait(false);
 
             Response.Headers.CacheControl = "private, max-age=86400";
             Response.Headers["X-Content-Type-Options"] = "nosniff";
+            Response.Headers["X-AdvancedBooks-Thumbnail-Width"] = cacheWidth.ToString(System.Globalization.CultureInfo.InvariantCulture);
             Response.GetTypedHeaders().LastModified = thumbnail.LastModifiedUtc;
 
             return PhysicalFile(thumbnail.Path, thumbnail.ContentType, enableRangeProcessing: false);
@@ -132,5 +134,17 @@ public sealed class ReaderThumbnailController : ControllerBase
                 detail: exception.Message,
                 statusCode: StatusCodes.Status422UnprocessableEntity);
         }
+    }
+
+    private static int NormalizeCacheWidth(int requestedWidth)
+    {
+        return requestedWidth switch
+        {
+            < 128 => 96,
+            < 180 => 128,
+            < 240 => 180,
+            < 320 => 240,
+            _ => 320
+        };
     }
 }
