@@ -233,7 +233,7 @@
                 .advancedBooksReaderPages.ab-fit-height img{height:calc(100dvh - 1rem);max-height:none;width:auto}
                 .advancedBooksReaderPages.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
                 .advancedBooksReaderStage.ab-continuous{display:block;align-items:initial;justify-content:initial;touch-action:pan-y}
-                .advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none!important;will-change:auto;padding:.5rem min(var(--ab-side-padding,0vw),12rem);gap:var(--ab-page-gap,0px);margin-inline:auto;box-sizing:border-box}
+                .advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none;will-change:auto;padding:.5rem min(var(--ab-side-padding,0vw),12rem);gap:var(--ab-page-gap,0px);margin-inline:auto;box-sizing:border-box}
                 .advancedBooksReaderPages.ab-layout-webtoon{padding-block:0}
                 .advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box}
                 .advancedBooksReaderPages.ab-layout-webtoon .advancedBooksReaderPageSlot{min-height:30vh}
