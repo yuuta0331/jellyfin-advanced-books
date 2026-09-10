@@ -37,6 +37,8 @@ public interface IReaderThumbnailService
 public sealed class ReaderThumbnailService : IReaderThumbnailService
 {
     private const int ThumbnailQuality = 70;
+    private const int ArchiveInfoCacheLimit = 32;
+    private static long _archiveInfoAccessSequence;
     private static readonly SemaphoreSlim GenerationSlots = new(3, 3);
 
     private readonly ConcurrentDictionary<string, CachedArchiveInfo> _archiveInfoCache =
@@ -224,12 +226,34 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
             && cached.Length == length
             && cached.LastWriteUtcTicks == lastWriteUtcTicks)
         {
+            _archiveInfoCache[path] = cached with { AccessSequence = Interlocked.Increment(ref _archiveInfoAccessSequence) };
             return cached.Info;
         }
 
         var info = _archiveReader.GetBookInfo(path);
-        _archiveInfoCache[path] = new CachedArchiveInfo(length, lastWriteUtcTicks, info);
+        _archiveInfoCache[path] = new CachedArchiveInfo(
+            length,
+            lastWriteUtcTicks,
+            info,
+            Interlocked.Increment(ref _archiveInfoAccessSequence));
+        TrimArchiveInfoCache(path);
         return info;
+    }
+
+    private void TrimArchiveInfoCache(string protectedPath)
+    {
+        if (_archiveInfoCache.Count <= ArchiveInfoCacheLimit)
+        {
+            return;
+        }
+
+        foreach (var candidate in _archiveInfoCache
+                     .Where(pair => !string.Equals(pair.Key, protectedPath, StringComparison.OrdinalIgnoreCase))
+                     .OrderBy(pair => pair.Value.AccessSequence)
+                     .Take(Math.Max(0, _archiveInfoCache.Count - ArchiveInfoCacheLimit)))
+        {
+            _archiveInfoCache.TryRemove(candidate.Key, out _);
+        }
     }
 
     private static string BuildCacheStem(
@@ -346,7 +370,11 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         };
     }
 
-    private sealed record CachedArchiveInfo(long Length, long LastWriteUtcTicks, ArchiveBookInfo Info);
+    private sealed record CachedArchiveInfo(
+        long Length,
+        long LastWriteUtcTicks,
+        ArchiveBookInfo Info,
+        long AccessSequence);
 
     private static void TryDelete(string path)
     {
