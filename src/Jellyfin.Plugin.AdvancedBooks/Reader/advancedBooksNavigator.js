@@ -9,7 +9,7 @@
     const thumbnailRequestConcurrency = 3;
     const gridOverscanPx = 520;
     const gridFarAbortPx = 1800;
-    const gridScrollDebounceMs = 48;
+    const gridScrollDebounceMs = 72;
     let navigatorToken = 0;
     let activeNavigator = null;
 
@@ -202,14 +202,13 @@
             this.grid.addEventListener('scroll', this.boundGridScroll, { passive: true });
 
             this.intersectionObserver = new IntersectionObserver(entries => {
-                const gridRect = this.grid?.getBoundingClientRect();
-                const center = gridRect ? (gridRect.top + gridRect.bottom) / 2 : 0;
+                const center = (this.grid?.scrollTop ?? 0) + ((this.grid?.clientHeight ?? 0) / 2);
                 for (const entry of entries) {
                     if (!entry.isIntersecting) continue;
                     const index = Number(entry.target.dataset.pageIndex);
                     if (!Number.isInteger(index)) continue;
-                    const rect = entry.target.getBoundingClientRect();
-                    this.queueThumbnail(index, Math.abs(((rect.top + rect.bottom) / 2) - center));
+                    const cardCenter = entry.target.offsetTop + (entry.target.offsetHeight / 2);
+                    this.queueThumbnail(index, Math.abs(cardCenter - center));
                 }
             }, { root: this.grid, rootMargin: '320px 0px', threshold: 0.01 });
 
@@ -296,21 +295,23 @@
         refreshGridWindow(cancelFar) {
             if (this.closed || !this.grid?.isConnected || !this.cards.length) return;
 
-            const gridRect = this.grid.getBoundingClientRect();
-            const wantedTop = gridRect.top - gridOverscanPx;
-            const wantedBottom = gridRect.bottom + gridOverscanPx;
-            const center = (gridRect.top + gridRect.bottom) / 2;
+            const visibleTop = this.grid.scrollTop;
+            const visibleBottom = visibleTop + this.grid.clientHeight;
+            const wantedTop = Math.max(0, visibleTop - gridOverscanPx);
+            const wantedBottom = visibleBottom + gridOverscanPx;
+            const center = (visibleTop + visibleBottom) / 2;
             const wanted = new Set();
             const candidates = [];
 
             for (let index = 0; index < this.cards.length; index++) {
                 const card = this.cards[index];
-                const rect = card.getBoundingClientRect();
-                if (rect.bottom < wantedTop || rect.top > wantedBottom) continue;
+                const top = card.offsetTop;
+                const bottom = top + card.offsetHeight;
+                if (bottom < wantedTop || top > wantedBottom) continue;
                 wanted.add(index);
                 candidates.push({
                     index,
-                    priority: Math.abs(((rect.top + rect.bottom) / 2) - center)
+                    priority: Math.abs(((top + bottom) / 2) - center)
                 });
             }
 
@@ -322,25 +323,21 @@
                 this.queueThumbnail(candidate.index, candidate.priority);
             }
 
-            if (cancelFar) {
-                this.abortFarRequests(gridRect);
-            } else {
-                // Also abort requests which became very far from the visible window after a fast fling.
-                this.abortFarRequests(gridRect);
-            }
-
+            this.abortFarRequests(visibleTop, visibleBottom);
             this.pumpThumbnailQueue();
         }
 
-        abortFarRequests(gridRect) {
+        abortFarRequests(visibleTop, visibleBottom) {
             for (const [index, pending] of this.pending) {
                 const card = this.cards[index];
                 if (!card?.isConnected) {
                     pending.controller.abort();
                     continue;
                 }
-                const rect = card.getBoundingClientRect();
-                if (rect.bottom < gridRect.top - gridFarAbortPx || rect.top > gridRect.bottom + gridFarAbortPx) {
+
+                const top = card.offsetTop;
+                const bottom = top + card.offsetHeight;
+                if (bottom < visibleTop - gridFarAbortPx || top > visibleBottom + gridFarAbortPx) {
                     pending.controller.abort();
                 }
             }
@@ -377,7 +374,9 @@
                         // Keep the grid usable if one preview fails.
                     })
                     .finally(() => {
-                        this.pending.delete(next.index);
+                        if (this.pending.get(next.index)?.generation === generation) {
+                            this.pending.delete(next.index);
+                        }
                         if (generation === this.panelGeneration) {
                             this.activeRequests = Math.max(0, this.activeRequests - 1);
                             this.pumpThumbnailQueue();
