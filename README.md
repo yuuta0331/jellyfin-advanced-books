@@ -27,6 +27,8 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - **Responsive auto-hiding reader chrome** with center-tap/click reveal.
 - **Direct page scrubber in every reader mode** for fast long-book navigation.
 - Compact desktop controls and a mobile settings bottom sheet.
+- Continuous/Webtoon side padding and page-gap controls.
+- Reader fullscreen toggle on supported browsers/wrappers.
 - Keyboard, click/tap, swipe and wheel controls.
 - IntersectionObserver-based continuous lazy loading.
 - Bounded page cache, nearby prefetch and distant-request cancellation.
@@ -36,7 +38,7 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - **Per-user reading position stored in Jellyfin user data.**
 - **Automatic resume for unfinished books, including across Jellyfin Web clients.**
 - **Per-user reader preferences stored in Jellyfin's display-preferences database.**
-- Reader layout, direction, fit mode and paged zoom restore across Jellyfin Web clients for the same user.
+- Reader layout, direction, fit mode, zoom, continuous side padding and page gap restore across Jellyfin Web clients for the same user.
 - Final-page completion marks the Jellyfin Book as played.
 - Resume positions use Jellyfin's built-in ComicsPlayer page/tick convention.
 - Optional automatic Jellyfin Web integration through a Jellyfin 12-compatible JavaScript Injector plugin.
@@ -66,7 +68,7 @@ Available modes are Single Page, Double Page, Vertical Continuous and Webtoon. C
 
 Reader controls no longer consume permanent screen space. A compact top chrome and bottom navigation strip appear when the reader opens, then auto-hide while reading. Move the mouse or tap/click the center area to bring them back. The bottom strip includes Previous/Next controls plus a page scrubber that can jump directly across long manga volumes in every layout. Reader settings live in a desktop popover or mobile bottom sheet.
 
-All four layouts support 50%-400% reader zoom. Vertical Continuous and Webtoon keep native one-finger vertical scrolling while also supporting the zoom controls, Ctrl+wheel, and two-finger pinch. At greater than 100% zoom, continuous layouts can be panned with normal scrolling/touch and desktop drag panning.
+All four layouts support 50%-400% reader zoom. Vertical Continuous and Webtoon keep native one-finger vertical scrolling while also supporting the zoom controls, Ctrl+wheel, and two-finger pinch. At greater than 100% zoom, continuous layouts can be panned with normal scrolling/touch and desktop drag panning. Continuous layouts also expose persisted side-padding and page-gap controls similar to dedicated comic readers.
 
 The **Pages** button opens a thumbnail navigator. Thumbnails are loaded only near the navigator viewport and are requested from a bounded server-side thumbnail endpoint. Jellyfin's normal image processor creates the small cached files; the temporary full-resolution extracted page is deleted immediately after processing. Selecting a thumbnail jumps directly to that page.
 
