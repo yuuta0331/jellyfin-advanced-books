@@ -23,12 +23,6 @@ public static class ReaderPreferenceRules
     /// <summary>Default continuous-reader page gap in pixels.</summary>
     public const int DefaultPageGap = 0;
 
-    /// <summary>Supported continuous-reader side padding percentages.</summary>
-    public static readonly int[] SidePaddingValues = [0, 2, 5, 10, 15, 20];
-
-    /// <summary>Supported continuous-reader page gaps in pixels.</summary>
-    public static readonly int[] PageGapValues = [0, 4, 8, 12, 16, 24, 32];
-
     /// <summary>Minimum persisted zoom.</summary>
     public const double MinimumZoom = 0.5d;
 
@@ -53,11 +47,11 @@ public static class ReaderPreferenceRules
 
     /// <summary>Returns whether a continuous-reader side padding value is supported.</summary>
     public static bool IsValidSidePadding(int value)
-        => SidePaddingValues.Contains(value);
+        => value is 0 or 2 or 5 or 10 or 15 or 20;
 
     /// <summary>Returns whether a continuous-reader page gap value is supported.</summary>
     public static bool IsValidPageGap(int value)
-        => PageGapValues.Contains(value);
+        => value is 0 or 4 or 8 or 12 or 16 or 24 or 32;
 
     /// <summary>Normalizes a stored layout, falling back when stale or unknown.</summary>
     public static string NormalizeLayout(string? value)
