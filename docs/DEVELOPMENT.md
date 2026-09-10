@@ -36,11 +36,11 @@ src/
     Komga/                            host-independent Komga compatibility logic
     Reading/                          host-independent progress/page mapping
   Jellyfin.Plugin.AdvancedBooks/
-    Api/                              Jellyfin-authenticated page/progress endpoints
+    Api/                              Jellyfin-authenticated page/progress/thumbnail endpoints
     Configuration/                    server/plugin settings
-    Reader/                           isolated Jellyfin Web reader + progress bridge
+    Reader/                           isolated reader, progress and navigator scripts
     Resolvers/                        Jellyfin library resolver integration
-    Services/                         optional runtime integrations
+    Services/                         runtime integration + thumbnail generation
 tests/
   Jellyfin.AdvancedBooks.Core.Tests/ unit tests
 docs/
@@ -77,6 +77,20 @@ The first request should return JSON page metadata without a server filesystem p
 
 Also test a corrupt ZIP and a deliberately over-limit fixture; these should fail cleanly with HTTP 422 rather than exhausting server memory or extracting files.
 
+### Thumbnail API smoke test
+
+For the same authenticated Book, verify:
+
+```text
+GET /AdvancedBooks/Books/{itemId}/Pages/0/Thumbnail?width=180
+```
+
+The response should be a small WebP/JPEG/PNG image, should include `X-AdvancedBooks-Thumbnail-Width`, and should not expose a filesystem path. Requests below 96 or above 320 must return HTTP 400.
+
+Check width normalization as well: representative requests in the allowed range should map downward to one of 96, 128, 180, 240 or 320 pixels. Repeating the same page/width should reuse the plugin cache rather than recreate the thumbnail.
+
+After generation, verify the plugin's `reader-thumbnail-work` directory contains no retained full-resolution page from the completed request. The temporary image-processor result must also be removed after the plugin-owned thumbnail is copied.
+
 ### Progress API smoke test
 
 For the same authenticated Book, verify:
@@ -108,13 +122,16 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 4. open it and verify only the current/nearby page endpoints are requested in browser developer tools rather than a full-book download;
 5. verify Single/Double, RTL/LTR and all four fit modes;
 6. verify Vertical Continuous and Webtoon lazy-load pages as they approach the viewport;
-7. navigate to a middle page, close the reader, reopen it, and confirm it resumes at that page;
-8. repeat the reopen test from a second Jellyfin Web browser/client signed in as the same user;
-9. navigate to the final page and confirm the Book becomes played in Jellyfin;
-10. reopen the completed Book and verify rereading earlier pages does not clear the played state;
-11. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and wheel navigation;
-12. zoom above 100% in a paged mode, drag to pan, then close with Escape;
-13. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+7. open **Pages** and confirm only thumbnails near the navigator viewport are requested;
+8. jump to a distant thumbnail and confirm the intended page is reached before the original reader layout is restored;
+9. close the page navigator during thumbnail loading and confirm outstanding requests are aborted;
+10. navigate to a middle page, close the reader, reopen it, and confirm it resumes at that page;
+11. repeat the reopen test from a second Jellyfin Web browser/client signed in as the same user;
+12. navigate to the final page and confirm the Book becomes played in Jellyfin;
+13. reopen the completed Book and verify rereading earlier pages does not clear the played state;
+14. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and wheel navigation;
+15. zoom above 100% in a paged mode, drag to pan, then close with Escape;
+16. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.
 
@@ -125,8 +142,10 @@ The JavaScript Injector integration is optional at runtime and loaded by reflect
 - Run `node --check` on every embedded reader script after modifications.
 - Never use client-provided filesystem paths in HTTP APIs.
 - Validate client-provided page indexes against server-side archive metadata before persisting them.
+- Bound user-selectable cache variants and concurrent thumbnail generation.
 - Prefer streaming over buffering full comic archives.
 - Revoke browser Blob URLs when evicting pages or closing the reader.
+- Abort navigator thumbnail requests when the navigator closes.
 - Preserve the user's source files; metadata writes must be explicit opt-in behavior if introduced.
 - Keep UI integration isolated from server-domain logic.
 
@@ -134,7 +153,7 @@ The JavaScript Injector integration is optional at runtime and loaded by reflect
 
 Jellyfin plugin ABI changes can be breaking. Update `Jellyfin.Controller`, `Jellyfin.Model`, `Jellyfin.Naming`, `build.yaml`'s `targetAbi`, and the target framework together, then run unit and integration tests.
 
-The progress mapping must also be rechecked whenever Jellyfin Web changes `ComicsPlayer.currentTime()`, `startPositionTicks`, or playbackmanager's millisecond/tick conversion.
+The progress mapping must also be rechecked whenever Jellyfin Web changes `ComicsPlayer.currentTime()`, `startPositionTicks`, or playbackmanager's millisecond/tick conversion. Thumbnail generation must be rechecked if Jellyfin changes `IImageProcessor`, `ImageProcessingOptions`, or supported output formats.
 
 ## Pull requests
 

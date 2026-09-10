@@ -28,6 +28,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Individual page streaming endpoint
 - [x] Bounded reader-side prefetch/cache policy
 - [x] Archive traversal and decompression-bomb protections
+- [x] Bounded thumbnail endpoint using Jellyfin image processing
 - [ ] Live Jellyfin reader API integration tests
 
 ## Phase 3 - Advanced paged reader
@@ -39,7 +40,9 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Fit width / height / screen / original
 - [x] Basic zoom and drag-to-pan
 - [x] Click/tap, keyboard, wheel and swipe navigation
-- [ ] Thumbnail/page navigator
+- [x] Thumbnail/page navigator
+- [x] Lazy thumbnail loading and bounded Blob cache
+- [x] Direct page jumping
 - [x] Full-window reader overlay
 - [ ] Persist reader preferences per user
 

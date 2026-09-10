@@ -3,7 +3,7 @@
 Advanced book, comic, manga and magazine support for **Jellyfin 12**.
 
 > **Status: early development / not yet a stable release.**
-> Komga-compatible One-Shot handling, safe CBZ/ZIP per-page delivery, paged/continuous Advanced Reader modes, and Jellyfin-backed reading progress are implemented.
+> Komga-compatible One-Shot handling, safe CBZ/ZIP per-page delivery, paged/continuous Advanced Reader modes, Jellyfin-backed reading progress, and a lazy thumbnail page navigator are implemented.
 
 ## What this project is for
 
@@ -26,6 +26,9 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - Keyboard, click/tap, swipe and wheel controls.
 - IntersectionObserver-based continuous lazy loading.
 - Bounded page cache, nearby prefetch and distant-request cancellation.
+- **Lazy thumbnail page navigator** with direct page jumping.
+- Server-side thumbnail generation through Jellyfin's image processor.
+- Bounded thumbnail cache in the browser and plugin data directory.
 - **Per-user reading position stored in Jellyfin user data.**
 - **Automatic resume for unfinished books, including across Jellyfin Web clients.**
 - Final-page completion marks the Jellyfin Book as played.
@@ -53,6 +56,8 @@ The reader consumes individual pages through Advanced Books rather than download
 
 Available modes are Single Page, Double Page, Vertical Continuous and Webtoon. Continuous modes place lightweight placeholders for the document but fetch image bytes only near the reader viewport. Distant pages are evicted from the Blob cache and can be loaded again when revisited.
 
+The **Pages** button opens a thumbnail navigator. Thumbnails are loaded only near the navigator viewport and are requested from a bounded server-side thumbnail endpoint. Jellyfin's normal image processor creates the small cached files; the temporary full-resolution extracted page is deleted immediately after processing. Selecting a thumbnail jumps directly to that page.
+
 Reading position is saved to Jellyfin's normal per-user item data after navigation settles and is flushed when the reader closes. Unfinished books reopen at the saved page. Reaching the final page marks the Book as played. Non-final progress updates do not clear an existing played state, so starting a reread does not silently mark a completed book unread.
 
 To expose the **Advanced Reader** button inside Jellyfin Web today, install a Jellyfin 12-compatible build of the community **JavaScript Injector** plugin and restart Jellyfin. Advanced Books detects it at runtime and registers its embedded reader scripts; there is no compile-time dependency between the plugins.
@@ -64,11 +69,14 @@ See [Advanced Reader](docs/READER.md) for controls and implementation details.
 ```text
 GET /AdvancedBooks/Books/{itemId}/Pages
 GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}
+GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}/Thumbnail?width=180
 GET /AdvancedBooks/Books/{itemId}/Progress
 PUT /AdvancedBooks/Books/{itemId}/Progress
 ```
 
 Clients supply only a Jellyfin item ID; raw server filesystem paths are never accepted. Endpoints require an authenticated Jellyfin user and a Book visible to that user. Unsupported formats return HTTP 415; invalid or safety-rejected archives return HTTP 422.
+
+Thumbnail widths are constrained to 96-320 pixels. Generated thumbnails are cached beneath the plugin data directory using an archive/page/version-aware key. Full-resolution extracted work files are not retained.
 
 Progress page indexes are validated against the server-side archive page count. Positions use `pageIndex * 10,000` playback ticks, matching Jellyfin Web's built-in ComicsPlayer convention so the standard and Advanced readers can share resume data.
 
@@ -76,7 +84,7 @@ The page API currently recognizes JPEG, PNG, WebP, GIF, BMP and AVIF image entri
 
 ## Still planned
 
-Important next milestones are a thumbnail/page navigator, persisted per-user reader preferences, improved pinch behavior and additional book formats. See [the roadmap](docs/ROADMAP.md).
+Important next milestones are persisted per-user reader preferences, improved pinch behavior, live Jellyfin integration testing, and additional book formats. See [the roadmap](docs/ROADMAP.md).
 
 ## Requirements
 
@@ -106,6 +114,8 @@ By default, a One-Shot uses its book title as its Jellyfin series name, approxim
 The plugin is read-only with respect to media files. Reader APIs resolve a Jellyfin item ID server-side, verify the current user's visibility, and never accept a client-provided media path.
 
 ZIP access enforces bounded entry/page counts, per-page and total uncompressed-byte limits, a maximum compression ratio and unsafe-entry-path rejection. Pages are streamed from archives rather than extracting the whole book to disk or memory.
+
+Thumbnail generation may temporarily extract one validated page to the plugin work directory so Jellyfin can resize it. That source work file is deleted immediately after processing; only the small generated thumbnail cache remains.
 
 Progress writes affect only Jellyfin's normal per-user Book state (`PlaybackPositionTicks`, `Played`, and `LastPlayedDate`); source comic files and their metadata are not modified.
 
