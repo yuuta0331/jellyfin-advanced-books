@@ -27,14 +27,14 @@
         });
     }
 
-    async function putProgress(itemId, pageIndex, completed) {
+    async function putProgress(itemId, pageIndex) {
         const apiClient = getApiClient();
         if (!apiClient || typeof apiClient.ajax !== 'function') return null;
         return apiClient.ajax({
             type: 'PUT',
             contentType: 'application/json',
             dataType: 'json',
-            data: JSON.stringify({ PageIndex: pageIndex, Completed: completed }),
+            data: JSON.stringify({ PageIndex: pageIndex }),
             url: getProgressUrl(apiClient, itemId)
         });
     }
@@ -179,11 +179,7 @@
         if (session.lastSavedPage === position.pageIndex) return;
 
         session.saving = true;
-        putProgress(
-            session.itemId,
-            position.pageIndex,
-            position.pageIndex >= position.pageCount - 1
-        ).then(() => {
+        putProgress(session.itemId, position.pageIndex).then(() => {
             session.lastSavedPage = position.pageIndex;
         }).catch(() => {
             // Keep reading usable when progress persistence is temporarily unavailable.
