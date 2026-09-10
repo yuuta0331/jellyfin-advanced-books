@@ -18,6 +18,7 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddSingleton<IItemResolver, OneShotBookResolver>();
         serviceCollection.AddSingleton<IZipBookArchiveReader, ZipBookArchiveReader>();
+        serviceCollection.AddSingleton<IReaderThumbnailService, ReaderThumbnailService>();
         serviceCollection.AddHostedService<JavaScriptInjectorRegistrationService>();
     }
 }
