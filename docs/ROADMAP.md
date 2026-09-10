@@ -1,7 +1,6 @@
 # Roadmap
 
-The roadmap is ordered to keep the media library safe while progressively replacing the missing
-parts of Jellyfin's standard book experience.
+The roadmap is ordered to keep the media library safe while progressively replacing the missing parts of Jellyfin's standard book experience.
 
 ## Phase 0 - Foundation
 
@@ -27,42 +26,45 @@ parts of Jellyfin's standard book experience.
 - [x] Natural page ordering
 - [x] Page metadata endpoint
 - [x] Individual page streaming endpoint
-- [ ] Cache and prefetch policy
+- [x] Bounded reader-side prefetch/cache policy
 - [x] Archive traversal and decompression-bomb protections
-- [ ] Reader API integration tests against a running Jellyfin 12 server
+- [ ] Live Jellyfin reader API integration tests
 
 ## Phase 3 - Advanced paged reader
 
-- [ ] Single-page mode
-- [ ] Double-page mode
-- [ ] LTR / RTL
-- [ ] Fit width / height / screen / original
-- [ ] Zoom and pan
-- [ ] Click/tap, keyboard, wheel and swipe navigation
+- [x] Jellyfin Web reader injection adapter
+- [x] Single-page mode
+- [x] Double-page mode
+- [x] LTR / RTL
+- [x] Fit width / height / screen / original
+- [x] Basic zoom and drag-to-pan
+- [x] Click/tap, keyboard, wheel and swipe navigation
 - [ ] Thumbnail/page navigator
-- [ ] Fullscreen
+- [x] Full-window reader overlay
+- [ ] Persist reader preferences per user
 
 ## Phase 4 - Continuous reader and progress
 
 - [ ] Vertical continuous mode
 - [ ] Webtoon mode
-- [ ] Lazy loading
-- [ ] Configurable page prefetch
+- [ ] Lazy loading for continuous mode
+- [ ] Configurable continuous-mode prefetch
 - [ ] Resume last position
 - [ ] Mark completed at end
-- [ ] Per-user reader preferences
+- [ ] Jellyfin reading-position synchronization
 
 ## Phase 5 - Formats and clients
 
 - [ ] CBR support
 - [ ] PDF reader integration
 - [ ] EPUB reader improvements
-- [ ] Mobile/touch tuning
+- [ ] Mobile/touch and pinch-zoom tuning
 - [ ] Jellyfin wrapper-client compatibility matrix
 
 ## Phase 6 - Distribution
 
-- [ ] Reproducible plugin package
+- [x] Development plugin artifact in CI
+- [ ] Reproducible release plugin package
 - [ ] Repository manifest
 - [ ] Release workflow
 - [ ] Upgrade/migration tests

@@ -12,6 +12,18 @@
     <div data-role="content">
       <div class="content-primary">
         <form id="AdvancedBooksConfigForm">
+          <h2>Advanced Reader</h2>
+
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="EnableAdvancedReader" type="checkbox" is="emby-checkbox">
+              <span>Enable Advanced Reader integration</span>
+            </label>
+            <div class="fieldDescription">
+              When the Jellyfin 12-compatible JavaScript Injector plugin is installed, Advanced Books registers its reader automatically and adds an Advanced Reader button to supported CBZ/ZIP book detail pages. Restart Jellyfin after changing this setting.
+            </div>
+          </div>
+
           <h2>Komga compatibility</h2>
 
           <div class="checkboxContainer checkboxContainer-withDescription">
@@ -72,6 +84,7 @@
         .addEventListener('pageshow', function () {
           Dashboard.showLoadingMsg();
           ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
+            document.querySelector('#EnableAdvancedReader').checked = config.EnableAdvancedReader !== false;
             document.querySelector('#EnableKomgaOneShots').checked = config.EnableKomgaOneShots;
             document.querySelector('#OneShotDirectory').value = config.OneShotDirectory || '_oneshots';
             document.querySelector('#OneShotMatchCaseSensitive').checked = config.OneShotMatchCaseSensitive;
@@ -85,6 +98,7 @@
           Dashboard.showLoadingMsg();
 
           ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
+            config.EnableAdvancedReader = document.querySelector('#EnableAdvancedReader').checked;
             config.EnableKomgaOneShots = document.querySelector('#EnableKomgaOneShots').checked;
             config.OneShotDirectory = document.querySelector('#OneShotDirectory').value.trim() || '_oneshots';
             config.OneShotMatchCaseSensitive = document.querySelector('#OneShotMatchCaseSensitive').checked;

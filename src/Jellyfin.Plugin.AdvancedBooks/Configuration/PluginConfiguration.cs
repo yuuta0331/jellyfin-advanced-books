@@ -48,4 +48,9 @@ public sealed class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets how One-Shots map to Jellyfin's series fields.
     /// </summary>
     public OneShotSeriesMode OneShotSeriesMode { get; set; } = OneShotSeriesMode.BookTitle;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Advanced Reader Web integration should be enabled.
+    /// </summary>
+    public bool EnableAdvancedReader { get; set; } = true;
 }
