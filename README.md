@@ -22,7 +22,7 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - **Vertical Continuous** and **Webtoon** reader modes.
 - RTL/LTR page navigation for paged modes.
 - Fit Screen / Width / Height / Original sizing with measured reader-viewport dimensions.
-- 50%-400% paged zoom and drag-to-pan.
+- 50%-400% reader zoom; paged drag-to-pan plus continuous desktop pan.
 - **Two-finger pinch-to-zoom in paged, Vertical Continuous and Webtoon modes.**
 - **Responsive auto-hiding reader chrome** with center-tap/click reveal.
 - **Direct page scrubber in every reader mode** for fast long-book navigation.
@@ -77,7 +77,7 @@ The **Pages** button opens a thumbnail navigator. Thumbnails are loaded through 
 
 Reading position is saved to Jellyfin's normal per-user item data after navigation settles and is flushed when the reader closes. Unfinished books reopen at the saved page. Reaching the final page marks the Book as played. Non-final progress updates do not clear an existing played state, so starting a reread does not silently mark a completed book unread.
 
-Reader preferences are also stored per Jellyfin user. Single/Double/Vertical/Webtoon layout, RTL/LTR direction, fit mode, zoom, side padding and page gap are restored after reading-position resume completes so the saved page is established before the saved presentation mode is re-applied.
+Reader preferences are also stored per Jellyfin user. Single/Double/Vertical/Webtoon layout, RTL/LTR direction, fit mode, zoom, side padding and page gap are restored after reading-position resume completes so the saved page is established before the saved presentation mode is re-applied. Fit Screen is the safe default; legacy pre-v0.11 preference records that accidentally present Fit Height as the default are migrated to Fit Screen, while a Fit Height choice saved afterward remains explicit and persistent.
 
 ### Required companion plugin for Jellyfin Web
 
