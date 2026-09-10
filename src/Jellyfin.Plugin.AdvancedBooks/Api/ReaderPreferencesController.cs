@@ -1,5 +1,6 @@
 using System.Globalization;
 using Jellyfin.AdvancedBooks.Core.Reading;
+using Jellyfin.Database.Implementations.Entities;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Net;
 using Microsoft.AspNetCore.Authorization;
@@ -134,7 +135,7 @@ public sealed class ReaderPreferencesController : ControllerBase
             normalizedZoom));
     }
 
-    private async Task<MediaBrowser.Controller.Entities.User?> GetCurrentUser()
+    private async Task<User?> GetCurrentUser()
     {
         var authorizationInfo = await _authorizationContext
             .GetAuthorizationInfo(HttpContext)
