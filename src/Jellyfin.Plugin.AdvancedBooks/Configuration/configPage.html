@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Advanced Books</title>
+</head>
+<body>
+  <div id="AdvancedBooksConfigPage"
+       data-role="page"
+       class="page type-interior pluginConfigurationPage"
+       data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div data-role="content">
+      <div class="content-primary">
+        <form id="AdvancedBooksConfigForm">
+          <h2>Komga compatibility</h2>
+
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="EnableKomgaOneShots" type="checkbox" is="emby-checkbox">
+              <span>Enable Komga-compatible One-Shots</span>
+            </label>
+            <div class="fieldDescription">
+              Books under a matching directory are resolved as independent One-Shots before Jellyfin's default book resolver.
+            </div>
+          </div>
+
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="OneShotDirectory">One-Shots directory matcher</label>
+            <input id="OneShotDirectory" type="text" is="emby-input">
+            <div class="fieldDescription">
+              Default: _oneshots. Like Komga, a plain value matches anywhere in the directory path.
+              Prefix with / (for example /_oneshots) to require a directory segment that starts with the value.
+            </div>
+          </div>
+
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="OneShotMatchCaseSensitive" type="checkbox" is="emby-checkbox">
+              <span>Case-sensitive path matching</span>
+            </label>
+          </div>
+
+          <div class="selectContainer">
+            <label class="selectLabel" for="OneShotSeriesMode">One-Shot series mapping</label>
+            <select is="emby-select" id="OneShotSeriesMode" class="emby-select-withcolor emby-select">
+              <option value="BookTitle">Book title (recommended, closest to Komga)</option>
+              <option value="ParsedSeries">Series parsed from filename</option>
+              <option value="None">No series name</option>
+            </select>
+            <div class="fieldDescription">
+              Komga models a One-Shot as a one-book series. "Book title" approximates that model in Jellyfin.
+            </div>
+          </div>
+
+          <div class="fieldDescription">
+            Restart Jellyfin and rescan the affected Books library after changing resolver settings.
+          </div>
+
+          <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+            <span>Save</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      const AdvancedBooksConfig = {
+        pluginUniqueId: '843f3c69-88ee-4e82-84f3-330b84d64d88'
+      };
+
+      document.querySelector('#AdvancedBooksConfigPage')
+        .addEventListener('pageshow', function () {
+          Dashboard.showLoadingMsg();
+          ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
+            document.querySelector('#EnableKomgaOneShots').checked = config.EnableKomgaOneShots;
+            document.querySelector('#OneShotDirectory').value = config.OneShotDirectory || '_oneshots';
+            document.querySelector('#OneShotMatchCaseSensitive').checked = config.OneShotMatchCaseSensitive;
+            document.querySelector('#OneShotSeriesMode').value = config.OneShotSeriesMode || 'BookTitle';
+            Dashboard.hideLoadingMsg();
+          });
+        });
+
+      document.querySelector('#AdvancedBooksConfigForm')
+        .addEventListener('submit', function (event) {
+          Dashboard.showLoadingMsg();
+
+          ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
+            config.EnableKomgaOneShots = document.querySelector('#EnableKomgaOneShots').checked;
+            config.OneShotDirectory = document.querySelector('#OneShotDirectory').value.trim() || '_oneshots';
+            config.OneShotMatchCaseSensitive = document.querySelector('#OneShotMatchCaseSensitive').checked;
+            config.OneShotSeriesMode = document.querySelector('#OneShotSeriesMode').value;
+
+            ApiClient.updatePluginConfiguration(AdvancedBooksConfig.pluginUniqueId, config).then(function (result) {
+              Dashboard.processPluginConfigurationUpdateResult(result);
+            });
+          });
+
+          event.preventDefault();
+          return false;
+        });
+    </script>
+  </div>
+</body>
+</html>
