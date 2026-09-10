@@ -17,7 +17,8 @@ artifacts:
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: >
   Redesign the Advanced Reader UI for desktop and mobile. Add auto-hiding reader
-  chrome, a direct page scrubber in every layout, responsive settings sheets, and
-  corrected Jellyfin detail-button markup. Vertical Continuous and Webtoon now
-  support fit controls, persisted zoom, Ctrl+wheel zoom, two-finger pinch zoom,
-  and desktop drag panning while retaining native one-finger scrolling.
+  chrome, a direct page scrubber in every layout, responsive settings sheets,
+  corrected Jellyfin detail-button markup, and an optional fullscreen toggle.
+  Vertical Continuous and Webtoon now support fit controls, persisted zoom,
+  side padding, page gaps, Ctrl+wheel zoom, two-finger pinch zoom, and desktop
+  drag panning while retaining native one-finger scrolling.
