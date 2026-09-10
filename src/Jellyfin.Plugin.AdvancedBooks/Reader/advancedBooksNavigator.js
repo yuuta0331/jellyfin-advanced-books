@@ -129,13 +129,14 @@
             if (this.closed || !this.counter || this.pages.length === 0) return;
             ensureStyles();
             const toolbar = this.overlay.querySelector('.advancedBooksReaderToolbar');
-            if (!toolbar || toolbar.querySelector('.advancedBooksNavigatorButton')) return;
+            const buttonHost = this.overlay.querySelector('[data-ab-pages-host="true"]') ?? toolbar;
+            if (!buttonHost || this.overlay.querySelector('.advancedBooksNavigatorButton')) return;
 
             this.button = document.createElement('button');
             this.button.type = 'button';
-            this.button.className = 'advancedBooksNavigatorButton';
-            this.button.textContent = 'Pages';
-            this.button.title = 'Open page navigator';
+            this.button.className = 'advancedBooksNavigatorButton advancedBooksReaderIconButton';
+            this.button.textContent = '▦';
+            this.button.title = 'Pages';
             this.button.setAttribute('aria-label', 'Open page navigator');
             this.button.addEventListener('click', event => {
                 event.preventDefault();
@@ -143,8 +144,7 @@
                 this.toggle();
             });
 
-            const spacer = toolbar.querySelector('.advancedBooksReaderSpacer');
-            toolbar.insertBefore(this.button, spacer ?? this.counter);
+            buttonHost.appendChild(this.button);
 
             this.counterObserver = new MutationObserver(() => this.updateCurrent());
             this.counterObserver.observe(this.counter, { childList: true, characterData: true, subtree: true });
@@ -335,7 +335,14 @@
 
         async jumpToPage(index) {
             if (!this.overlay?.isConnected || index < 0 || index >= this.pages.length) return;
-            const layoutSelect = this.overlay.querySelector('.advancedBooksReaderToolbar select');
+            const reader = this.overlay.__advancedBooksReaderSession;
+            if (reader && typeof reader.goTo === 'function') {
+                reader.goTo(index);
+                return;
+            }
+
+            const layoutSelect = this.overlay.querySelector('[data-ab-control="layout"]')
+                ?? this.overlay.querySelector('.advancedBooksReaderToolbar select');
             if (!layoutSelect) return;
             const originalLayout = layoutSelect.value || 'single';
 
