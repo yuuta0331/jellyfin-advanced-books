@@ -150,7 +150,13 @@
         return [];
     }
 
-    function applyZoom(controls, zoom) {
+    function applyZoom(controls, zoom, overlay) {
+        const reader = overlay?.__advancedBooksReaderSession;
+        if (reader && typeof reader.setZoom === 'function') {
+            reader.setZoom(zoom);
+            return;
+        }
+
         if (!controls.zoomReset) return;
         controls.zoomReset.click();
         const operations = findZoomOperations(zoom);
@@ -175,7 +181,7 @@
             setSelect(controls.layout, preferences.layout);
             setSelect(controls.direction, preferences.direction);
             if (preferences.layout !== 'webtoon') setSelect(controls.fit, preferences.fit);
-            applyZoom(controls, preferences.zoom);
+            applyZoom(controls, preferences.zoom, session.overlay);
         } finally {
             session.suppressSave = false;
         }
