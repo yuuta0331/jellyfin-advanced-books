@@ -121,10 +121,20 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
                     await lease.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
                 }
 
-                var supportedOutputs = _imageProcessor.GetSupportedImageOutputFormats();
+                var serverOutputs = _imageProcessor.GetSupportedImageOutputFormats();
+                var supportedOutputs = new List<ImageFormat>(3);
+                foreach (var format in serverOutputs)
+                {
+                    if (format is ImageFormat.Webp or ImageFormat.Jpg or ImageFormat.Png)
+                    {
+                        supportedOutputs.Add(format);
+                    }
+                }
+
                 if (supportedOutputs.Count == 0)
                 {
-                    throw new ReaderThumbnailUnavailableException("Jellyfin has no enabled image encoder for reader thumbnails.");
+                    throw new ReaderThumbnailUnavailableException(
+                        "Jellyfin has no enabled WebP, JPEG, or PNG image encoder for reader thumbnails.");
                 }
 
                 var sourceDate = info.LastModifiedUtc.UtcDateTime;
@@ -210,7 +220,7 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
 
     private static ReaderThumbnailFile? FindCachedFile(string directory, string cacheStem)
     {
-        foreach (var extension in new[] { ".webp", ".jpg", ".png", ".avif" })
+        foreach (var extension in new[] { ".webp", ".jpg", ".png" })
         {
             var path = Path.Combine(directory, cacheStem + extension);
             if (File.Exists(path))
@@ -249,8 +259,9 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         return extension.ToLowerInvariant() switch
         {
             ".jpeg" => ".jpg",
-            ".jpg" or ".png" or ".webp" or ".avif" => extension.ToLowerInvariant(),
-            _ => ".jpg"
+            ".jpg" or ".png" or ".webp" => extension.ToLowerInvariant(),
+            _ => throw new ReaderThumbnailUnavailableException(
+                $"Jellyfin produced unsupported thumbnail format '{extension}'.")
         };
     }
 
@@ -260,7 +271,6 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         {
             ".webp" => "image/webp",
             ".png" => "image/png",
-            ".avif" => "image/avif",
             _ => "image/jpeg"
         };
     }
