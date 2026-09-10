@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.11.0.0",
+        "changelog": "Improve desktop and mobile reader responsiveness. Use measured viewport sizing for Fit modes and migrate the legacy Fit Height default to Fit Screen, keep mobile controls square, anchor scrub previews to the active finger/pointer, reduce preview latency, cache archive metadata, and reuse compatible larger thumbnail cache entries. Stabilize Webtoon/Vertical scrolling with earlier and directional prefetch, decoded page geometry, and scroll-anchor compensation. Fix Pages-grid lazy loading with a viewport-priority queue and explicit scroll fallback, and isolate two-finger pinch zoom from page pan/scroll movement.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.11.0.0/AdvancedBooks_0.11.0.0.zip",
+        "checksum": "4238fd6584c3f265ed97d4849f932987",
+        "timestamp": "2026-09-10T20:24:18Z"
+      },
+      {
         "version": "0.10.1.0",
         "changelog": "Fix Advanced Reader integration disappearing when the JavaScript Injector registration becomes corrupted. Register the reader core, progress, preferences, navigator, and gestures as five independent bounded scripts instead of one large combined payload. Remove the legacy combined entry on startup, validate embedded UTF-8/control characters, roll back partial registrations, and guard per-script size in CI and release validation.",
         "targetAbi": "12.0.0.0",
