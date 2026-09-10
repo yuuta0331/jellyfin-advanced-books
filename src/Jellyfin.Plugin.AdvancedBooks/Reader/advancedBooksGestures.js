@@ -7,6 +7,7 @@
     const minimumZoom = 0.5;
     const maximumZoom = 4;
     const minimumPinchDistance = 24;
+    const minimumCommittedZoomDelta = 0.025;
     let activeSession = null;
 
     function clampZoom(value) {
@@ -92,6 +93,7 @@
             this.stage = overlay.querySelector('.advancedBooksReaderStage');
             this.pages = overlay.querySelector('.advancedBooksReaderPages');
             this.pointers = new Map();
+            this.pinchPointerIds = [];
             this.pinching = false;
             this.suppressUntilRelease = false;
             this.startDistance = 0;
@@ -133,13 +135,32 @@
             if (event.pointerType !== 'touch' || this.isContinuous()) return;
             this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
-            if (this.pointers.size !== 2 || this.pinching) return;
-            const [first, second] = Array.from(this.pointers.values());
+            if (this.pinching || this.suppressUntilRelease) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
+
+            if (this.pointers.size < 2) return;
+
+            // From the second touch onward, keep the reader's single-pointer gesture
+            // state isolated even if the fingers initially land very close together.
+            this.suppressUntilRelease = true;
+            this.tryBeginPinch();
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }
+
+        tryBeginPinch() {
+            if (this.pinching || this.pointers.size < 2 || this.isContinuous()) return false;
+            const entries = Array.from(this.pointers.entries()).slice(0, 2);
+            const first = entries[0][1];
+            const second = entries[1][1];
             const initialDistance = distance(first, second);
-            if (initialDistance < minimumPinchDistance) return;
+            if (initialDistance < minimumPinchDistance) return false;
 
             this.pinching = true;
-            this.suppressUntilRelease = true;
+            this.pinchPointerIds = [entries[0][0], entries[1][0]];
             this.startDistance = initialDistance;
             this.startZoom = currentZoom(this.overlay);
             this.targetZoom = this.startZoom;
@@ -150,9 +171,15 @@
             this.pages.style.transition = 'none';
             this.pages.style.willChange = 'transform';
 
-            // Do not let the second pointer become a second single-pointer reader gesture.
-            event.preventDefault();
-            event.stopImmediatePropagation();
+            for (const pointerId of this.pinchPointerIds) {
+                try {
+                    this.stage.setPointerCapture?.(pointerId);
+                } catch {
+                    // Pointer capture is an optimization. The gesture can still proceed
+                    // while both pointers remain over the reader stage.
+                }
+            }
+            return true;
         }
 
         pointerMove(event) {
@@ -161,14 +188,27 @@
                 this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
             }
 
-            if (this.suppressUntilRelease && !this.pinching) {
+            if (!this.pinching && this.suppressUntilRelease && this.pointers.size >= 2) {
+                this.tryBeginPinch();
+            }
+
+            if (!this.pinching) {
+                if (this.suppressUntilRelease) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                }
+                return;
+            }
+
+            if (!this.pinchPointerIds.includes(event.pointerId)) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 return;
             }
 
-            if (!this.pinching || this.pointers.size < 2) return;
-            const [first, second] = Array.from(this.pointers.values()).slice(0, 2);
+            const first = this.pointers.get(this.pinchPointerIds[0]);
+            const second = this.pointers.get(this.pinchPointerIds[1]);
+            if (!first || !second) return;
             const currentDistance = distance(first, second);
             if (currentDistance < minimumPinchDistance) return;
 
@@ -192,16 +232,18 @@
             const wasTracked = this.pointers.delete(event.pointerId);
             if (!wasTracked) return;
 
-            if (this.pinching && this.pointers.size < 2) {
-                this.finishPinch();
-            }
+            const endedActivePinchPointer = this.pinching && this.pinchPointerIds.includes(event.pointerId);
+            if (endedActivePinchPointer) this.finishPinch();
 
             if (this.suppressUntilRelease) {
-                // Suppress both final pointer-up events so the reader's original first
-                // pointer cannot be interpreted as a page-turn swipe after pinching.
+                // Suppress all final pointer-up events so the reader's original first
+                // pointer cannot be interpreted as a page-turn swipe after multi-touch.
                 event.preventDefault();
                 event.stopImmediatePropagation();
-                if (this.pointers.size === 0) this.suppressUntilRelease = false;
+                if (this.pointers.size === 0) {
+                    this.suppressUntilRelease = false;
+                    this.pinchPointerIds = [];
+                }
             }
         }
 
@@ -212,13 +254,17 @@
             this.pages.style.transition = this.originalTransition;
             this.pages.style.willChange = this.originalWillChange;
 
-            // Commit on the same 5% grid used by persisted reader preferences.
+            // Commit on the same 5% grid used by persisted reader preferences. Avoid
+            // touching the reader state when the gesture rounded back to its start zoom,
+            // which preserves an existing one-finger pan offset above 100%.
             const normalized = Math.round(clampZoom(this.targetZoom) * 20) / 20;
-            commitZoom(this, normalized);
+            if (Math.abs(normalized - this.startZoom) >= minimumCommittedZoomDelta) {
+                commitZoom(this, normalized);
+            }
+            this.pinchPointerIds = [];
         }
 
         dispose() {
-            if (activeSession !== this && !this.stage) return;
             if (this.pinching) {
                 this.pages.style.transform = this.originalTransform;
                 this.pages.style.transition = this.originalTransition;
@@ -230,6 +276,7 @@
             this.stage?.removeEventListener('pointercancel', this.onPointerEnd, true);
             this.removalObserver?.disconnect();
             this.pointers.clear();
+            this.pinchPointerIds = [];
             this.pinching = false;
             this.suppressUntilRelease = false;
             if (activeSession === this) activeSession = null;
