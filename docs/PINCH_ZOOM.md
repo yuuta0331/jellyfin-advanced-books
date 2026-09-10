@@ -1,6 +1,6 @@
 # Pinch zoom behavior
 
-The Advanced Reader has a dedicated touch gesture bridge for two-finger pinch zoom in paged modes.
+The Advanced Reader has a dedicated touch gesture bridge for two-finger pinch zoom in reader modes.
 
 ## Scope
 
