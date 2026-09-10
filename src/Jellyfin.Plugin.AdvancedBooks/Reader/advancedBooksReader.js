@@ -189,6 +189,10 @@
             this.boundStageClick = event => this.onStageClick(event);
             this.boundPointerActivity = event => this.onPointerActivity(event);
             this.boundFocusIn = () => this.showControls();
+            this.boundChromeEnter = () => this.showControls(false);
+            this.boundChromeLeave = () => {
+                if (!this.settingsOpen) this.showControls();
+            };
             this.boundFullscreenChange = () => this.updateFullscreenButton();
         }
 
@@ -339,6 +343,7 @@
 
             const top = document.createElement('div');
             top.className = 'advancedBooksReaderChrome advancedBooksReaderChromeTop';
+            this.topChrome = top;
             const closeButton = this.makeButton('×', () => this.close());
             closeButton.className = 'advancedBooksReaderIconButton';
             closeButton.title = 'Close (Esc)';
@@ -606,6 +611,7 @@
         toggleSettings(force) {
             const next = typeof force === 'boolean' ? force : !this.settingsOpen;
             this.settingsOpen = next;
+            if (next) this.hideSliderPreview(true);
             this.toolbar.hidden = !next;
             this.settingsButton?.setAttribute('aria-expanded', String(next));
             this.overlay?.classList.toggle('ab-settings-open', next);
@@ -647,7 +653,10 @@
         previewSlider(showThumbnail = false) {
             if (!this.pageSlider || !this.pageSliderValue) return;
             const page = Math.max(1, Math.min(this.pageCount, Number(this.pageSlider.value) || 1));
-            this.pageSliderValue.textContent = `${page} / ${this.pageCount}`;
+            const last = this.layout === 'double' ? Math.min(this.pageCount, page + 1) : page;
+            const label = last > page ? `${page}–${last} / ${this.pageCount}` : `${page} / ${this.pageCount}`;
+            this.pageSliderValue.textContent = label;
+            this.pageSlider.setAttribute('aria-valuetext', label);
             if (showThumbnail) this.showSliderPreview(page - 1);
         }
 
@@ -708,7 +717,7 @@
             if (this.closed || this.sliderPreview?.hidden || sequence !== this.sliderPreviewSequence) return;
             const controller = new AbortController();
             const url = this.apiClient.getUrl(
-                `AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}/Thumbnail?width=240`
+                `AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}/Thumbnail?width=180`
             );
             const pending = { index, controller };
             this.sliderThumbnailPending = pending;
@@ -827,6 +836,10 @@
             this.stage.addEventListener('click', this.boundStageClick);
             this.overlay.addEventListener('pointermove', this.boundPointerActivity, { passive: true });
             this.overlay.addEventListener('focusin', this.boundFocusIn);
+            this.topChrome?.addEventListener('pointerenter', this.boundChromeEnter);
+            this.topChrome?.addEventListener('pointerleave', this.boundChromeLeave);
+            this.bottomChrome?.addEventListener('pointerenter', this.boundChromeEnter);
+            this.bottomChrome?.addEventListener('pointerleave', this.boundChromeLeave);
             document.addEventListener('fullscreenchange', this.boundFullscreenChange);
         }
 
@@ -840,6 +853,10 @@
             this.stage?.removeEventListener('click', this.boundStageClick);
             this.overlay?.removeEventListener('pointermove', this.boundPointerActivity);
             this.overlay?.removeEventListener('focusin', this.boundFocusIn);
+            this.topChrome?.removeEventListener('pointerenter', this.boundChromeEnter);
+            this.topChrome?.removeEventListener('pointerleave', this.boundChromeLeave);
+            this.bottomChrome?.removeEventListener('pointerenter', this.boundChromeEnter);
+            this.bottomChrome?.removeEventListener('pointerleave', this.boundChromeLeave);
             document.removeEventListener('fullscreenchange', this.boundFullscreenChange);
         }
 
