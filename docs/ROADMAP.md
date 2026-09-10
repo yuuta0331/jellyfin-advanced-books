@@ -46,6 +46,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Full-window reader overlay
 - [x] Persist reader preferences per user
 - [x] Restore layout/direction/fit/zoom after resume
+- [x] Dedicated two-finger pinch-to-zoom for paged modes
 
 ## Phase 4 - Continuous reader and progress
 
@@ -65,7 +66,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [ ] CBR support
 - [ ] PDF reader integration
 - [ ] EPUB reader improvements
-- [ ] Mobile/touch and pinch-zoom tuning
+- [ ] Further mobile/touch interaction tuning
 - [ ] Jellyfin wrapper-client compatibility matrix
 
 ## Phase 6 - Distribution
