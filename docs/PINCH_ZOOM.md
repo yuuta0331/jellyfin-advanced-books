@@ -15,7 +15,7 @@ The first touch remains available to the reader's existing tap/swipe behavior. W
 
 During the pinch, the page container receives a temporary transform preview based on the change in finger distance and midpoint. The preview does not directly mutate persisted reader state.
 
-When the gesture ends, the temporary transform is removed and the final zoom is committed through the reader's existing Reset/Zoom/Ctrl+wheel controls. This keeps the reader's internal zoom value, the toolbar percentage, and the per-user preference bridge synchronized rather than maintaining a second independent zoom state.
+When the gesture ends, the temporary transform is removed and the final zoom is committed through the live reader session's zoom API. The older Reset/Zoom/Ctrl+wheel bridge remains only as a compatibility fallback. This keeps the reader's internal zoom value, the toolbar percentage, and the per-user preference bridge synchronized rather than maintaining a second independent zoom state.
 
 Both final pointer-up events are suppressed after a pinch so the original first touch cannot accidentally become a page-turn swipe.
 

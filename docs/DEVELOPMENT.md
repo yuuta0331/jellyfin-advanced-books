@@ -27,6 +27,8 @@ On PowerShell, run `node --check` once for each `.js` file instead of the shell 
 
 The Jellyfin assemblies are compile-time dependencies and are excluded from the plugin's runtime assets. Do not copy Jellyfin server assemblies into the plugin package.
 
+Automatic CI runs for non-draft pull requests that affect code/configuration, plus manual `workflow_dispatch` runs. Documentation-only pull requests are ignored, draft pull requests defer the build until `ready_for_review`, and stale runs for the same pull request are cancelled. `main` does not run this CI workflow because the Release workflow performs the same syntax/build/test validation before publishing.
+
 Every successful CI run creates an `AdvancedBooks-dev` artifact containing `AdvancedBooks_<version>.zip`, its MD5 checksum, its SHA-256 checksum and the release changelog. The plugin ZIP contains the two runtime DLLs directly at ZIP root so the same artifact layout can be used by Jellyfin's repository installer.
 
 CI creates the package twice from the same Release build and compares the resulting ZIP and checksum files byte-for-byte. `scripts/package_plugin.py` fixes archive timestamps, permissions, ordering, compression mode and compression level so packaging itself is deterministic.
@@ -45,20 +47,20 @@ To package a local Release build:
 python scripts/package_plugin.py \
   --input-dir src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0 \
   --output-dir artifacts/release \
-  --version 0.8.0.0
+  --version 0.10.0.0
 ```
 
 The generated files are:
 
 ```text
-AdvancedBooks_0.8.0.0.zip
-AdvancedBooks_0.8.0.0.zip.md5
-AdvancedBooks_0.8.0.0.zip.sha256
+AdvancedBooks_0.10.0.0.zip
+AdvancedBooks_0.10.0.0.zip.md5
+AdvancedBooks_0.10.0.0.zip.sha256
 ```
 
 The MD5 value is intentional because Jellyfin 12 verifies plugin repository packages against the manifest checksum using MD5. SHA-256 is published alongside it for stronger manual integrity checking.
 
-`.github/workflows/release.yml` runs on `main` and manual dispatch. It validates/builds/tests the exact commit, creates the package, publishes a GitHub prerelease if that version tag does not already exist, downloads the published ZIP again, and generates the manifest entry from the bytes of that published asset. This avoids a manifest checksum referring to a local package that differs from the actual release asset.
+`.github/workflows/release.yml` runs automatically on `main` only when `build.yaml` changes, plus manual dispatch. That makes the release-version metadata the deliberate publish trigger and prevents ordinary docs/manifest pushes from rebuilding the plugin. It validates/builds/tests the exact commit, creates the package, publishes a GitHub prerelease if that version tag does not already exist, downloads the published ZIP again, and generates the manifest entry from the bytes of that published asset. The generated manifest commit includes a CI-skip marker as an additional guard against recursive workflow runs.
 
 The workflow updates root `manifest.json` with version, target ABI, release URL, MD5 checksum, UTC timestamp and changelog. Re-running the workflow for an existing release preserves the published release assets and can reconstruct the manifest entry from the already-published ZIP.
 
@@ -190,7 +192,7 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 5. verify Single/Double, RTL/LTR and all four fit modes;
 6. verify Vertical Continuous and Webtoon lazy-load pages as they approach the viewport;
 7. open **Pages** and confirm only thumbnails near the navigator viewport are requested;
-8. jump to a distant thumbnail and confirm the intended page is reached before the original reader layout is restored;
+8. jump to a distant thumbnail and confirm the live reader session reaches the intended page directly without temporarily changing layouts;
 9. close the page navigator during thumbnail loading and confirm outstanding requests are aborted;
 10. select Double Page, LTR, Fit Width and a non-100% zoom, close the reader, then reopen and confirm those controls are restored;
 11. change controls and immediately close while a preference PUT is still in flight; reopen and confirm the newest queued state wins;
@@ -200,14 +202,15 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 15. navigate to the final page and confirm the Book becomes played in Jellyfin;
 16. reopen the completed Book and verify rereading earlier pages does not clear the played state;
 17. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and wheel navigation;
-18. confirm top/bottom reader chrome auto-hides, mouse movement restores it on desktop, and a center tap/click toggles it without turning a page;
-19. drag the bottom page scrubber from the beginning to a distant page in Single, Double, Vertical and Webtoon layouts and verify the intended page is reached directly;
-20. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet;
-21. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
-22. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
-23. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
-24. zoom above 100% in a paged mode, drag to pan, then close with Escape;
-25. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+18. confirm top/bottom reader chrome auto-hides; tiny mouse jitter must leave it hidden, deliberate mouse movement or movement near a top/bottom edge must restore it, hovering visible chrome must keep it open, and a center tap/click must toggle it without turning a page;
+19. drag the bottom page scrubber from the beginning to a distant page in Single, Double, Vertical and Webtoon layouts; verify a floating thumbnail/page preview follows the selected position, stale preview requests are not allowed to pile up, and the intended page is reached directly;
+20. hold the scrubber for longer than the normal auto-hide delay and confirm the reader chrome remains visible until scrubbing ends;
+21. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet;
+22. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
+23. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
+24. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
+25. zoom above 100% in a paged mode, drag to pan, then close with Escape;
+26. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
 ### Mobile pinch smoke test
 
@@ -221,7 +224,7 @@ Run these checks on a real touch device or browser/device mode that emits touch 
 6. With a third finger still down, lift either original pinch finger; confirm the pinch ends cleanly rather than switching to a different pair.
 7. Start with two fingers closer than the minimum pinch distance, spread them apart, and confirm the gesture can become a pinch without creating a page-turn tap/swipe.
 8. At greater than 100% zoom, confirm ordinary one-finger drag-to-pan still works after the pinch finishes.
-9. In Vertical Continuous and Webtoon, confirm the custom pinch bridge does not activate and normal vertical touch scrolling remains usable.
+9. In Vertical Continuous and Webtoon, confirm one-finger vertical scrolling remains native, then add a second finger and confirm the custom pinch bridge activates without producing an accidental page jump.
 10. In paged Fit Width/Original at 100% or below, confirm normal vertical panning/scrolling remains usable where content exceeds the viewport; the pinch feature must not globally force `touch-action:none`.
 
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.

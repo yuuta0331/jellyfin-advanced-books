@@ -9,7 +9,7 @@ Four reading modes are available for CBZ/ZIP-backed Jellyfin Book items:
 - **Single page** - one page at a time;
 - **Double page** - two-page spreads with RTL/LTR ordering;
 - **Vertical continuous** - independent comic pages stacked vertically;
-- **Webtoon** - edge-to-edge continuous vertical pages with no page gap.
+- **Webtoon** - edge-to-edge continuous vertical reading with zero gap by default and optional page-gap/side-padding tuning.
 
 All four modes support Fit Screen, Fit Width, Fit Height and Original Size plus 50%-400% reader zoom. Paged modes retain click/tap zones, horizontal swipe, keyboard navigation and drag-to-pan. Vertical Continuous and Webtoon retain native one-finger/mouse-wheel scrolling; their zoom changes the continuous canvas width so high zoom can be panned with normal scrolling/touch or desktop drag panning.
 
@@ -19,19 +19,19 @@ Single Page and Double Page modes support dedicated two-finger pinch-to-zoom fro
 
 The first touch remains available to the reader's existing tap/swipe behavior. Once a second touch establishes a multi-touch gesture, single-pointer handling is suppressed until all participating touches are released. Extra fingers are also isolated from the reader's single-pointer state, and ending either of the two original pinch pointers ends that pinch rather than silently switching to a different finger pair.
 
-During the gesture, the page container receives a temporary smooth scale/translation preview based on finger distance and midpoint. On release, that preview is removed and the normalized 5% zoom value is committed through the reader's existing Reset/Zoom/Ctrl+wheel controls. This keeps the reader-owned transform, toolbar percentage and per-user preference bridge synchronized instead of maintaining a second zoom state.
+During the gesture, the page container receives a temporary smooth scale/translation preview based on finger distance and midpoint. On release, that preview is removed and the normalized 5% zoom value is committed through the live reader session's zoom API when available, with the older control bridge retained only as a compatibility fallback. This keeps the reader-owned transform, toolbar percentage and per-user preference bridge synchronized instead of maintaining a second zoom state.
 
 If the gesture rounds back to its starting zoom, the bridge leaves the committed reader state untouched so an existing drag-to-pan offset above 100% is preserved. A completed multi-touch gesture suppresses its final pointer-up events to prevent an accidental page turn.
 
 Vertical Continuous and Webtoon also use the custom pinch bridge. One-finger vertical scrolling remains native, while a second touch commits the gesture to reader zoom. On release the normalized zoom value is persisted through the same reader preference bridge as the toolbar controls.
 
-The committed paged zoom recenters using the reader's normal transform; midpoint translation is currently a live preview rather than a persisted pan offset. After zooming above 100%, normal one-finger drag-to-pan remains available.
+Committed zoom uses the reader's normal transform/sizing path; midpoint translation is currently a live preview rather than a persisted pan offset. After zooming above 100%, normal one-finger drag-to-pan remains available in paged modes, while Continuous/Webtoon retain native scrolling plus desktop drag panning.
 
 ## Reader chrome and direct page navigation
 
-The reader UI is optimized to disappear while reading. A compact top chrome and bottom navigation strip are shown when the reader opens, then auto-hide after inactivity. Pointer movement on desktop or a center tap/click restores them. Opening Reader Settings pins the chrome open until the sheet is closed.
+The reader UI is optimized to disappear while reading. A compact top chrome and bottom navigation strip are shown when the reader opens, then auto-hide after inactivity. Desktop pointer movement uses an intentional-movement threshold: small hardware jitter does not reopen hidden chrome, while deliberate movement or movement near the top/bottom edge does. Hovering over visible chrome pauses auto-hide. A center tap/click remains the direct touch/pointer toggle. Opening Reader Settings pins the chrome open until the sheet is closed.
 
-The bottom strip is available in Single, Double, Vertical Continuous and Webtoon modes. It contains Previous/Next controls, the current page/range, and a range scrubber for direct jumps across long books. A thin progress rail remains visible at the bottom edge even when the larger controls are hidden.
+The bottom strip is available in Single, Double, Vertical Continuous and Webtoon modes. It contains Previous/Next controls, the current page/range, and a range scrubber for direct jumps across long books. Pressing or dragging the scrubber opens a floating thumbnail preview anchored near the selected position. Thumbnail requests are debounced, stale requests are aborted, and a small bounded browser cache avoids repeatedly generating the same preview. A thin progress rail remains visible at the bottom edge even when the larger controls are hidden.
 
 Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit and zoom remain available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome.
 
@@ -48,7 +48,7 @@ The following settings are persisted for the current authenticated Jellyfin user
 
 - layout: Single / Double / Vertical Continuous / Webtoon;
 - reading direction: RTL / LTR;
-- fit mode: Screen / Width / Height / Original; and
+- fit mode: Screen / Width / Height / Original;
 - reader zoom: 50%-400%;
 - continuous side padding: 0%, 2%, 5%, 10%, 15% or 20%; and
 - continuous page gap: 0, 4, 8, 12, 16, 24 or 32 pixels.
@@ -147,7 +147,7 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 | Wheel | Previous/next in Fit Screen | Native vertical scroll |
 | Ctrl+wheel | Reader zoom | Reader zoom |
 | Drag at >100% | Pan | Desktop drag pan; native touch/scroll pan |
-| Bottom page scrubber | Direct page jump | Direct page jump |
+| Bottom page scrubber | Direct page jump + thumbnail preview | Direct page jump + thumbnail preview |
 | Pages button | Open thumbnail navigator | Open thumbnail navigator |
 
 ## Compatibility boundary
