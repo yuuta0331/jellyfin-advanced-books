@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.10.1.0",
+        "changelog": "Fix Advanced Reader integration disappearing when the JavaScript Injector registration becomes corrupted. Register the reader core, progress, preferences, navigator, and gestures as five independent bounded scripts instead of one large combined payload. Remove the legacy combined entry on startup, validate embedded UTF-8/control characters, roll back partial registrations, and guard per-script size in CI and release validation.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.10.1.0/AdvancedBooks_0.10.1.0.zip",
+        "checksum": "0e4e09e555cb7666152fd008905f0b79",
+        "timestamp": "2026-09-10T19:33:21Z"
+      },
+      {
         "version": "0.10.0.0",
         "changelog": "Polish Advanced Reader interactions. Hidden chrome now ignores minor desktop pointer jitter, deliberate movement restores it, and hovering visible chrome pauses auto-hide. The page scrubber now shows a debounced authenticated thumbnail preview while dragging and stays pinned for long scrubs. Reduce GitHub Actions cost by deferring draft CI, cancelling stale PR runs, removing duplicate main CI builds, and triggering releases only from build.yaml changes.",
         "targetAbi": "12.0.0.0",
