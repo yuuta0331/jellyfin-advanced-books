@@ -23,7 +23,10 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Validate reader JavaScript syntax
-        run: node --check src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksReader.js
+        run: |
+          for file in src/Jellyfin.Plugin.AdvancedBooks/Reader/*.js; do
+            node --check "$file"
+          done
 
       - name: Restore
         run: dotnet restore jellyfin-advanced-books.slnx
