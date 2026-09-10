@@ -477,7 +477,7 @@
             this.pageSlider.addEventListener('input', () => this.previewSlider());
             this.pageSlider.addEventListener('change', () => {
                 const index = Number(this.pageSlider.value) - 1;
-                if (Number.isFinite(index)) this.goTo(index);
+                if (Number.isFinite(index)) this.goTo(index, 'auto');
                 this.showControls();
             });
 
@@ -654,7 +654,7 @@
         previous() { this.goTo(this.currentPage - this.pageStep()); }
         next() { this.goTo(this.currentPage + this.pageStep()); }
 
-        goTo(index) {
+        goTo(index, behavior = 'smooth') {
             const maximum = Math.max(0, this.pageCount - 1);
             const clamped = Math.min(maximum, Math.max(0, index));
             const aligned = this.alignPage(clamped);
@@ -664,7 +664,7 @@
                 const element = this.continuousElements[clamped];
                 if (element) {
                     this.loadContinuousPage(clamped, element).catch(() => {});
-                    this.stage.scrollTo({ top: Math.max(0, element.offsetTop - 4), behavior: 'smooth' });
+                    this.stage.scrollTo({ top: Math.max(0, element.offsetTop - 4), behavior });
                 }
                 return;
             }
@@ -952,6 +952,7 @@
                 this.pageSlider.max = String(Math.max(1, this.pageCount));
                 this.pageSlider.value = String(Math.min(this.pageCount, this.currentPage + 1));
                 this.pageSlider.setAttribute('aria-valuetext', this.counter.textContent);
+                this.pageSlider.dir = !this.isContinuous() && this.direction === 'rtl' ? 'rtl' : 'ltr';
             }
             if (this.pageSliderValue) this.pageSliderValue.textContent = this.counter.textContent;
             const progress = this.pageCount <= 1 ? 100 : (this.currentPage / (this.pageCount - 1)) * 100;
