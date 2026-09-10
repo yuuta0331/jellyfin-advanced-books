@@ -204,8 +204,10 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 19. drag the bottom page scrubber from the beginning to a distant page in Single, Double, Vertical and Webtoon layouts and verify the intended page is reached directly;
 20. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet;
 21. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
-22. zoom above 100% in a paged mode, drag to pan, then close with Escape;
-23. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+22. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
+23. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
+24. zoom above 100% in a paged mode, drag to pan, then close with Escape;
+25. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
 ### Mobile pinch smoke test
 
