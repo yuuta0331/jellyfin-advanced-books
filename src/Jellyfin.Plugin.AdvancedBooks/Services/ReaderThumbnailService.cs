@@ -12,7 +12,7 @@ namespace Jellyfin.Plugin.AdvancedBooks.Services;
 /// <summary>
 /// Result of generating or resolving a cached reader thumbnail.
 /// </summary>
-public sealed record ReaderThumbnailFile(string Path, string ContentType, DateTime LastModifiedUtc);
+public sealed record ReaderThumbnailFile(string Path, string ContentType, DateTime LastModifiedUtc, int Width);
 
 /// <summary>
 /// Creates bounded-size thumbnails for archive pages without retaining extracted source pages.
@@ -89,7 +89,7 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         Directory.CreateDirectory(cacheDirectory);
 
         var cacheStem = BuildCacheStem(info, page, pageIndex, maxWidth);
-        var existing = FindCachedFile(cacheDirectory, cacheStem)
+        var existing = FindCachedFile(cacheDirectory, cacheStem, maxWidth)
             ?? FindCompatibleLargerCachedFile(cacheDirectory, cacheStem, pageIndex, maxWidth);
         if (existing is not null)
         {
@@ -99,7 +99,7 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         await GenerationSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            existing = FindCachedFile(cacheDirectory, cacheStem)
+            existing = FindCachedFile(cacheDirectory, cacheStem, maxWidth)
                 ?? FindCompatibleLargerCachedFile(cacheDirectory, cacheStem, pageIndex, maxWidth);
             if (existing is not null)
             {
@@ -188,7 +188,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
                 return new ReaderThumbnailFile(
                     targetPath,
                     GetImageContentType(outputExtension),
-                    File.GetLastWriteTimeUtc(targetPath));
+                    File.GetLastWriteTimeUtc(targetPath),
+                    maxWidth);
             }
             finally
             {
@@ -269,14 +270,14 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         return $"{pageIndex:D6}-{maxWidth}-{hash}";
     }
 
-    private static ReaderThumbnailFile? FindCachedFile(string directory, string cacheStem)
+    private static ReaderThumbnailFile? FindCachedFile(string directory, string cacheStem, int width)
     {
         foreach (var extension in new[] { ".webp", ".jpg", ".png" })
         {
             var path = Path.Combine(directory, cacheStem + extension);
             if (File.Exists(path))
             {
-                return new ReaderThumbnailFile(path, GetImageContentType(extension), File.GetLastWriteTimeUtc(path));
+                return new ReaderThumbnailFile(path, GetImageContentType(extension), File.GetLastWriteTimeUtc(path), width);
             }
         }
 
@@ -321,7 +322,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
             best = new ReaderThumbnailFile(
                 path,
                 GetImageContentType(extension),
-                File.GetLastWriteTimeUtc(path));
+                File.GetLastWriteTimeUtc(path),
+                width);
         }
 
         return best;
