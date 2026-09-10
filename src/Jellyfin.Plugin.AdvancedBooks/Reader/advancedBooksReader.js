@@ -83,10 +83,7 @@
         icon.setAttribute('aria-hidden', 'true');
         icon.textContent = 'menu_book';
 
-        const text = document.createElement('span');
-        text.className = 'detailButton-text button-text';
-        text.textContent = 'Advanced Reader';
-        content.append(icon, text);
+        content.appendChild(icon);
         button.appendChild(content);
 
         button.addEventListener('click', () => {
@@ -213,8 +210,7 @@
             const style = document.createElement('style');
             style.id = 'advancedBooksReaderStyles';
             style.textContent = `
-                .advancedBooksReaderButton .detailButton-content{display:flex;align-items:center;justify-content:center;gap:.35rem;min-width:0}
-                .advancedBooksReaderButton .detailButton-text{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+                .advancedBooksReaderButton .detailButton-content{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
                 .advancedBooksReaderOverlay{position:fixed;inset:0;z-index:2147483000;background:#080808;color:#fff;font-family:inherit;overflow:hidden;--ab-accent:var(--theme-primary-color,#00a4dc);--ab-progress:0%}
                 .advancedBooksReaderStage{position:absolute;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:#080808;touch-action:pan-y;user-select:none;overscroll-behavior:contain;scrollbar-gutter:stable}
                 .advancedBooksReaderPages{min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;transform-origin:center center;will-change:transform;box-sizing:border-box;padding:.4rem}
@@ -265,7 +261,6 @@
                 .advancedBooksReaderZoomRow button[title="Reset zoom"]{min-width:4.5rem;font-variant-numeric:tabular-nums}
                 .advancedBooksReaderSettingsHint{margin:0;font-size:.85rem;line-height:1.35;opacity:.62}
                 @media(max-width:700px){
-                    .advancedBooksReaderButton .detailButton-text{display:none}
                     .advancedBooksReaderChromeTop{min-height:3.25rem;padding-inline:.45rem;gap:.35rem}
                     .advancedBooksReaderTitle{display:none}
                     .advancedBooksReaderCounter{font-size:.9rem;padding-inline:.45rem}
