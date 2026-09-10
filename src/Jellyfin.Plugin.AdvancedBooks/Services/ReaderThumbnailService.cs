@@ -5,7 +5,6 @@ using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Model.Drawing;
 using MediaBrowser.Model.Entities;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.AdvancedBooks.Services;
 
@@ -31,7 +30,8 @@ public interface IReaderThumbnailService
 
 /// <summary>
 /// Uses Jellyfin's normal image processor to create persistent small thumbnails from temporary
-/// archive-page files. Extracted full-resolution pages are removed immediately after processing.
+/// archive-page files. Extracted full-resolution pages and image-processor intermediates are
+/// removed immediately after the plugin-owned thumbnail is committed.
 /// </summary>
 public sealed class ReaderThumbnailService : IReaderThumbnailService
 {
@@ -40,19 +40,16 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
 
     private readonly IZipBookArchiveReader _archiveReader;
     private readonly IImageProcessor _imageProcessor;
-    private readonly ILogger<ReaderThumbnailService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReaderThumbnailService"/> class.
     /// </summary>
     public ReaderThumbnailService(
         IZipBookArchiveReader archiveReader,
-        IImageProcessor imageProcessor,
-        ILogger<ReaderThumbnailService> logger)
+        IImageProcessor imageProcessor)
     {
         _archiveReader = archiveReader;
         _imageProcessor = imageProcessor;
-        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -107,6 +104,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
 
             var sourceExtension = NormalizeSourceExtension(Path.GetExtension(page.Name));
             var sourcePath = Path.Combine(workDirectory, $"{Guid.NewGuid():N}{sourceExtension}");
+            string? processedPath = null;
+            string? temporaryTarget = null;
 
             try
             {
@@ -147,23 +146,25 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
                 };
 
                 var processed = await _imageProcessor.ProcessImage(processing).ConfigureAwait(false);
-                if (string.Equals(processed.Path, sourcePath, StringComparison.OrdinalIgnoreCase))
+                processedPath = processed.Path;
+                if (string.Equals(processedPath, sourcePath, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new ReaderThumbnailUnavailableException(
                         "Jellyfin returned the full-resolution source instead of an encoded thumbnail.");
                 }
 
-                if (!File.Exists(processed.Path))
+                if (!File.Exists(processedPath))
                 {
                     throw new ReaderThumbnailUnavailableException("Jellyfin did not produce a thumbnail file.");
                 }
 
-                var outputExtension = NormalizeOutputExtension(Path.GetExtension(processed.Path));
+                var outputExtension = NormalizeOutputExtension(Path.GetExtension(processedPath));
                 var targetPath = Path.Combine(cacheDirectory, cacheStem + outputExtension);
-                var temporaryTarget = targetPath + $".{Guid.NewGuid():N}.tmp";
+                temporaryTarget = targetPath + $".{Guid.NewGuid():N}.tmp";
 
-                File.Copy(processed.Path, temporaryTarget, overwrite: true);
+                File.Copy(processedPath, temporaryTarget, overwrite: true);
                 File.Move(temporaryTarget, targetPath, overwrite: true);
+                temporaryTarget = null;
 
                 RemoveSupersededFiles(cacheDirectory, pageIndex, maxWidth, targetPath);
 
@@ -174,6 +175,17 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
             }
             finally
             {
+                if (!string.IsNullOrWhiteSpace(temporaryTarget))
+                {
+                    TryDelete(temporaryTarget);
+                }
+
+                if (!string.IsNullOrWhiteSpace(processedPath)
+                    && !string.Equals(processedPath, sourcePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    TryDelete(processedPath);
+                }
+
                 TryDelete(sourcePath);
             }
         }
@@ -264,7 +276,7 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         }
         catch
         {
-            // Best-effort cache/work cleanup. A later request or OS cleanup can retry.
+            // Best-effort transient/cache cleanup. A later request or OS cleanup can retry.
         }
     }
 }
