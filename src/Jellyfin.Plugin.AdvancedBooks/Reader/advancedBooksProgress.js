@@ -115,6 +115,12 @@
         });
     }
 
+    function markProgressReady(overlay) {
+        if (!overlay?.isConnected) return;
+        overlay.dataset.advancedBooksProgressReady = 'true';
+        overlay.dispatchEvent(new CustomEvent('advancedbooks:progress-ready'));
+    }
+
     async function restorePage(session, pageIndex) {
         if (pageIndex <= 0 || !session.overlay?.isConnected) return;
 
@@ -232,6 +238,7 @@
 
         session.suppressSave = false;
         scheduleSave(session);
+        markProgressReady(overlay);
     }
 
     document.addEventListener('click', event => {
