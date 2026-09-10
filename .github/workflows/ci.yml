@@ -30,3 +30,18 @@ jobs:
 
       - name: Test
         run: dotnet test jellyfin-advanced-books.slnx --configuration Release --no-build
+
+      - name: Package development plugin
+        run: |
+          mkdir -p artifacts/AdvancedBooks
+          cp src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll artifacts/AdvancedBooks/
+          cp src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.AdvancedBooks.Core.dll artifacts/AdvancedBooks/
+          cd artifacts
+          zip -r AdvancedBooks-dev.zip AdvancedBooks
+
+      - name: Upload development plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: AdvancedBooks-dev
+          path: artifacts/AdvancedBooks-dev.zip
+          if-no-files-found: error

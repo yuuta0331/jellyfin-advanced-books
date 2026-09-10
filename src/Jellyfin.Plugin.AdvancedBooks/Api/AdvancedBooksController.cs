@@ -163,7 +163,21 @@ public sealed class AdvancedBooksController : ControllerBase
             Response.ContentLength = lease.Page.Length;
             Response.Headers.CacheControl = "private, max-age=3600";
             Response.Headers["X-Content-Type-Options"] = "nosniff";
-            await lease.Content.CopyToAsync(Response.Body, cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await lease.CopyToAsync(Response.Body, cancellationToken).ConfigureAwait(false);
+            }
+            catch (InvalidDataException) when (Response.HasStarted)
+            {
+                HttpContext.Abort();
+                return new EmptyResult();
+            }
+            catch (ArchiveSafetyException) when (Response.HasStarted)
+            {
+                HttpContext.Abort();
+                return new EmptyResult();
+            }
         }
 
         return new EmptyResult();

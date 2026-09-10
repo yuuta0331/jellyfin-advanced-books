@@ -36,7 +36,7 @@ public sealed class ZipBookArchiveReaderTests : IDisposable
     }
 
     [Fact]
-    public void OpensOnePageWithoutExtractingArchive()
+    public async Task OpensAndCopiesOnePageWithoutExtractingArchive()
     {
         var path = CreateArchive(
             "sample.cbz",
@@ -45,7 +45,7 @@ public sealed class ZipBookArchiveReaderTests : IDisposable
 
         using var lease = new ZipBookArchiveReader().OpenPage(path, 1);
         using var buffer = new MemoryStream();
-        lease.Content.CopyTo(buffer);
+        await lease.CopyToAsync(buffer);
 
         Assert.Equal("page2.jpg", lease.Page.Name);
         Assert.Equal([2, 2, 2], buffer.ToArray());

@@ -21,6 +21,10 @@ dotnet test jellyfin-advanced-books.slnx -c Release
 The Jellyfin assemblies are compile-time dependencies and are excluded from the plugin's runtime
 assets. Do not copy Jellyfin server assemblies into the plugin package.
 
+Every successful CI run also creates an `AdvancedBooks-dev` artifact containing
+`AdvancedBooks-dev.zip`. The ZIP contains an `AdvancedBooks` plugin directory with the two runtime
+DLLs and can be used for disposable/test-server installation.
+
 ## Project layout
 
 ```text
@@ -44,9 +48,9 @@ docs/
 
 Use a disposable or backed-up Jellyfin 12 test instance.
 
-1. Build the solution in `Release`.
-2. Create a plugin directory named `Advanced Books` under the Jellyfin plugins directory.
-3. Copy `Jellyfin.Plugin.AdvancedBooks.dll` and `Jellyfin.AdvancedBooks.Core.dll` into that directory.
+1. Build the solution in `Release`, or download the `AdvancedBooks-dev` artifact from a successful CI run.
+2. Create/unpack the plugin directory as `Advanced Books` (or use the included `AdvancedBooks` directory) under the Jellyfin plugins directory.
+3. Ensure both `Jellyfin.Plugin.AdvancedBooks.dll` and `Jellyfin.AdvancedBooks.Core.dll` are present.
 4. Restart Jellyfin.
 5. Open Dashboard -> Plugins -> Advanced Books and configure the One-Shots matcher.
 6. Rescan a small Books test library.
@@ -71,7 +75,7 @@ return the first image using its image content type. Verify a user that cannot s
 Also test a corrupt ZIP and a deliberately over-limit fixture; these should fail cleanly with HTTP 422
 rather than exhausting server memory or extracting files.
 
-Packaging/installation metadata will be automated before the first tagged release.
+Packaging/installation metadata for end users will be automated before the first tagged release.
 
 ## Coding rules
 

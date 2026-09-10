@@ -95,7 +95,8 @@ ZIP validation currently enforces:
 - an allow-list of browser-readable image extensions/content types.
 
 Pages are streamed from the ZIP entry. The whole CBZ is not downloaded into memory and files are not
-extracted to temporary directories.
+extracted to temporary directories. Streaming also stops at the validated uncompressed page length;
+a malformed entry that produces additional output cannot cause an unbounded decompression stream.
 
 ## Web reader
 
