@@ -1,4 +1,5 @@
 using Jellyfin.AdvancedBooks.Core.Reading;
+using Xunit;
 
 namespace Jellyfin.AdvancedBooks.Core.Tests.Reading;
 
