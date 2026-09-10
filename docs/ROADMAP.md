@@ -54,6 +54,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Reader fullscreen toggle where browser APIs are available
 - [x] Intent-aware desktop chrome reveal / hover pinning
 - [x] Debounced thumbnail preview while page scrubbing
+- [x] Pointer-anchored low-latency scrub preview
+- [x] Measured viewport Fit sizing and square mobile reader controls
 
 ## Phase 4 - Continuous reader and progress
 
@@ -61,6 +63,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Webtoon mode
 - [x] IntersectionObserver-based lazy loading
 - [x] Bounded continuous-mode prefetch/cache
+- [x] Direction-aware continuous read-ahead
+- [x] Continuous slot-height stabilization and scroll-anchor compensation
 - [x] Viewport-aware current-page tracking
 - [x] Resume last position
 - [x] Mark completed at end
@@ -74,6 +78,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [ ] PDF reader integration
 - [ ] EPUB reader improvements
 - [x] Continuous/Webtoon zoom and desktop drag panning
+- [x] Pinch isolation from page pan/scroll
+- [x] Viewport-priority page-grid thumbnail scheduling
 - [ ] Further live-device mobile/touch interaction tuning
 - [ ] Jellyfin wrapper-client compatibility matrix
 
