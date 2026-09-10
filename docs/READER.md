@@ -11,9 +11,23 @@ Four reading modes are available for CBZ/ZIP-backed Jellyfin Book items:
 - **Vertical continuous** - independent comic pages stacked vertically;
 - **Webtoon** - edge-to-edge continuous vertical pages with no page gap.
 
-Paged modes support Fit Screen, Fit Width, Fit Height and Original Size, 50%-400% zoom, drag-to-pan, click/tap zones, horizontal swipe, keyboard navigation and fit-screen wheel navigation.
+Paged modes support Fit Screen, Fit Width, Fit Height and Original Size, 50%-400% zoom, drag-to-pan, click/tap zones, horizontal swipe, two-finger pinch zoom, keyboard navigation and fit-screen wheel navigation.
 
 Vertical Continuous supports the fit modes at 100% reader zoom. Webtoon is intentionally locked to Fit Width. Continuous modes use normal vertical mouse/touch scrolling; reader-level zoom/pan is disabled there for now to avoid fighting native scrolling and pinch gestures.
+
+## Touch pinch zoom
+
+Single Page and Double Page modes support dedicated two-finger pinch-to-zoom from 50% through 400%. The gesture bridge is isolated in `Reader/advancedBooksGestures.js` so touch behavior can evolve without coupling it to archive loading or persistence.
+
+The first touch remains available to the reader's existing tap/swipe behavior. Once a second touch establishes a multi-touch gesture, single-pointer handling is suppressed until all participating touches are released. Extra fingers are also isolated from the reader's single-pointer state, and ending either of the two original pinch pointers ends that pinch rather than silently switching to a different finger pair.
+
+During the gesture, the page container receives a temporary smooth scale/translation preview based on finger distance and midpoint. On release, that preview is removed and the normalized 5% zoom value is committed through the reader's existing Reset/Zoom/Ctrl+wheel controls. This keeps the reader-owned transform, toolbar percentage and per-user preference bridge synchronized instead of maintaining a second zoom state.
+
+If the gesture rounds back to its starting zoom, the bridge leaves the committed reader state untouched so an existing drag-to-pan offset above 100% is preserved. A completed multi-touch gesture suppresses its final pointer-up events to prevent an accidental page turn.
+
+Vertical Continuous and Webtoon intentionally do not use the custom pinch bridge. They retain native vertical touch scrolling and the current 100% reader zoom model.
+
+The committed paged zoom recenters using the reader's normal transform; midpoint translation is currently a live preview rather than a persisted pan offset. After zooming above 100%, normal one-finger drag-to-pan remains available.
 
 ## Per-user reader preferences
 
@@ -91,7 +105,7 @@ This keeps a large magazine or manga volume from turning into a full-archive bro
 
 ## Jellyfin Web integration
 
-For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers the embedded reader, progress, preferences and navigator scripts as one combined injection payload through that plugin's public `PluginInterface.RegisterScript` contract.
+For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers the embedded reader, progress, preferences, navigator and gesture scripts as one combined injection payload through that plugin's public `PluginInterface.RegisterScript` contract.
 
 This is an optional runtime integration. Advanced Books does not reference or ship JavaScript Injector assemblies, and the server-side One-Shot/page/progress/preferences/thumbnail APIs continue to work without it.
 
@@ -120,6 +134,7 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 | + / - / 0 | Zoom | Disabled |
 | Left/right click or tap | Direction-aware navigation | Native scrolling |
 | Horizontal swipe | Direction-aware navigation | Native scrolling |
+| Two-finger pinch | 50%-400% zoom | Native/no reader zoom |
 | Wheel | Previous/next in Fit Screen | Native vertical scroll |
 | Ctrl+wheel | Reader zoom | Browser/native behavior |
 | Drag at >100% | Pan | Native scrolling |
@@ -129,10 +144,10 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 
 The injected UI is intended for Jellyfin Web and clients that wrap Jellyfin Web. Native clients with their own UI, such as Android TV clients, do not receive the injected reader.
 
-The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`, progress persistence is isolated in `Reader/advancedBooksProgress.js`, preference persistence is isolated in `Reader/advancedBooksPreferences.js`, and page navigation is isolated in `Reader/advancedBooksNavigator.js`. If Jellyfin changes the item-details or reader DOM, the integration layer can be replaced without changing archive or storage APIs.
+The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`, progress persistence is isolated in `Reader/advancedBooksProgress.js`, preference persistence is isolated in `Reader/advancedBooksPreferences.js`, page navigation is isolated in `Reader/advancedBooksNavigator.js`, and multi-touch handling is isolated in `Reader/advancedBooksGestures.js`. If Jellyfin changes the item-details or reader DOM, the integration layer can be replaced without changing archive or storage APIs.
 
 ## Not implemented yet
 
-- dedicated pinch-zoom behavior;
+- focal-point pan persistence across pinch release;
 - CBR/PDF/EPUB Advanced Reader pipelines;
 - live end-to-end browser tests against a running Jellyfin 12 instance.
