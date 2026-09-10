@@ -44,7 +44,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Lazy thumbnail loading and bounded Blob cache
 - [x] Direct page jumping
 - [x] Full-window reader overlay
-- [ ] Persist reader preferences per user
+- [x] Persist reader preferences per user
+- [x] Restore layout/direction/fit/zoom after resume
 
 ## Phase 4 - Continuous reader and progress
 
@@ -57,7 +58,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Mark completed at end
 - [x] Jellyfin reading-position synchronization
 - [x] Preserve existing played state during rereads
-- [ ] Live cross-client resume test against Jellyfin 12
+- [ ] Live cross-client resume/preferences test against Jellyfin 12
 
 ## Phase 5 - Formats and clients
 

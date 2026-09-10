@@ -22,8 +22,9 @@ Host-independent logic that can be unit tested without a running Jellyfin server
 - `KomgaOneShotPathMatcher` for Komga-compatible One-Shot path semantics;
 - `ZipBookArchiveReader` for safe CBZ/ZIP image-page enumeration and streaming;
 - natural filename ordering;
-- archive safety policy/validation; and
-- `ReaderProgressMath` for Jellyfin-compatible comic page/tick conversion.
+- archive safety policy/validation;
+- `ReaderProgressMath` for Jellyfin-compatible comic page/tick conversion; and
+- `ReaderPreferenceRules` for host-independent reader preference validation/defaults.
 
 ### `Jellyfin.Plugin.AdvancedBooks`
 
@@ -33,9 +34,11 @@ The Jellyfin server plugin contains these integration layers:
 - `AdvancedBooksController` for authenticated page metadata and page streaming;
 - `ReaderThumbnailController` plus `ReaderThumbnailService` for bounded page thumbnails;
 - `ReaderProgressController` for authenticated per-user reading progress;
+- `ReaderPreferencesController` for authenticated global per-user reader controls;
 - `JavaScriptInjectorRegistrationService` for optional Jellyfin Web script registration;
 - `Reader/advancedBooksReader.js` for the reader UI;
-- `Reader/advancedBooksProgress.js` for resume/persistence integration; and
+- `Reader/advancedBooksProgress.js` for resume/persistence integration;
+- `Reader/advancedBooksPreferences.js` for display-preference synchronization; and
 - `Reader/advancedBooksNavigator.js` for the lazy thumbnail page navigator.
 
 Only items in a Jellyfin Books library are considered by the One-Shot resolver. Normal book paths are left to Jellyfin's built-in resolver.
@@ -103,9 +106,26 @@ That allows the built-in and Advanced readers to interpret the same stored resum
 
 The server validates a submitted page index against the archive's current page count before saving it. Progress is therefore associated with a real page in the accessible Book rather than trusting client-supplied range metadata.
 
+## Reader preference service
+
+Reader controls use Jellyfin's `IDisplayPreferencesManager`, not a plugin-owned settings file:
+
+```text
+GET /AdvancedBooks/Reader/Preferences
+PUT /AdvancedBooks/Reader/Preferences
+```
+
+A fixed Advanced Books pseudo-item GUID plus client namespace `AdvancedBooksReader` isolates the custom preference keys from normal Jellyfin display settings. The display-preference manager keys the data by the authenticated Jellyfin user, so preferences are shared across Jellyfin Web clients for that user while remaining separate between users.
+
+Persisted values are layout, direction, fit and zoom. Server-side `ReaderPreferenceRules` rejects unsupported values, bounds zoom to 50%-400%, and normalizes it to a 5-percent grid reachable by the current reader controls. Unknown/stale stored values fall back to safe defaults during GET.
+
+The Web preference bridge waits until reading-position restore has finished before applying controls. The progress bridge marks the active overlay and emits `advancedbooks:progress-ready`; the preference bridge listens for that signal with a bounded timeout. This ordering keeps the temporary continuous-mode resume jump separate from the user's persisted layout.
+
+Preference writes are debounced. If a new value arrives while a save is in flight, only the newest pending state is retained and sent after the current PUT. Closing the reader captures and attempts to flush the final pending state without creating an automatic retry loop after a server failure.
+
 ## Security requirements for reader APIs
 
-Reader endpoints never accept a raw media path from the client. They resolve a Jellyfin item ID and verify the current user can see that Book. API-key-only requests with no Jellyfin user context are not allowed to use the reader endpoints.
+Reader endpoints never accept a raw media path from the client. Page/progress/thumbnail endpoints resolve a Jellyfin item ID and verify the current user can see that Book. Preference endpoints operate only on the current authenticated user and do not accept an arbitrary user id. API-key-only requests with no Jellyfin user context are not allowed to use these endpoints.
 
 ZIP validation currently enforces:
 
@@ -129,11 +149,15 @@ Paged and continuous modes use bounded Blob caches. Continuous mode additionally
 
 ### Progress bridge
 
-`advancedBooksProgress.js` is intentionally separate from the core reader module. It observes the reader's public DOM state, debounces progress writes, flushes on close, and restores unfinished books from the server-side progress endpoint.
+`advancedBooksProgress.js` is intentionally separate from the core reader module. It observes the reader's public DOM state, debounces progress writes, flushes on close, restores unfinished books from the server-side progress endpoint, and signals when resume handling is complete.
 
-For a distant resume position it temporarily uses the continuous page-slot model to jump directly to the saved page, then restores the prior layout. This avoids performing hundreds of sequential page-navigation operations.
+For a distant resume position it temporarily uses the continuous page-slot model to jump directly to the saved page, then restores the initial layout. This avoids performing hundreds of sequential page-navigation operations.
 
-Keeping persistence in a separate bridge means the archive API and reader rendering can evolve independently, while the bridge can later be replaced by a first-class Jellyfin Web media-player integration.
+### Preferences bridge
+
+`advancedBooksPreferences.js` reads global per-user settings while the reader opens, waits for the progress-ready signal, and then applies the saved controls. It observes select changes and the visible zoom percentage, debounces updates, and serializes saves so the latest user state wins.
+
+The bridge intentionally talks only to the Advanced Books preferences API; it does not call Jellyfin's general display-preferences HTTP controller or expose the internal pseudo-item namespace to the browser.
 
 ### Thumbnail navigator
 
@@ -145,9 +169,9 @@ Selecting a thumbnail reuses the continuous page-slot model to reach a distant p
 
 Jellyfin does not currently expose a stable general-purpose server-plugin API for replacing arbitrary Web UI components. Web integration is therefore kept replaceable.
 
-For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. The reader, progress and navigator resources are concatenated into a single registered injection payload so their load order is deterministic.
+For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. The reader, progress, preferences and navigator resources are concatenated into a single registered injection payload so their load order is deterministic.
 
-If Jellyfin changes its item-detail route, `.mainDetailButtons` container, reader DOM or legacy `window.ApiClient`, only the Web adapter/bridges should require changes; archive and library code remain independent.
+If Jellyfin changes its item-detail route, `.mainDetailButtons` container, reader DOM or legacy `window.ApiClient`, only the Web adapter/bridges should require changes; archive and storage code remain independent.
 
 See [Advanced Reader](READER.md) for controls and current compatibility.
 
