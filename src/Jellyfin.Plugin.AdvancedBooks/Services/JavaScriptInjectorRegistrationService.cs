@@ -206,11 +206,6 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
                 types: [typeof(string)],
                 modifiers: null);
 
-            if (unregisterAllMethod is not null)
-            {
-                unregisterAllMethod.Invoke(null, [pluginId]);
-            }
-
             var unregisterMethod = interfaceType.GetMethod(
                 "UnregisterScript",
                 BindingFlags.Public | BindingFlags.Static,
@@ -218,12 +213,22 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
                 types: [typeof(string)],
                 modifiers: null);
 
+            // The legacy entry is removed by its exact ID because older installs may have
+            // persisted ownership metadata inconsistently. New split entries use plugin ownership
+            // when the newer bulk API is available.
+            unregisterMethod?.Invoke(null, [LegacyCombinedScriptId]);
+
+            if (unregisterAllMethod is not null)
+            {
+                unregisterAllMethod.Invoke(null, [pluginId]);
+                return;
+            }
+
             if (unregisterMethod is null)
             {
                 return;
             }
 
-            unregisterMethod.Invoke(null, [LegacyCombinedScriptId]);
             foreach (var registration in ReaderScripts)
             {
                 unregisterMethod.Invoke(null, [registration.Id]);
