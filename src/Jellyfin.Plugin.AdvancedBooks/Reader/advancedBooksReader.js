@@ -8,10 +8,10 @@
     const pagedCacheLimit = 8;
     const continuousCacheLimit = 12;
     const continuousKeepRadius = 5;
-    const controlsRevealDistance = 40;
-    const controlsEdgeRevealDistance = 12;
+    const controlsRevealDistance = 48;
+    const controlsEdgeRevealDistance = 6;
     const controlsVisibleActivityDistance = 14;
-    const controlsEdgeSize = 72;
+    const controlsEdgeSize = 10;
     const sliderThumbnailDelayMs = 80;
     const sliderThumbnailCacheLimit = 10;
     let attachSequence = 0;
@@ -189,7 +189,7 @@
             this.boundPointerUp = event => this.onPointerUp(event);
             this.boundStageClick = event => this.onStageClick(event);
             this.boundPointerActivity = event => this.onPointerActivity(event);
-            this.boundFocusIn = () => this.showControls();
+            this.boundFocusIn = event => this.onFocusIn(event);
             this.boundChromeEnter = () => this.showControls(false);
             this.boundChromeLeave = () => {
                 if (!this.settingsOpen) this.showControls();
@@ -870,6 +870,21 @@
             document.removeEventListener('fullscreenchange', this.boundFullscreenChange);
         }
 
+        onFocusIn(event) {
+            if (!this.overlay?.isConnected) return;
+            if (event.target === this.stage) {
+                let keyboardVisible = false;
+                try {
+                    keyboardVisible = this.stage.matches(':focus-visible');
+                } catch {
+                    keyboardVisible = false;
+                }
+                if (keyboardVisible) this.showControls();
+                return;
+            }
+            this.showControls();
+        }
+
         onPointerActivity(event) {
             if (event.pointerType === 'touch' || !this.overlay?.isConnected) return;
 
@@ -893,7 +908,11 @@
                 const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
                 const nearChromeEdge = point.y <= controlsEdgeSize
                     || point.y >= viewportHeight - controlsEdgeSize;
-                const threshold = nearChromeEdge ? controlsEdgeRevealDistance : controlsRevealDistance;
+                const anchorNearChromeEdge = this.hiddenPointerAnchor.y <= controlsEdgeSize
+                    || this.hiddenPointerAnchor.y >= viewportHeight - controlsEdgeSize;
+                const threshold = nearChromeEdge && !anchorNearChromeEdge
+                    ? controlsEdgeRevealDistance
+                    : controlsRevealDistance;
 
                 if (distance >= threshold) {
                     this.hiddenPointerAnchor = point;
