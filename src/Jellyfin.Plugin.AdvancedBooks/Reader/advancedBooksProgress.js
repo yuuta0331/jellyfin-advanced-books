@@ -131,7 +131,7 @@
         session.suppressSave = true;
         try {
             if (reader && typeof reader.goTo === 'function') {
-                reader.goTo(pageIndex);
+                reader.goTo(pageIndex, 'auto');
                 await new Promise(resolve => window.setTimeout(resolve, 0));
                 return;
             }
