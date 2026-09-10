@@ -34,11 +34,11 @@ src/
   Jellyfin.AdvancedBooks.Core/
     Archives/                         host-independent ZIP reader and safety policy
     Komga/                            host-independent Komga compatibility logic
-    Reading/                          host-independent progress/page mapping
+    Reading/                          progress mapping + preference validation
   Jellyfin.Plugin.AdvancedBooks/
-    Api/                              Jellyfin-authenticated page/progress/thumbnail endpoints
+    Api/                              page/progress/preferences/thumbnail endpoints
     Configuration/                    server/plugin settings
-    Reader/                           isolated reader, progress and navigator scripts
+    Reader/                           reader, progress, preferences and navigator scripts
     Resolvers/                        Jellyfin library resolver integration
     Services/                         runtime integration + thumbnail generation
 tests/
@@ -112,6 +112,30 @@ should store `PlaybackPositionTicks = 40000`. A subsequent GET should return pag
 
 Saving the final page must set the Jellyfin Book's played state. Saving an earlier page on a Book that is already played must not automatically clear that played state.
 
+### Reader preferences API smoke test
+
+For an authenticated Jellyfin user, verify:
+
+```text
+GET /AdvancedBooks/Reader/Preferences
+PUT /AdvancedBooks/Reader/Preferences
+```
+
+A new user should receive the safe defaults: Single Page, RTL, Fit Screen and 100% zoom. A representative PUT body is:
+
+```json
+{
+  "Layout": "double",
+  "Direction": "rtl",
+  "Fit": "width",
+  "Zoom": 1.35
+}
+```
+
+A subsequent GET should return the same normalized values. Invalid layout/direction/fit values, zoom below 0.5, zoom above 4.0, NaN or infinity-equivalent input must not be persisted. Confirm two Jellyfin users can store different values, while two Web clients signed in as the same user receive the same settings.
+
+The preferences endpoint must not accept an arbitrary user id. Storage belongs to the authenticated user and is backed by Jellyfin's display-preferences database.
+
 ### Web reader smoke test
 
 After Advanced Books and JavaScript Injector are both installed and Jellyfin has restarted:
@@ -125,23 +149,28 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 7. open **Pages** and confirm only thumbnails near the navigator viewport are requested;
 8. jump to a distant thumbnail and confirm the intended page is reached before the original reader layout is restored;
 9. close the page navigator during thumbnail loading and confirm outstanding requests are aborted;
-10. navigate to a middle page, close the reader, reopen it, and confirm it resumes at that page;
-11. repeat the reopen test from a second Jellyfin Web browser/client signed in as the same user;
-12. navigate to the final page and confirm the Book becomes played in Jellyfin;
-13. reopen the completed Book and verify rereading earlier pages does not clear the played state;
-14. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and wheel navigation;
-15. zoom above 100% in a paged mode, drag to pan, then close with Escape;
-16. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+10. select Double Page, LTR, Fit Width and a non-100% zoom, close the reader, then reopen and confirm those controls are restored;
+11. change controls and immediately close while a preference PUT is still in flight; reopen and confirm the newest queued state wins;
+12. repeat the preference restore test from a second Jellyfin Web browser/client signed in as the same user;
+13. navigate to a middle page, close the reader, reopen it, and confirm it resumes at that page before applying saved reader controls;
+14. repeat the reopen test from a second Jellyfin Web browser/client signed in as the same user;
+15. navigate to the final page and confirm the Book becomes played in Jellyfin;
+16. reopen the completed Book and verify rereading earlier pages does not clear the played state;
+17. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and wheel navigation;
+18. zoom above 100% in a paged mode, drag to pan, then close with Escape;
+19. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.
 
 ## Coding rules
 
 - Keep Jellyfin-specific types out of `Jellyfin.AdvancedBooks.Core`.
-- Add tests for path parsing, ordering, archive edge cases and progress conversion.
+- Add tests for path parsing, ordering, archive edge cases, progress conversion and reader preference validation.
 - Run `node --check` on every embedded reader script after modifications.
 - Never use client-provided filesystem paths in HTTP APIs.
 - Validate client-provided page indexes against server-side archive metadata before persisting them.
+- Validate reader preference values on the server even when the Web client also normalizes them.
+- Do not add an arbitrary user-id parameter to per-user preference APIs.
 - Bound user-selectable cache variants and concurrent thumbnail generation.
 - Prefer streaming over buffering full comic archives.
 - Revoke browser Blob URLs when evicting pages or closing the reader.
@@ -153,7 +182,7 @@ The JavaScript Injector integration is optional at runtime and loaded by reflect
 
 Jellyfin plugin ABI changes can be breaking. Update `Jellyfin.Controller`, `Jellyfin.Model`, `Jellyfin.Naming`, `build.yaml`'s `targetAbi`, and the target framework together, then run unit and integration tests.
 
-The progress mapping must also be rechecked whenever Jellyfin Web changes `ComicsPlayer.currentTime()`, `startPositionTicks`, or playbackmanager's millisecond/tick conversion. Thumbnail generation must be rechecked if Jellyfin changes `IImageProcessor`, `ImageProcessingOptions`, or supported output formats.
+The progress mapping must also be rechecked whenever Jellyfin Web changes `ComicsPlayer.currentTime()`, `startPositionTicks`, or playbackmanager's millisecond/tick conversion. Thumbnail generation must be rechecked if Jellyfin changes `IImageProcessor`, `ImageProcessingOptions`, or supported output formats. Preference persistence must be rechecked if Jellyfin changes `IDisplayPreferencesManager` or custom item display-preference semantics.
 
 ## Pull requests
 
