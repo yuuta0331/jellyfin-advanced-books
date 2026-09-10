@@ -69,7 +69,19 @@ Reading position is saved to Jellyfin's normal per-user item data after navigati
 
 Reader preferences are also stored per Jellyfin user. Single/Double/Vertical/Webtoon layout, RTL/LTR direction, fit mode and paged zoom are restored after reading-position resume completes so the saved page is established before the saved presentation mode is re-applied.
 
-To expose the **Advanced Reader** button inside Jellyfin Web today, install a Jellyfin 12-compatible build of the community **JavaScript Injector** plugin and restart Jellyfin. Advanced Books detects it at runtime and registers its embedded reader scripts; there is no compile-time dependency between the plugins.
+### Required companion plugin for Jellyfin Web
+
+To expose the **Advanced Reader** button inside Jellyfin Web, install the community [Jellyfin JavaScript Injector](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector) plugin. Advanced Books detects it at runtime and registers its embedded reader scripts automatically; you do **not** need to copy/paste the Advanced Books reader JavaScript manually.
+
+For **Jellyfin 12**, add this JavaScript Injector repository URL in **Dashboard -> Plugins -> Repositories**:
+
+```text
+https://raw.githubusercontent.com/n00bcodr/jellyfin-plugins/main/12/manifest.json
+```
+
+Then install **JavaScript Injector** from the Jellyfin plugin catalog and restart Jellyfin. Jellyfin 12 support was introduced in JavaScript Injector `v4.0.0.0`; use the current Jellyfin 12-compatible release.
+
+Without JavaScript Injector, the Advanced Books server-side resolver and APIs can still load, but the **Advanced Reader** button is not automatically inserted into Jellyfin Web.
 
 See [Advanced Reader](docs/READER.md) for controls and implementation details.
 
@@ -104,7 +116,7 @@ Important next milestones are further mobile/touch tuning, live Jellyfin integra
 - Jellyfin Server 12.0.x
 - A Jellyfin **Books** library
 - CBZ/ZIP for the current Advanced Reader preview
-- JavaScript Injector for automatic Jellyfin Web reader-button integration
+- [Jellyfin JavaScript Injector](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector) for automatic Jellyfin Web reader-button integration
 
 The One-Shot resolver follows Jellyfin 12's built-in book extensions: AZW, AZW3, CB7, CBR, CBT, CBZ, EPUB, MOBI and PDF. The Advanced Reader page API currently targets CBZ/ZIP archives only.
 
@@ -120,11 +132,12 @@ See [Development Guide](docs/DEVELOPMENT.md) for build and release details.
 
 ## Configuration
 
-1. Open **Dashboard -> Plugins -> Advanced Books**.
-2. Leave **Enable Advanced Reader integration** enabled if JavaScript Injector is installed.
-3. Enable **Komga-compatible One-Shots**.
-4. Keep `_oneshots` as the matcher for the usual Komga layout, or use `/_oneshots` for segment-prefix matching.
-5. Restart Jellyfin and rescan the affected Books library.
+1. Install [Jellyfin JavaScript Injector](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector) if you want the **Advanced Reader** button in Jellyfin Web, then restart Jellyfin.
+2. Open **Dashboard -> Plugins -> Advanced Books**.
+3. Leave **Enable Advanced Reader integration** enabled if JavaScript Injector is installed.
+4. Enable **Komga-compatible One-Shots**.
+5. Keep `_oneshots` as the matcher for the usual Komga layout, or use `/_oneshots` for segment-prefix matching.
+6. Restart Jellyfin and rescan the affected Books library.
 
 By default, a One-Shot uses its book title as its Jellyfin series name, approximating Komga's one-book-series model.
 
