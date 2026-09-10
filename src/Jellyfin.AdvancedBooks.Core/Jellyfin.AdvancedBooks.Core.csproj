@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Jellyfin.AdvancedBooks.Core</RootNamespace>
+    <AssemblyName>Jellyfin.AdvancedBooks.Core</AssemblyName>
+  </PropertyGroup>
+</Project>
