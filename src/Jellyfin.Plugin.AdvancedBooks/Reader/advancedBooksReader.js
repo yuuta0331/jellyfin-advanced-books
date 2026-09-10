@@ -690,7 +690,7 @@
             }
             if (aligned === this.currentPage) return;
             this.currentPage = aligned;
-            this.resetTransform();
+            this.resetPan();
             this.render();
         }
 
@@ -970,12 +970,16 @@
 
             if (this.pageSlider) {
                 this.pageSlider.max = String(Math.max(1, this.pageCount));
+                this.pageSlider.step = this.layout === 'double' ? '2' : '1';
                 this.pageSlider.value = String(Math.min(this.pageCount, this.currentPage + 1));
                 this.pageSlider.setAttribute('aria-valuetext', this.counter.textContent);
                 this.pageSlider.dir = !this.isContinuous() && this.direction === 'rtl' ? 'rtl' : 'ltr';
             }
             if (this.pageSliderValue) this.pageSliderValue.textContent = this.counter.textContent;
-            const progress = this.pageCount <= 1 ? 100 : (this.currentPage / (this.pageCount - 1)) * 100;
+            const reachedPage = this.layout === 'double'
+                ? Math.min(this.pageCount - 1, this.currentPage + 1)
+                : this.currentPage;
+            const progress = this.pageCount <= 1 ? 100 : (reachedPage / (this.pageCount - 1)) * 100;
             this.overlay?.style.setProperty('--ab-progress', `${Math.max(0, Math.min(100, progress))}%`);
         }
 
@@ -1144,10 +1148,13 @@
             if (this.isContinuous()) return;
 
             this.applyTransform();
-            if (this.zoom > 1) return;
 
             const deltaX = event.clientX - start.x;
             const deltaY = event.clientY - start.y;
+            if (this.zoom > 1) {
+                if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) this.toggleControls();
+                return;
+            }
             if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY)) {
                 const swipeLeft = deltaX < 0;
                 if (this.direction === 'rtl') swipeLeft ? this.previous() : this.next();
