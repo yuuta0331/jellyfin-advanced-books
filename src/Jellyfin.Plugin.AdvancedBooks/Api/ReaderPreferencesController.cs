@@ -25,7 +25,6 @@ public sealed class ReaderPreferencesController : ControllerBase
     private const string SidePaddingKey = "sidePadding";
     private const string PageGapKey = "pageGap";
     private const string PreferenceSchemaVersionKey = "schemaVersion";
-    private const int CurrentPreferenceSchemaVersion = 2;
 
     // Stable pseudo-item namespace reserved for global Advanced Reader preferences.
     private static readonly Guid PreferencesItemId = new("9d7f1b84-7d41-4f9f-bf32-9f26d8601a72");
@@ -97,14 +96,7 @@ public sealed class ReaderPreferencesController : ControllerBase
             pageGap = ReaderPreferenceRules.NormalizePageGap(parsedPageGap);
         }
 
-        var normalizedFit = ReaderPreferenceRules.NormalizeFit(fit);
-        // Early reader builds could persist Fit Height as the apparent default even
-        // though Fit Screen is the intended safe default. Migrate that legacy value
-        // once; any explicit Fit Height saved by schema v2+ remains untouched.
-        if (schemaVersion < CurrentPreferenceSchemaVersion && normalizedFit == "height")
-        {
-            normalizedFit = ReaderPreferenceRules.DefaultFit;
-        }
+        var normalizedFit = ReaderPreferenceRules.NormalizeStoredFit(fit, schemaVersion);
 
         return Ok(new ReaderPreferencesDto(
             ReaderPreferenceRules.NormalizeLayout(layout),
@@ -171,7 +163,7 @@ public sealed class ReaderPreferencesController : ControllerBase
             [ZoomKey] = normalizedZoom.ToString("0.00", CultureInfo.InvariantCulture),
             [SidePaddingKey] = request.SidePadding.ToString(CultureInfo.InvariantCulture),
             [PageGapKey] = request.PageGap.ToString(CultureInfo.InvariantCulture),
-            [PreferenceSchemaVersionKey] = CurrentPreferenceSchemaVersion.ToString(CultureInfo.InvariantCulture)
+            [PreferenceSchemaVersionKey] = ReaderPreferenceRules.CurrentPreferenceSchemaVersion.ToString(CultureInfo.InvariantCulture)
         };
 
         _displayPreferencesManager.SetCustomItemDisplayPreferences(
