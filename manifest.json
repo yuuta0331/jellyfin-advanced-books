@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.10.0.0",
+        "changelog": "Polish Advanced Reader interactions. Hidden chrome now ignores minor desktop pointer jitter, deliberate movement restores it, and hovering visible chrome pauses auto-hide. The page scrubber now shows a debounced authenticated thumbnail preview while dragging and stays pinned for long scrubs. Reduce GitHub Actions cost by deferring draft CI, cancelling stale PR runs, removing duplicate main CI builds, and triggering releases only from build.yaml changes.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.10.0.0/AdvancedBooks_0.10.0.0.zip",
+        "checksum": "06a36f7dde33cee6e532cf7c60ade17c",
+        "timestamp": "2026-09-10T19:16:09Z"
+      },
+      {
         "version": "0.9.0.0",
         "changelog": "Redesign the Advanced Reader UI for desktop and mobile. Add auto-hiding reader chrome, a direct page scrubber in every layout, responsive settings sheets, corrected Jellyfin detail-button markup, and an optional fullscreen toggle. Vertical Continuous and Webtoon now support fit controls, persisted zoom, side padding, page gaps, Ctrl+wheel zoom, two-finger pinch zoom, and desktop drag panning while retaining native one-finger scrolling.",
         "targetAbi": "12.0.0.0",
