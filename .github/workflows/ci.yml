@@ -28,6 +28,19 @@ jobs:
             node --check "$file"
           done
 
+      - name: Validate release helper syntax
+        run: python -m compileall -q scripts tests/test_release_scripts.py
+
+      - name: Validate release metadata
+        id: release_meta
+        run: >-
+          python scripts/validate_release.py
+          --github-output "$GITHUB_OUTPUT"
+          --changelog-output artifacts/changelog.txt
+
+      - name: Test release helpers
+        run: python -m unittest discover -s tests -p 'test_release_*.py' -v
+
       - name: Restore
         run: dotnet restore jellyfin-advanced-books.slnx
 
@@ -37,17 +50,31 @@ jobs:
       - name: Test
         run: dotnet test jellyfin-advanced-books.slnx --configuration Release --no-build
 
-      - name: Package development plugin
+      - name: Package development plugin twice
+        env:
+          VERSION: ${{ steps.release_meta.outputs.version }}
         run: |
-          mkdir -p artifacts/AdvancedBooks
-          cp src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll artifacts/AdvancedBooks/
-          cp src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.AdvancedBooks.Core.dll artifacts/AdvancedBooks/
-          cd artifacts
-          zip -r AdvancedBooks-dev.zip AdvancedBooks
+          INPUT_DIR="src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0"
+          python scripts/package_plugin.py --input-dir "$INPUT_DIR" --output-dir artifacts/release --version "$VERSION"
+          python scripts/package_plugin.py --input-dir "$INPUT_DIR" --output-dir artifacts/reprocheck --version "$VERSION"
+
+      - name: Verify reproducible package
+        env:
+          VERSION: ${{ steps.release_meta.outputs.version }}
+        run: |
+          cmp "artifacts/release/AdvancedBooks_${VERSION}.zip" "artifacts/reprocheck/AdvancedBooks_${VERSION}.zip"
+          cmp "artifacts/release/AdvancedBooks_${VERSION}.zip.md5" "artifacts/reprocheck/AdvancedBooks_${VERSION}.zip.md5"
+          cmp "artifacts/release/AdvancedBooks_${VERSION}.zip.sha256" "artifacts/reprocheck/AdvancedBooks_${VERSION}.zip.sha256"
+          unzip -t "artifacts/release/AdvancedBooks_${VERSION}.zip"
+          unzip -l "artifacts/release/AdvancedBooks_${VERSION}.zip"
 
       - name: Upload development plugin
         uses: actions/upload-artifact@v4
         with:
           name: AdvancedBooks-dev
-          path: artifacts/AdvancedBooks-dev.zip
+          path: |
+            artifacts/release/AdvancedBooks_*.zip
+            artifacts/release/AdvancedBooks_*.zip.md5
+            artifacts/release/AdvancedBooks_*.zip.sha256
+            artifacts/changelog.txt
           if-no-files-found: error
