@@ -19,7 +19,10 @@ ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 
 
 def digest(path: Path, algorithm: str) -> str:
-    hasher = hashlib.new(algorithm)
+    if algorithm.lower() == "md5":
+        hasher = hashlib.md5(usedforsecurity=False)
+    else:
+        hasher = hashlib.new(algorithm)
     with path.open("rb") as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             hasher.update(chunk)
