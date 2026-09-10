@@ -1211,17 +1211,23 @@
                 image.draggable = false;
                 image.decoding = 'async';
                 image.dataset.pageIndex = String(index);
+
+                const finalizeGeometry = () => {
+                    if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
+                    this.stabilizeContinuousSlot(index, slot, image);
+                    this.applyContinuousImageSizing(image);
+                };
+                image.addEventListener('load', finalizeGeometry, { once: true });
                 image.src = url;
 
                 try {
                     await image.decode?.();
                 } catch {
-                    // The load event/fallback below can still display decodable browser formats.
+                    // Some WebViews reject decode() even when the normal load event succeeds.
                 }
 
                 if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
-                this.stabilizeContinuousSlot(index, slot, image);
-                this.applyContinuousImageSizing(image);
+                finalizeGeometry();
                 slot.querySelector('.advancedBooksReaderPagePlaceholder')?.remove();
                 slot.appendChild(image);
                 return;
