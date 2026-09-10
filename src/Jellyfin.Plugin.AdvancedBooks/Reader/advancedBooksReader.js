@@ -146,6 +146,9 @@
             this.direction = 'rtl';
             this.fit = 'screen';
             this.zoom = 1;
+            this.sidePadding = 0;
+            this.pageGap = 0;
+            this.fullscreenOwned = false;
             this.panX = 0;
             this.panY = 0;
             this.renderSequence = 0;
@@ -171,6 +174,7 @@
                 if (event.pointerType !== 'touch') this.showControls();
             };
             this.boundFocusIn = () => this.showControls();
+            this.boundFullscreenChange = () => this.updateFullscreenButton();
         }
 
         async open() {
@@ -196,6 +200,9 @@
             for (const objectUrl of this.cache.values()) URL.revokeObjectURL(objectUrl);
             this.cache.clear();
 
+            if (this.fullscreenOwned && document.fullscreenElement === this.overlay && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
             this.overlay?.remove();
             document.body.style.overflow = this.previousBodyOverflow;
             if (activeReader === this) activeReader = null;
@@ -222,8 +229,8 @@
                 .advancedBooksReaderPages.ab-fit-height img{height:calc(100dvh - 1rem);max-height:none;width:auto}
                 .advancedBooksReaderPages.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
                 .advancedBooksReaderStage.ab-continuous{display:block;align-items:initial;justify-content:initial;touch-action:pan-y}
-                .advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none!important;will-change:auto;padding:.5rem 0;gap:.75rem;margin-inline:auto}
-                .advancedBooksReaderPages.ab-layout-webtoon{gap:0;padding:0}
+                .advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none!important;will-change:auto;padding:.5rem var(--ab-side-padding,0%);gap:var(--ab-page-gap,0px);margin-inline:auto;box-sizing:border-box}
+                .advancedBooksReaderPages.ab-layout-webtoon{padding-block:0}
                 .advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box}
                 .advancedBooksReaderPages.ab-layout-webtoon .advancedBooksReaderPageSlot{min-height:30vh}
                 .advancedBooksReaderPagePlaceholder{display:flex;align-items:center;justify-content:center;width:100%;min-height:inherit;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums}
@@ -254,6 +261,7 @@
                 .advancedBooksReaderSettingsPanel[hidden]{display:none!important}
                 .advancedBooksReaderSettingsHeader{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:1.05rem;font-weight:600}
                 .advancedBooksReaderSettingRow{display:grid;grid-template-columns:minmax(7rem,1fr) minmax(9rem,1.35fr);align-items:center;gap:.75rem}
+                .advancedBooksReaderSettingRow[hidden]{display:none!important}
                 .advancedBooksReaderSettingRow label{opacity:.82}
                 .advancedBooksReaderSettingRow select{width:100%;min-height:2.7rem;border:1px solid rgba(255,255,255,.2);border-radius:.45rem;background:#252525;color:#fff;padding:.4rem .55rem;font:inherit}
                 .advancedBooksReaderZoomRow{display:flex;align-items:center;gap:.45rem;justify-content:flex-end}
@@ -316,13 +324,19 @@
             this.pagesHost.className = 'advancedBooksReaderPagesHost';
             this.pagesHost.dataset.abPagesHost = 'true';
 
+            this.fullscreenButton = this.makeButton('⛶', () => this.toggleFullscreen());
+            this.fullscreenButton.className = 'advancedBooksReaderIconButton';
+            this.fullscreenButton.title = 'Fullscreen (F)';
+            this.fullscreenButton.setAttribute('aria-label', 'Enter fullscreen');
+            this.fullscreenButton.hidden = typeof this.overlay.requestFullscreen !== 'function';
+
             this.settingsButton = this.makeButton('⚙', () => this.toggleSettings());
             this.settingsButton.className = 'advancedBooksReaderIconButton';
             this.settingsButton.title = 'Reader settings';
             this.settingsButton.setAttribute('aria-label', 'Reader settings');
             this.settingsButton.setAttribute('aria-expanded', 'false');
 
-            top.append(closeButton, title, this.counter, topSpacer, this.pagesHost, this.settingsButton);
+            top.append(closeButton, title, this.counter, topSpacer, this.fullscreenButton, this.pagesHost, this.settingsButton);
 
             this.toolbar = document.createElement('div');
             this.toolbar.className = 'advancedBooksReaderToolbar advancedBooksReaderSettingsPanel';
@@ -347,6 +361,7 @@
                 ['webtoon', 'Webtoon']
             ], this.layout, value => this.setLayout(value));
             this.layoutSelect.dataset.abControl = 'layout';
+            this.layoutSelect.setAttribute('aria-label', 'Reader layout');
 
             this.directionSelect = this.makeSelect([
                 ['rtl', 'Right to left'],
@@ -357,6 +372,7 @@
                 this.render();
             });
             this.directionSelect.dataset.abControl = 'direction';
+            this.directionSelect.setAttribute('aria-label', 'Paged reading direction');
 
             this.fitSelect = this.makeSelect([
                 ['screen', 'Fit screen'],
@@ -369,6 +385,36 @@
                 this.render();
             });
             this.fitSelect.dataset.abControl = 'fit';
+            this.fitSelect.setAttribute('aria-label', 'Image fit');
+
+            this.sidePaddingSelect = this.makeSelect([
+                ['0', 'None'],
+                ['2', '2%'],
+                ['5', '5%'],
+                ['10', '10%'],
+                ['15', '15%'],
+                ['20', '20%']
+            ], String(this.sidePadding), value => {
+                this.sidePadding = Number(value) || 0;
+                this.applyTransform();
+            });
+            this.sidePaddingSelect.dataset.abControl = 'sidePadding';
+            this.sidePaddingSelect.setAttribute('aria-label', 'Continuous side padding');
+
+            this.pageGapSelect = this.makeSelect([
+                ['0', 'None'],
+                ['4', '4 px'],
+                ['8', '8 px'],
+                ['12', '12 px'],
+                ['16', '16 px'],
+                ['24', '24 px'],
+                ['32', '32 px']
+            ], String(this.pageGap), value => {
+                this.pageGap = Number(value) || 0;
+                this.applyTransform();
+            });
+            this.pageGapSelect.dataset.abControl = 'pageGap';
+            this.pageGapSelect.setAttribute('aria-label', 'Continuous page gap');
 
             this.zoomOutButton = this.makeButton('−', () => this.setZoom(this.zoom - .25));
             this.zoomOutButton.title = 'Zoom out';
@@ -381,19 +427,26 @@
             zoomRow.className = 'advancedBooksReaderZoomRow';
             zoomRow.append(this.zoomOutButton, this.zoomResetButton, this.zoomInButton);
 
+            let controlSequence = 0;
             const row = (labelText, control) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'advancedBooksReaderSettingRow';
                 const label = document.createElement('label');
                 label.textContent = labelText;
-                label.appendChild(document.createTextNode(''));
+                if (control instanceof HTMLElement && control.tagName !== 'DIV') {
+                    if (!control.id) control.id = `advancedBooksReaderControl-${++controlSequence}`;
+                    label.htmlFor = control.id;
+                }
                 wrapper.append(label, control);
                 return wrapper;
             };
 
+            this.sidePaddingRow = row('Side padding', this.sidePaddingSelect);
+            this.pageGapRow = row('Page gap', this.pageGapSelect);
+
             const hint = document.createElement('p');
             hint.className = 'advancedBooksReaderSettingsHint';
-            hint.textContent = 'Vertical and Webtoon keep native scrolling. Zoom changes the continuous canvas width; at higher zoom you can pan/scroll normally.';
+            hint.textContent = 'Vertical and Webtoon keep native one-finger scrolling. Use Side padding and Page gap to tune continuous layouts; reader zoom remains available in every mode.';
 
             this.toolbar.append(
                 settingsHeader,
@@ -401,6 +454,8 @@
                 row('Paged direction', this.directionSelect),
                 row('Fit', this.fitSelect),
                 row('Zoom', zoomRow),
+                this.sidePaddingRow,
+                this.pageGapRow,
                 hint
             );
 
@@ -484,6 +539,32 @@
             }
         }
 
+        async toggleFullscreen() {
+            if (!this.overlay?.isConnected || typeof this.overlay.requestFullscreen !== 'function') return;
+            try {
+                if (document.fullscreenElement === this.overlay) {
+                    this.fullscreenOwned = false;
+                    await document.exitFullscreen?.();
+                } else {
+                    await this.overlay.requestFullscreen({ navigationUI: 'hide' });
+                    this.fullscreenOwned = document.fullscreenElement === this.overlay;
+                }
+            } catch {
+                // Fullscreen can be denied by wrapper clients or browser policy.
+            }
+            this.updateFullscreenButton();
+            this.showControls();
+        }
+
+        updateFullscreenButton() {
+            if (!this.fullscreenButton) return;
+            const active = document.fullscreenElement === this.overlay;
+            this.fullscreenButton.textContent = active ? '⛶' : '⛶';
+            this.fullscreenButton.title = active ? 'Exit fullscreen (F)' : 'Fullscreen (F)';
+            this.fullscreenButton.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
+            if (!active) this.fullscreenOwned = false;
+        }
+
         previewSlider() {
             if (!this.pageSlider || !this.pageSliderValue) return;
             const page = Math.max(1, Math.min(this.pageCount, Number(this.pageSlider.value) || 1));
@@ -520,10 +601,14 @@
         }
 
         syncControlState() {
+            const continuous = this.isContinuous();
             this.directionSelect.disabled = false;
             this.fitSelect.disabled = false;
             this.zoomOutButton.disabled = this.zoom <= .5;
             this.zoomInButton.disabled = this.zoom >= 4;
+            if (this.sidePaddingRow) this.sidePaddingRow.hidden = !continuous;
+            if (this.pageGapRow) this.pageGapRow.hidden = !continuous;
+            this.updateFullscreenButton();
         }
 
         bindEvents() {
@@ -536,6 +621,7 @@
             this.stage.addEventListener('click', this.boundStageClick);
             this.overlay.addEventListener('pointermove', this.boundPointerActivity, { passive: true });
             this.overlay.addEventListener('focusin', this.boundFocusIn);
+            document.addEventListener('fullscreenchange', this.boundFullscreenChange);
         }
 
         unbindEvents() {
@@ -548,6 +634,7 @@
             this.stage?.removeEventListener('click', this.boundStageClick);
             this.overlay?.removeEventListener('pointermove', this.boundPointerActivity);
             this.overlay?.removeEventListener('focusin', this.boundFocusIn);
+            document.removeEventListener('fullscreenchange', this.boundFullscreenChange);
         }
 
         onStageClick(event) {
@@ -900,6 +987,8 @@
             if (this.isContinuous()) {
                 this.pagesElement.className = `advancedBooksReaderPages ab-continuous ab-layout-${this.layout} ab-fit-${this.fit}`;
                 this.pagesElement.style.transform = 'none';
+                this.pagesElement.style.setProperty('--ab-side-padding', `${this.sidePadding}%`);
+                this.pagesElement.style.setProperty('--ab-page-gap', `${this.pageGap}px`);
                 const scalableCanvas = this.fit === 'screen' || this.fit === 'width';
                 this.pagesElement.style.width = scalableCanvas ? `${Math.round(this.zoom * 100)}%` : '100%';
                 this.pagesElement.style.minWidth = scalableCanvas && this.zoom >= 1
@@ -913,6 +1002,8 @@
             }
             this.pagesElement.style.width = '';
             this.pagesElement.style.minWidth = '';
+            this.pagesElement.style.removeProperty('--ab-side-padding');
+            this.pagesElement.style.removeProperty('--ab-page-gap');
             this.pagesElement.className = `advancedBooksReaderPages ab-layout-${this.layout} ab-fit-${this.fit}`;
             this.pagesElement.style.transform = `translate(${this.panX}px,${this.panY}px) scale(${this.zoom})`;
             this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
@@ -937,6 +1028,7 @@
 
             this.showControls();
 
+            if (event.key.toLowerCase() === 'f') { event.preventDefault(); this.toggleFullscreen(); return; }
             if (event.key === '+' || event.key === '=') { event.preventDefault(); this.setZoom(this.zoom + .25); return; }
             if (event.key === '-') { event.preventDefault(); this.setZoom(this.zoom - .25); return; }
             if (event.key === '0') { event.preventDefault(); this.setZoom(1); return; }
