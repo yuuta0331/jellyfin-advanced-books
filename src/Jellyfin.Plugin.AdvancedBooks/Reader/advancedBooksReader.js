@@ -1140,7 +1140,10 @@
             if (target) {
                 await this.loadContinuousPage(this.currentPage, target).catch(() => {});
                 requestAnimationFrame(() => {
-                    if (!this.closed && this.isContinuous()) this.stage.scrollTop = Math.max(0, target.offsetTop - 4);
+                    if (!this.closed && this.isContinuous()) {
+                        this.stage.scrollTop = Math.max(0, target.offsetTop - 4);
+                        this.prefetchContinuousNear(this.currentPage, 1);
+                    }
                 });
             }
         }
@@ -1165,10 +1168,23 @@
                 }
             }
             if (bestIndex !== this.currentPage) {
+                const direction = Math.sign(bestIndex - this.currentPage) || 1;
                 this.currentPage = bestIndex;
                 this.updateControls();
                 this.trimCache();
                 this.trimPendingContinuous();
+                this.prefetchContinuousNear(bestIndex, direction);
+            }
+        }
+
+        prefetchContinuousNear(center, direction) {
+            if (!this.isContinuous()) return;
+            const offsets = direction >= 0 ? [1, 2, 3, -1] : [-1, -2, -3, 1];
+            for (const offset of offsets) {
+                const index = center + offset;
+                const slot = this.continuousElements[index];
+                if (!slot?.isConnected || slot.querySelector('img')) continue;
+                this.loadContinuousPage(index, slot).catch(() => {});
             }
         }
 
