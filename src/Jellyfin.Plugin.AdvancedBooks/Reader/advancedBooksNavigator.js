@@ -131,6 +131,7 @@
             this.counterObserver = null;
             this.removalObserver = null;
             this.scrollTimer = null;
+            this.panelGeneration = 0;
             this.closed = false;
             this.boundGridScroll = () => this.scheduleGridRefresh();
         }
@@ -172,6 +173,7 @@
 
         openPanel() {
             if (this.closed || this.panel?.isConnected) return;
+            this.panelGeneration++;
             this.panel = document.createElement('section');
             this.panel.className = 'advancedBooksNavigatorPanel';
             this.panel.setAttribute('role', 'dialog');
@@ -221,6 +223,7 @@
         }
 
         closePanel() {
+            this.panelGeneration++;
             window.clearTimeout(this.scrollTimer);
             this.grid?.removeEventListener('scroll', this.boundGridScroll);
             this.intersectionObserver?.disconnect();
@@ -367,28 +370,31 @@
                 if (this.cache.has(next.index) || this.pending.has(next.index)) continue;
 
                 const controller = new AbortController();
+                const generation = this.panelGeneration;
                 this.activeRequests++;
-                const promise = this.fetchThumbnail(next.index, controller.signal)
+                const promise = this.fetchThumbnail(next.index, controller.signal, generation)
                     .catch(() => {
                         // Keep the grid usable if one preview fails.
                     })
                     .finally(() => {
                         this.pending.delete(next.index);
-                        this.activeRequests = Math.max(0, this.activeRequests - 1);
-                        this.pumpThumbnailQueue();
+                        if (generation === this.panelGeneration) {
+                            this.activeRequests = Math.max(0, this.activeRequests - 1);
+                            this.pumpThumbnailQueue();
+                        }
                     });
-                this.pending.set(next.index, { controller, promise });
+                this.pending.set(next.index, { controller, promise, generation });
             }
         }
 
-        async fetchThumbnail(index, signal) {
+        async fetchThumbnail(index, signal, generation) {
             const url = this.apiClient.getUrl(
                 `AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}/Thumbnail?width=${thumbnailWidth}`
             );
             const response = await this.apiClient.fetch({ url, method: 'GET', signal }, true);
             if (!response || response.ok === false) throw new Error(`HTTP ${response?.status ?? 'error'}`);
             const blob = await response.blob();
-            if (this.closed || !this.panel?.isConnected || signal.aborted) return;
+            if (this.closed || !this.panel?.isConnected || signal.aborted || generation !== this.panelGeneration) return;
 
             const objectUrl = URL.createObjectURL(blob);
             const existing = this.cache.get(index);
@@ -482,6 +488,7 @@
         dispose() {
             if (this.closed) return;
             this.closed = true;
+            this.panelGeneration++;
             window.clearTimeout(this.scrollTimer);
             this.grid?.removeEventListener('scroll', this.boundGridScroll);
             this.intersectionObserver?.disconnect();
