@@ -47,6 +47,30 @@ public sealed class ReaderPreferenceRulesTests
         Assert.Equal(value, ReaderPreferenceRules.NormalizeFit(value));
     }
 
+    [Fact]
+    public void DefaultFit_IsScreen()
+    {
+        Assert.Equal("screen", ReaderPreferenceRules.DefaultFit);
+    }
+
+    [Fact]
+    public void LegacyHeightFit_MigratesToScreen()
+    {
+        Assert.Equal(
+            ReaderPreferenceRules.DefaultFit,
+            ReaderPreferenceRules.NormalizeStoredFit("height", 1));
+    }
+
+    [Fact]
+    public void CurrentHeightFit_RemainsExplicitChoice()
+    {
+        Assert.Equal(
+            "height",
+            ReaderPreferenceRules.NormalizeStoredFit(
+                "height",
+                ReaderPreferenceRules.CurrentPreferenceSchemaVersion));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(2)]

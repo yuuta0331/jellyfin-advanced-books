@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using Jellyfin.AdvancedBooks.Core.Archives;
@@ -11,7 +12,7 @@ namespace Jellyfin.Plugin.AdvancedBooks.Services;
 /// <summary>
 /// Result of generating or resolving a cached reader thumbnail.
 /// </summary>
-public sealed record ReaderThumbnailFile(string Path, string ContentType, DateTime LastModifiedUtc);
+public sealed record ReaderThumbnailFile(string Path, string ContentType, DateTime LastModifiedUtc, int Width);
 
 /// <summary>
 /// Creates bounded-size thumbnails for archive pages without retaining extracted source pages.
@@ -35,9 +36,13 @@ public interface IReaderThumbnailService
 /// </summary>
 public sealed class ReaderThumbnailService : IReaderThumbnailService
 {
-    private const int ThumbnailQuality = 75;
-    private static readonly SemaphoreSlim GenerationSlots = new(2, 2);
+    private const int ThumbnailQuality = 70;
+    private const int ArchiveInfoCacheLimit = 32;
+    private static long _archiveInfoAccessSequence;
+    private static readonly SemaphoreSlim GenerationSlots = new(3, 3);
 
+    private readonly ConcurrentDictionary<string, CachedArchiveInfo> _archiveInfoCache =
+        new(StringComparer.OrdinalIgnoreCase);
     private readonly IZipBookArchiveReader _archiveReader;
     private readonly IImageProcessor _imageProcessor;
 
@@ -66,7 +71,7 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
             throw new NotSupportedException("The book is not backed by a supported archive.");
         }
 
-        var info = _archiveReader.GetBookInfo(book.Path);
+        var info = GetBookInfo(book.Path);
         if (pageIndex < 0 || pageIndex >= info.Pages.Count)
         {
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -84,7 +89,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         Directory.CreateDirectory(cacheDirectory);
 
         var cacheStem = BuildCacheStem(info, page, pageIndex, maxWidth);
-        var existing = FindCachedFile(cacheDirectory, cacheStem);
+        var existing = FindCachedFile(cacheDirectory, cacheStem, maxWidth)
+            ?? FindCompatibleLargerCachedFile(cacheDirectory, cacheStem, pageIndex, maxWidth);
         if (existing is not null)
         {
             return existing;
@@ -93,7 +99,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         await GenerationSlots.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            existing = FindCachedFile(cacheDirectory, cacheStem);
+            existing = FindCachedFile(cacheDirectory, cacheStem, maxWidth)
+                ?? FindCompatibleLargerCachedFile(cacheDirectory, cacheStem, pageIndex, maxWidth);
             if (existing is not null)
             {
                 return existing;
@@ -181,7 +188,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
                 return new ReaderThumbnailFile(
                     targetPath,
                     GetImageContentType(outputExtension),
-                    File.GetLastWriteTimeUtc(targetPath));
+                    File.GetLastWriteTimeUtc(targetPath),
+                    maxWidth);
             }
             finally
             {
@@ -205,6 +213,50 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         }
     }
 
+    private ArchiveBookInfo GetBookInfo(string path)
+    {
+        var file = new FileInfo(path);
+        if (!file.Exists)
+        {
+            throw new FileNotFoundException("Comic archive was not found.", path);
+        }
+
+        var length = file.Length;
+        var lastWriteUtcTicks = file.LastWriteTimeUtc.Ticks;
+        if (_archiveInfoCache.TryGetValue(path, out var cached)
+            && cached.Length == length
+            && cached.LastWriteUtcTicks == lastWriteUtcTicks)
+        {
+            _archiveInfoCache[path] = cached with { AccessSequence = Interlocked.Increment(ref _archiveInfoAccessSequence) };
+            return cached.Info;
+        }
+
+        var info = _archiveReader.GetBookInfo(path);
+        _archiveInfoCache[path] = new CachedArchiveInfo(
+            length,
+            lastWriteUtcTicks,
+            info,
+            Interlocked.Increment(ref _archiveInfoAccessSequence));
+        TrimArchiveInfoCache(path);
+        return info;
+    }
+
+    private void TrimArchiveInfoCache(string protectedPath)
+    {
+        if (_archiveInfoCache.Count <= ArchiveInfoCacheLimit)
+        {
+            return;
+        }
+
+        foreach (var candidate in _archiveInfoCache
+                     .Where(pair => !string.Equals(pair.Key, protectedPath, StringComparison.OrdinalIgnoreCase))
+                     .OrderBy(pair => pair.Value.AccessSequence)
+                     .Take(Math.Max(0, _archiveInfoCache.Count - ArchiveInfoCacheLimit)))
+        {
+            _archiveInfoCache.TryRemove(candidate.Key, out _);
+        }
+    }
+
     private static string BuildCacheStem(
         ArchiveBookInfo info,
         ArchivePage page,
@@ -218,18 +270,63 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         return $"{pageIndex:D6}-{maxWidth}-{hash}";
     }
 
-    private static ReaderThumbnailFile? FindCachedFile(string directory, string cacheStem)
+    private static ReaderThumbnailFile? FindCachedFile(string directory, string cacheStem, int width)
     {
         foreach (var extension in new[] { ".webp", ".jpg", ".png" })
         {
             var path = Path.Combine(directory, cacheStem + extension);
             if (File.Exists(path))
             {
-                return new ReaderThumbnailFile(path, GetImageContentType(extension), File.GetLastWriteTimeUtc(path));
+                return new ReaderThumbnailFile(path, GetImageContentType(extension), File.GetLastWriteTimeUtc(path), width);
             }
         }
 
         return null;
+    }
+
+    private static ReaderThumbnailFile? FindCompatibleLargerCachedFile(
+        string directory,
+        string cacheStem,
+        int pageIndex,
+        int minimumWidth)
+    {
+        var separator = cacheStem.LastIndexOf('-');
+        if (separator < 0 || separator == cacheStem.Length - 1)
+        {
+            return null;
+        }
+
+        var hash = cacheStem[(separator + 1)..];
+        ReaderThumbnailFile? best = null;
+        var bestWidth = int.MaxValue;
+
+        foreach (var path in Directory.EnumerateFiles(directory, $"{pageIndex:D6}-*-{hash}.*"))
+        {
+            var extension = Path.GetExtension(path).ToLowerInvariant();
+            if (extension is not ".webp" and not ".jpg" and not ".png")
+            {
+                continue;
+            }
+
+            var stem = Path.GetFileNameWithoutExtension(path);
+            var parts = stem.Split('-', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 3
+                || !int.TryParse(parts[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var width)
+                || width < minimumWidth
+                || width >= bestWidth)
+            {
+                continue;
+            }
+
+            bestWidth = width;
+            best = new ReaderThumbnailFile(
+                path,
+                GetImageContentType(extension),
+                File.GetLastWriteTimeUtc(path),
+                width);
+        }
+
+        return best;
     }
 
     private static void RemoveSupersededFiles(string directory, int pageIndex, int maxWidth, string keepPath)
@@ -274,6 +371,12 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
             _ => "image/jpeg"
         };
     }
+
+    private sealed record CachedArchiveInfo(
+        long Length,
+        long LastWriteUtcTicks,
+        ArchiveBookInfo Info,
+        long AccessSequence);
 
     private static void TryDelete(string path)
     {

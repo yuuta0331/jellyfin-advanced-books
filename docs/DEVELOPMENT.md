@@ -47,15 +47,15 @@ To package a local Release build:
 python scripts/package_plugin.py \
   --input-dir src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0 \
   --output-dir artifacts/release \
-  --version 0.10.0.0
+  --version 0.11.0.0
 ```
 
 The generated files are:
 
 ```text
-AdvancedBooks_0.10.0.0.zip
-AdvancedBooks_0.10.0.0.zip.md5
-AdvancedBooks_0.10.0.0.zip.sha256
+AdvancedBooks_0.11.0.0.zip
+AdvancedBooks_0.11.0.0.zip.md5
+AdvancedBooks_0.11.0.0.zip.sha256
 ```
 
 The MD5 value is intentional because Jellyfin 12 verifies plugin repository packages against the manifest checksum using MD5. SHA-256 is published alongside it for stronger manual integrity checking.
@@ -132,7 +132,7 @@ GET /AdvancedBooks/Books/{itemId}/Pages/0/Thumbnail?width=180
 
 The response should be a small WebP/JPEG/PNG image, should include `X-AdvancedBooks-Thumbnail-Width`, and should not expose a filesystem path. Requests below 96 or above 320 must return HTTP 400.
 
-Check width normalization as well: representative requests in the allowed range should map downward to one of 96, 128, 180, 240 or 320 pixels. Repeating the same page/width should reuse the plugin cache rather than recreate the thumbnail.
+Check width normalization as well: representative requests in the allowed range should map downward to one of 96, 128, 180, 240 or 320 pixels. Repeating the same page/width should reuse the plugin cache rather than recreate the thumbnail. After a 180px grid thumbnail exists, request 128px for the same page and confirm the compatible larger cached thumbnail can be reused without another image-processing pass.
 
 After generation, verify the plugin's `reader-thumbnail-work` directory contains no retained full-resolution page from the completed request. The temporary image-processor result must also be removed after the plugin-owned thumbnail is copied.
 
@@ -189,9 +189,9 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 2. open a supported CBZ Book detail page;
 3. confirm **Advanced Reader** appears in the main detail buttons;
 4. open it and verify only the current/nearby page endpoints are requested in browser developer tools rather than a full-book download;
-5. verify Single/Double, RTL/LTR and all four fit modes;
-6. verify Vertical Continuous and Webtoon lazy-load pages as they approach the viewport;
-7. open **Pages** and confirm only thumbnails near the navigator viewport are requested;
+5. verify a new/default user opens with Fit Screen; upgrade a user that previously persisted legacy Fit Height and confirm it migrates to Fit Screen, then explicitly select Fit Height and confirm the current preference schema preserves that choice; verify all four fit modes in portrait/landscape and after resizing;
+6. verify Vertical Continuous and Webtoon can be scrolled through a long book without repeated layout jumps or mid-scroll stalls; confirm pages ahead are prefetched while the cache remains bounded;
+7. open **Pages**, scroll several screens downward quickly, and confirm newly visible rows always begin loading; verify off-screen queued work is deprioritized/aborted rather than blocking the current viewport;
 8. jump to a distant thumbnail and confirm the live reader session reaches the intended page directly without temporarily changing layouts;
 9. close the page navigator during thumbnail loading and confirm outstanding requests are aborted;
 10. select Double Page, LTR, Fit Width and a non-100% zoom, close the reader, then reopen and confirm those controls are restored;
@@ -203,9 +203,9 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 16. reopen the completed Book and verify rereading earlier pages does not clear the played state;
 17. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and wheel navigation;
 18. confirm top/bottom reader chrome auto-hides; tiny mouse jitter must leave it hidden, deliberate mouse movement or movement near a top/bottom edge must restore it, hovering visible chrome must keep it open, and a center tap/click must toggle it without turning a page;
-19. drag the bottom page scrubber from the beginning to a distant page in Single, Double, Vertical and Webtoon layouts; verify a floating thumbnail/page preview follows the selected position, stale preview requests are not allowed to pile up, and the intended page is reached directly;
+19. drag the bottom page scrubber from the beginning to a distant page in Single, Double, Vertical and Webtoon layouts; verify the thumbnail/page preview stays directly above the active finger/pointer, appears quickly, stale preview requests are aborted, and the intended page is reached directly;
 20. hold the scrubber for longer than the normal auto-hide delay and confirm the reader chrome remains visible until scrubbing ends;
-21. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet;
+21. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet; on mobile confirm the top/bottom icon and navigation buttons remain square rather than vertically stretched;
 22. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
 23. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
 24. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
@@ -224,7 +224,7 @@ Run these checks on a real touch device or browser/device mode that emits touch 
 6. With a third finger still down, lift either original pinch finger; confirm the pinch ends cleanly rather than switching to a different pair.
 7. Start with two fingers closer than the minimum pinch distance, spread them apart, and confirm the gesture can become a pinch without creating a page-turn tap/swipe.
 8. At greater than 100% zoom, confirm ordinary one-finger drag-to-pan still works after the pinch finishes.
-9. In Vertical Continuous and Webtoon, confirm one-finger vertical scrolling remains native, then add a second finger and confirm the custom pinch bridge activates without producing an accidental page jump.
+9. In Vertical Continuous and Webtoon, confirm one-finger vertical scrolling remains native, then add a second finger and pinch in/out; zoom should change while the page/scroll position stays anchored, and releasing the gesture must not create a page jump.
 10. In paged Fit Width/Original at 100% or below, confirm normal vertical panning/scrolling remains usable where content exceeds the viewport; the pinch feature must not globally force `touch-action:none`.
 
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.

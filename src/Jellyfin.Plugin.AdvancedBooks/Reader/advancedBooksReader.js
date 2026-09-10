@@ -6,14 +6,15 @@
 
     const metadataCache = new Map();
     const pagedCacheLimit = 8;
-    const continuousCacheLimit = 12;
-    const continuousKeepRadius = 5;
+    const continuousCacheLimit = 18;
+    const continuousKeepRadius = 7;
+    const continuousPreloadMargin = '280% 0px';
     const controlsRevealDistance = 48;
     const controlsEdgeRevealDistance = 6;
     const controlsVisibleActivityDistance = 14;
     const controlsEdgeSize = 10;
-    const sliderThumbnailDelayMs = 80;
-    const sliderThumbnailCacheLimit = 10;
+    const sliderThumbnailDelayMs = 24;
+    const sliderThumbnailCacheLimit = 16;
     let attachSequence = 0;
     let attachTimer = null;
     let activeReader = null;
@@ -155,6 +156,7 @@
             this.sidePadding = 0;
             this.pageGap = 0;
             this.fullscreenOwned = false;
+            this.externalPinchActive = false;
             this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             this.panX = 0;
             this.panY = 0;
@@ -179,6 +181,7 @@
             this.sliderPreviewHideTimer = null;
             this.sliderPreviewSequence = 0;
             this.sliderScrubbing = false;
+            this.sliderPointerX = null;
             this.sliderThumbnailCache = new Map();
             this.sliderThumbnailPending = null;
             this.boundKeyDown = event => this.onKeyDown(event);
@@ -194,6 +197,10 @@
                 if (!this.settingsOpen) this.showControls();
             };
             this.boundFullscreenChange = () => this.updateFullscreenButton();
+            this.boundViewportResize = () => this.updateViewportMetrics();
+            this.viewportResizeObserver = null;
+            this.viewportWidth = 0;
+            this.viewportHeight = 0;
         }
 
         async open() {
@@ -203,6 +210,7 @@
             this.buildUi();
             this.bindEvents();
             document.body.style.overflow = 'hidden';
+            this.updateViewportMetrics();
             await this.render();
             this.showControls();
             this.stage?.focus?.({ preventScroll: true });
@@ -244,16 +252,16 @@
             style.id = 'advancedBooksReaderStyles';
             style.textContent = `
                 .advancedBooksReaderButton .detailButton-content{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
-                .advancedBooksReaderOverlay{position:fixed;inset:0;z-index:2147483000;background:#080808;color:#fff;font-family:inherit;overflow:hidden;--ab-accent:var(--theme-primary-color,#00a4dc);--ab-progress:0%}
+                .advancedBooksReaderOverlay{position:fixed;inset:0;z-index:2147483000;background:#080808;color:#fff;font-family:inherit;overflow:hidden;--ab-accent:var(--theme-primary-color,#00a4dc);--ab-progress:0%;--ab-stage-width:100vw;--ab-stage-height:100dvh}
                 .advancedBooksReaderStage{position:absolute;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:#080808;touch-action:pan-y;user-select:none;overscroll-behavior:contain;scrollbar-width:none}
                 .advancedBooksReaderStage::-webkit-scrollbar{display:none}
                 .advancedBooksReaderPages{min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;transform-origin:center center;will-change:transform;box-sizing:border-box;padding:.4rem}
                 .advancedBooksReaderPages img{display:block;object-fit:contain;flex:0 1 auto;box-shadow:0 0 20px rgba(0,0,0,.35)}
-                .advancedBooksReaderPages.ab-fit-screen img{max-width:calc(100vw - 1rem);max-height:calc(100dvh - 1rem);width:auto;height:auto}
-                .advancedBooksReaderPages.ab-layout-double.ab-fit-screen img{max-width:calc(50vw - .7rem)}
-                .advancedBooksReaderPages.ab-fit-width{align-items:flex-start}.advancedBooksReaderPages.ab-fit-width img{width:calc(100vw - 1rem);max-width:none;height:auto}
-                .advancedBooksReaderPages.ab-layout-double.ab-fit-width img{width:calc(50vw - .7rem)}
-                .advancedBooksReaderPages.ab-fit-height img{height:calc(100dvh - 1rem);max-height:none;width:auto}
+                .advancedBooksReaderPages.ab-fit-screen img{max-width:calc(var(--ab-stage-width) - 1rem);max-height:calc(var(--ab-stage-height) - 1rem);width:auto;height:auto}
+                .advancedBooksReaderPages.ab-layout-double.ab-fit-screen img{max-width:calc((var(--ab-stage-width) - 1.4rem)/2)}
+                .advancedBooksReaderPages.ab-fit-width{align-items:flex-start}.advancedBooksReaderPages.ab-fit-width img{width:calc(var(--ab-stage-width) - 1rem);max-width:none;height:auto}
+                .advancedBooksReaderPages.ab-layout-double.ab-fit-width img{width:calc((var(--ab-stage-width) - 1.4rem)/2)}
+                .advancedBooksReaderPages.ab-fit-height img{height:calc(var(--ab-stage-height) - 1rem);max-height:none;width:auto}
                 .advancedBooksReaderPages.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
                 .advancedBooksReaderStage.ab-continuous{display:block;align-items:initial;justify-content:initial;touch-action:pan-y}
                 .advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none;will-change:auto;padding:.5rem min(var(--ab-side-padding,0vw),12rem);gap:var(--ab-page-gap,0px);margin-inline:auto;box-sizing:border-box}
@@ -261,9 +269,9 @@
                 .advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box}
                 .advancedBooksReaderPages.ab-layout-webtoon .advancedBooksReaderPageSlot{min-height:30vh}
                 .advancedBooksReaderPagePlaceholder{display:flex;align-items:center;justify-content:center;width:100%;min-height:inherit;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums}
-                .advancedBooksReaderPages.ab-continuous.ab-fit-screen img{max-width:100%;max-height:100dvh;width:auto;height:auto}
+                .advancedBooksReaderPages.ab-continuous.ab-fit-screen img{max-width:100%;max-height:var(--ab-stage-height);width:auto;height:auto}
                 .advancedBooksReaderPages.ab-continuous.ab-fit-width img{width:100%;max-width:none;height:auto}
-                .advancedBooksReaderPages.ab-continuous.ab-fit-height img{height:100dvh;max-height:none;width:auto;max-width:100%}
+                .advancedBooksReaderPages.ab-continuous.ab-fit-height img{height:var(--ab-stage-height);max-height:none;width:auto;max-width:100%}
                 .advancedBooksReaderPages.ab-continuous.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
                 .advancedBooksReaderPages.ab-layout-webtoon img{box-shadow:none}
                 .advancedBooksReaderMessage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:1.05rem;color:rgba(255,255,255,.82);padding:1rem;text-align:center}
@@ -282,7 +290,7 @@
                 .advancedBooksReaderPagesHost{display:flex;align-items:center;gap:.4rem}
                 .advancedBooksReaderPageSlider{flex:1 1 auto;min-width:5rem;height:2.75rem;margin:0;cursor:ew-resize;accent-color:var(--ab-accent);touch-action:none}
                 .advancedBooksReaderPageSliderValue{min-width:5.2rem;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
-                .advancedBooksReaderSliderPreview{position:absolute;z-index:10;bottom:calc(100% - .1rem);left:50%;transform:translate(-50%,-.35rem);width:min(10rem,30vw);padding:.4rem;border:1px solid rgba(255,255,255,.18);border-radius:.6rem;background:rgba(15,15,15,.96);box-shadow:0 10px 32px rgba(0,0,0,.55);pointer-events:none;box-sizing:border-box;backdrop-filter:blur(12px)}
+                .advancedBooksReaderSliderPreview{position:absolute;z-index:10;bottom:calc(100% - .1rem);left:50%;transform:translate(-50%,-.35rem);width:min(8.5rem,28vw);padding:.35rem;border:1px solid rgba(255,255,255,.18);border-radius:.6rem;background:rgba(15,15,15,.96);box-shadow:0 10px 32px rgba(0,0,0,.55);pointer-events:none;box-sizing:border-box;backdrop-filter:blur(12px)}
                 .advancedBooksReaderSliderPreview[hidden]{display:none!important}
                 .advancedBooksReaderSliderPreviewImageWrap{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:.35rem;background:#070707}
                 .advancedBooksReaderSliderPreview img{display:block;width:100%;height:100%;object-fit:contain}
@@ -306,15 +314,16 @@
                     .advancedBooksReaderTitle{display:none}
                     .advancedBooksReaderCounter{font-size:.9rem;padding-inline:.45rem}
                     .advancedBooksReaderChromeBottom{gap:.35rem;padding-inline:.45rem}
-                    .advancedBooksReaderNavButton{min-width:2.7rem;padding-inline:.55rem}
+                    .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;max-width:2.75rem;max-height:2.75rem;padding:0;flex:0 0 2.75rem}
                     .advancedBooksReaderPageSliderValue{min-width:4.4rem;font-size:.88rem}
-                    .advancedBooksReaderSliderPreview{width:min(8.5rem,36vw)}
+                    .advancedBooksReaderSliderPreview{width:min(7.5rem,34vw)}
                     .advancedBooksReaderSettingsPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(72dvh,38rem);border-radius:1rem 1rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
                     .advancedBooksReaderSettingRow{grid-template-columns:1fr;gap:.35rem}
                     .advancedBooksReaderPageSlot{min-height:45vh}
                 }
                 @media(pointer:coarse){
-                    .advancedBooksReaderIconButton,.advancedBooksReaderNavButton,.advancedBooksReaderSettingRow select,.advancedBooksReaderZoomRow button{min-height:3rem}
+                    .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;padding:0}
+                    .advancedBooksReaderSettingRow select,.advancedBooksReaderZoomRow button{min-height:2.75rem}
                 }
                 @media(prefers-reduced-motion:reduce){
                     .advancedBooksReaderChrome,.advancedBooksReaderProgressRail::after{transition:none!important}
@@ -515,32 +524,42 @@
             this.pageSlider.step = '1';
             this.pageSlider.value = '1';
             this.pageSlider.setAttribute('aria-label', 'Jump to page');
-            this.pageSlider.addEventListener('pointerdown', () => {
+            this.pageSlider.addEventListener('pointerdown', event => {
                 this.sliderScrubbing = true;
+                this.sliderPointerX = event.clientX;
                 this.showControls(false);
-                this.previewSlider(true);
+                this.previewSlider(true, event.clientX);
+            });
+            this.pageSlider.addEventListener('pointermove', event => {
+                if (!this.sliderScrubbing) return;
+                this.sliderPointerX = event.clientX;
+                this.positionSliderPreview(Number(this.pageSlider.value) - 1, event.clientX);
             });
             this.pageSlider.addEventListener('input', () => {
-                this.previewSlider(true);
+                this.previewSlider(true, this.sliderPointerX);
                 this.showControls(false);
             });
             const finishSliderInteraction = () => {
                 this.sliderScrubbing = false;
+                this.sliderPointerX = null;
                 this.showControls();
                 this.scheduleSliderPreviewHide();
             };
             this.pageSlider.addEventListener('pointerup', finishSliderInteraction);
             this.pageSlider.addEventListener('pointercancel', () => {
                 this.sliderScrubbing = false;
+                this.sliderPointerX = null;
                 this.showControls();
                 this.hideSliderPreview(true);
             });
             this.pageSlider.addEventListener('blur', () => {
                 this.sliderScrubbing = false;
+                this.sliderPointerX = null;
                 this.scheduleSliderPreviewHide(250);
             });
             this.pageSlider.addEventListener('change', () => {
                 this.sliderScrubbing = false;
+                this.sliderPointerX = null;
                 const index = Number(this.pageSlider.value) - 1;
                 if (Number.isFinite(index)) this.goTo(index, 'auto');
                 this.showControls();
@@ -633,6 +652,32 @@
             }
         }
 
+        updateViewportMetrics() {
+            if (!this.overlay?.isConnected || !this.stage) return;
+            const width = Math.max(1, Math.round(this.stage.clientWidth || window.visualViewport?.width || window.innerWidth));
+            const height = Math.max(1, Math.round(this.stage.clientHeight || window.visualViewport?.height || window.innerHeight));
+            if (width === this.viewportWidth && height === this.viewportHeight) return;
+            this.viewportWidth = width;
+            this.viewportHeight = height;
+            this.overlay.style.setProperty('--ab-stage-width', `${width}px`);
+            this.overlay.style.setProperty('--ab-stage-height', `${height}px`);
+            if (this.isContinuous()) this.refreshContinuousImageSizing();
+        }
+
+        beginExternalPinch() {
+            this.externalPinchActive = true;
+            this.pointerStart = null;
+            this.suppressNextStageClick = true;
+            if (this.stage) this.stage.style.touchAction = 'none';
+        }
+
+        endExternalPinch() {
+            this.externalPinchActive = false;
+            this.pointerStart = null;
+            this.suppressNextStageClick = true;
+            this.applyTransform();
+        }
+
         async toggleFullscreen() {
             if (!this.overlay?.isConnected || typeof this.overlay.requestFullscreen !== 'function') return;
             try {
@@ -659,17 +704,17 @@
             if (!active) this.fullscreenOwned = false;
         }
 
-        previewSlider(showThumbnail = false) {
+        previewSlider(showThumbnail = false, pointerX = null) {
             if (!this.pageSlider || !this.pageSliderValue) return;
             const page = Math.max(1, Math.min(this.pageCount, Number(this.pageSlider.value) || 1));
             const last = this.layout === 'double' ? Math.min(this.pageCount, page + 1) : page;
             const label = last > page ? `${page}–${last} / ${this.pageCount}` : `${page} / ${this.pageCount}`;
             this.pageSliderValue.textContent = label;
             this.pageSlider.setAttribute('aria-valuetext', label);
-            if (showThumbnail) this.showSliderPreview(page - 1);
+            if (showThumbnail) this.showSliderPreview(page - 1, pointerX);
         }
 
-        showSliderPreview(index) {
+        showSliderPreview(index, pointerX = null) {
             if (!this.sliderPreview || !this.pageSlider) return;
             const clamped = Math.max(0, Math.min(this.pageCount - 1, index));
             const last = this.layout === 'double'
@@ -680,11 +725,11 @@
                 : `Page ${clamped + 1}`;
             this.sliderPreview.hidden = false;
             window.clearTimeout(this.sliderPreviewHideTimer);
-            this.positionSliderPreview(clamped);
+            this.positionSliderPreview(clamped, pointerX);
             this.scheduleSliderThumbnail(clamped);
         }
 
-        positionSliderPreview(index) {
+        positionSliderPreview(index, pointerX = null) {
             if (!this.sliderPreview || !this.bottomChrome || !this.pageSlider) return;
             const sliderRect = this.pageSlider.getBoundingClientRect();
             const chromeRect = this.bottomChrome.getBoundingClientRect();
@@ -694,7 +739,9 @@
             let ratio = Math.max(0, Math.min(1, index / denominator));
             if (this.pageSlider.dir === 'rtl') ratio = 1 - ratio;
 
-            const rawLeft = sliderRect.left - chromeRect.left + (sliderRect.width * ratio);
+            const rawLeft = Number.isFinite(pointerX)
+                ? pointerX - chromeRect.left
+                : sliderRect.left - chromeRect.left + (sliderRect.width * ratio);
             const halfWidth = Math.max(52, this.sliderPreview.offsetWidth / 2);
             const left = Math.max(halfWidth + 8, Math.min(chromeRect.width - halfWidth - 8, rawLeft));
             this.sliderPreview.style.left = `${left}px`;
@@ -726,7 +773,7 @@
             if (this.closed || this.sliderPreview?.hidden || sequence !== this.sliderPreviewSequence) return;
             const controller = new AbortController();
             const url = this.apiClient.getUrl(
-                `AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}/Thumbnail?width=180`
+                `AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}/Thumbnail?width=128`
             );
             const pending = { index, controller };
             this.sliderThumbnailPending = pending;
@@ -850,6 +897,12 @@
             this.bottomChrome?.addEventListener('pointerenter', this.boundChromeEnter);
             this.bottomChrome?.addEventListener('pointerleave', this.boundChromeLeave);
             document.addEventListener('fullscreenchange', this.boundFullscreenChange);
+            window.addEventListener('resize', this.boundViewportResize, { passive: true });
+            window.visualViewport?.addEventListener('resize', this.boundViewportResize, { passive: true });
+            if (typeof ResizeObserver === 'function') {
+                this.viewportResizeObserver = new ResizeObserver(this.boundViewportResize);
+                this.viewportResizeObserver.observe(this.stage);
+            }
         }
 
         unbindEvents() {
@@ -867,6 +920,10 @@
             this.bottomChrome?.removeEventListener('pointerenter', this.boundChromeEnter);
             this.bottomChrome?.removeEventListener('pointerleave', this.boundChromeLeave);
             document.removeEventListener('fullscreenchange', this.boundFullscreenChange);
+            window.removeEventListener('resize', this.boundViewportResize);
+            window.visualViewport?.removeEventListener('resize', this.boundViewportResize);
+            this.viewportResizeObserver?.disconnect();
+            this.viewportResizeObserver = null;
         }
 
         onFocusIn(event) {
@@ -1062,7 +1119,7 @@
                         if (entry.target.isConnected) this.ensurePlaceholder(entry.target, index, 'Failed to load');
                     });
                 }
-            }, { root: this.stage, rootMargin: '140% 0px', threshold: 0.01 });
+            }, { root: this.stage, rootMargin: continuousPreloadMargin, threshold: 0.01 });
 
             this.visibilityObserver = new IntersectionObserver(entries => {
                 for (const entry of entries) {
@@ -1083,7 +1140,10 @@
             if (target) {
                 await this.loadContinuousPage(this.currentPage, target).catch(() => {});
                 requestAnimationFrame(() => {
-                    if (!this.closed && this.isContinuous()) this.stage.scrollTop = Math.max(0, target.offsetTop - 4);
+                    if (!this.closed && this.isContinuous()) {
+                        this.stage.scrollTop = Math.max(0, target.offsetTop - 4);
+                        this.prefetchContinuousNear(this.currentPage, 1);
+                    }
                 });
             }
         }
@@ -1108,10 +1168,23 @@
                 }
             }
             if (bestIndex !== this.currentPage) {
+                const direction = Math.sign(bestIndex - this.currentPage) || 1;
                 this.currentPage = bestIndex;
                 this.updateControls();
                 this.trimCache();
                 this.trimPendingContinuous();
+                this.prefetchContinuousNear(bestIndex, direction);
+            }
+        }
+
+        prefetchContinuousNear(center, direction) {
+            if (!this.isContinuous()) return;
+            const offsets = direction >= 0 ? [1, 2, 3, -1] : [-1, -2, -3, 1];
+            for (const offset of offsets) {
+                const index = center + offset;
+                const slot = this.continuousElements[index];
+                if (!slot?.isConnected || slot.querySelector('img')) continue;
+                this.loadContinuousPage(index, slot).catch(() => {});
             }
         }
 
@@ -1130,19 +1203,68 @@
             if (!slot?.isConnected || this.closed || !this.isContinuous()) return;
             const url = await this.loadPage(index);
             if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
+
             let image = slot.querySelector('img');
             if (!image) {
                 image = document.createElement('img');
                 image.alt = `Page ${index + 1}`;
                 image.draggable = false;
+                image.decoding = 'async';
                 image.dataset.pageIndex = String(index);
+
+                const finalizeGeometry = () => {
+                    if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
+                    this.stabilizeContinuousSlot(index, slot, image);
+                    this.applyContinuousImageSizing(image);
+                };
+                image.addEventListener('load', finalizeGeometry, { once: true });
+                image.src = url;
+
+                try {
+                    await image.decode?.();
+                } catch {
+                    // Some WebViews reject decode() even when the normal load event succeeds.
+                }
+
+                if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
+                finalizeGeometry();
                 slot.querySelector('.advancedBooksReaderPagePlaceholder')?.remove();
                 slot.appendChild(image);
+                return;
             }
+
             if (image.src !== url) image.src = url;
-            const applySize = () => this.applyContinuousImageSizing(image);
-            image.addEventListener('load', applySize, { once: true });
-            if (image.complete) applySize();
+            this.stabilizeContinuousSlot(index, slot, image);
+            this.applyContinuousImageSizing(image);
+        }
+
+        stabilizeContinuousSlot(index, slot, image) {
+            if (!slot || !image || image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
+
+            const anchor = this.continuousElements[this.currentPage];
+            const beforeAnchorTop = index < this.currentPage && anchor?.isConnected ? anchor.offsetTop : null;
+            const aspectHeight = image.naturalHeight / image.naturalWidth;
+            const stageHeight = Math.max(1, this.stage?.clientHeight || this.viewportHeight || window.innerHeight);
+            const slotWidth = Math.max(1, slot.clientWidth || this.pagesElement.clientWidth || this.viewportWidth || window.innerWidth);
+
+            let expectedHeight;
+            if (this.fit === 'height') {
+                expectedHeight = stageHeight * this.zoom;
+            } else if (this.fit === 'original') {
+                expectedHeight = image.naturalHeight * this.zoom;
+            } else if (this.fit === 'screen') {
+                expectedHeight = Math.min(stageHeight, slotWidth * aspectHeight);
+            } else {
+                expectedHeight = slotWidth * aspectHeight;
+            }
+
+            slot.style.aspectRatio = '';
+            slot.style.minHeight = `${Math.max(1, Math.round(expectedHeight))}px`;
+
+            if (beforeAnchorTop !== null && anchor?.isConnected) {
+                const delta = anchor.offsetTop - beforeAnchorTop;
+                if (Math.abs(delta) >= 1) this.stage.scrollTop += delta;
+            }
         }
 
         applyContinuousImageSizing(image) {
@@ -1153,7 +1275,7 @@
             image.style.maxHeight = '';
 
             if (this.fit === 'height') {
-                const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+                const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
                 image.style.height = `${Math.max(1, Math.round(viewportHeight * this.zoom))}px`;
                 image.style.width = 'auto';
                 image.style.maxWidth = 'none';
@@ -1171,6 +1293,9 @@
         refreshContinuousImageSizing() {
             if (!this.isContinuous()) return;
             for (const image of this.pagesElement.querySelectorAll('img')) {
+                const index = Number(image.dataset.pageIndex);
+                const slot = Number.isInteger(index) ? this.continuousElements[index] : null;
+                if (slot) this.stabilizeContinuousSlot(index, slot, image);
                 this.applyContinuousImageSizing(image);
             }
         }
@@ -1263,7 +1388,7 @@
                 this.pageSlider.value = String(Math.min(this.pageCount, this.currentPage + 1));
                 this.pageSlider.setAttribute('aria-valuetext', this.counter.textContent);
                 this.pageSlider.dir = !this.isContinuous() && this.direction === 'rtl' ? 'rtl' : 'ltr';
-                if (!this.sliderPreview?.hidden) this.positionSliderPreview(Number(this.pageSlider.value) - 1);
+                if (!this.sliderPreview?.hidden) this.positionSliderPreview(Number(this.pageSlider.value) - 1, this.sliderPointerX);
             }
             if (this.pageSliderValue) this.pageSliderValue.textContent = this.counter.textContent;
             const reachedPage = this.layout === 'double'
@@ -1386,6 +1511,7 @@
         }
 
         onPointerDown(event) {
+            if (this.externalPinchActive) return;
             if (this.isContinuous()) {
                 if (this.zoom > 1 && event.pointerType !== 'touch' && (event.button ?? 0) === 0) {
                     this.pointerStart = {
@@ -1408,7 +1534,7 @@
         }
 
         onPointerMove(event) {
-            if (!this.pointerStart || event.pointerId !== this.pointerStart.id) return;
+            if (this.externalPinchActive || !this.pointerStart || event.pointerId !== this.pointerStart.id) return;
             if (this.pointerStart.continuous) {
                 event.preventDefault();
                 this.stage.scrollLeft = this.pointerStart.scrollLeft - (event.clientX - this.pointerStart.x);
@@ -1424,7 +1550,7 @@
         }
 
         onPointerUp(event) {
-            if (!this.pointerStart || event.pointerId !== this.pointerStart.id) return;
+            if (this.externalPinchActive || !this.pointerStart || event.pointerId !== this.pointerStart.id) return;
             const start = this.pointerStart;
             this.pointerStart = null;
             this.stage.releasePointerCapture?.(event.pointerId);

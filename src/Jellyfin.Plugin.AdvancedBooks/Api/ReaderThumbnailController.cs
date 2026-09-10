@@ -96,7 +96,7 @@ public sealed class ReaderThumbnailController : ControllerBase
 
             Response.Headers.CacheControl = "private, max-age=86400";
             Response.Headers["X-Content-Type-Options"] = "nosniff";
-            Response.Headers["X-AdvancedBooks-Thumbnail-Width"] = cacheWidth.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Response.Headers["X-AdvancedBooks-Thumbnail-Width"] = thumbnail.Width.ToString(System.Globalization.CultureInfo.InvariantCulture);
             Response.GetTypedHeaders().LastModified = thumbnail.LastModifiedUtc;
 
             return PhysicalFile(thumbnail.Path, thumbnail.ContentType, enableRangeProcessing: false);

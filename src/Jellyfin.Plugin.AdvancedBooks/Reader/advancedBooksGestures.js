@@ -106,7 +106,10 @@
             this.startZoom = 1;
             this.targetZoom = 1;
             this.startMidpoint = null;
+            this.startScrollLeft = 0;
+            this.startScrollTop = 0;
             this.originalTransform = '';
+            this.originalTransformOrigin = '';
             this.originalTransition = '';
             this.originalWillChange = '';
             this.removalObserver = null;
@@ -149,9 +152,10 @@
 
             if (this.pointers.size < 2) return;
 
-            // From the second touch onward, keep the reader's single-pointer gesture
-            // state isolated even if the fingers initially land very close together.
+            // From the second touch onward, the pinch layer exclusively owns touch
+            // movement until every touch is released.
             this.suppressUntilRelease = true;
+            this.overlay.__advancedBooksReaderSession?.beginExternalPinch?.();
             this.tryBeginPinch();
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -171,9 +175,18 @@
             this.startZoom = currentZoom(this.overlay);
             this.targetZoom = this.startZoom;
             this.startMidpoint = midpoint(first, second);
+            this.startScrollLeft = this.stage.scrollLeft;
+            this.startScrollTop = this.stage.scrollTop;
             this.originalTransform = this.pages.style.transform;
+            this.originalTransformOrigin = this.pages.style.transformOrigin;
             this.originalTransition = this.pages.style.transition;
             this.originalWillChange = this.pages.style.willChange;
+            if (this.isContinuous()) {
+                const pagesRect = this.pages.getBoundingClientRect();
+                const originX = this.startMidpoint.x - pagesRect.left;
+                const originY = this.startMidpoint.y - pagesRect.top;
+                this.pages.style.transformOrigin = `${originX}px ${originY}px`;
+            }
             this.pages.style.transition = 'none';
             this.pages.style.willChange = 'transform';
 
@@ -220,17 +233,20 @@
 
             const ratio = currentDistance / this.startDistance;
             this.targetZoom = clampZoom(this.startZoom * ratio);
-            const currentMidpoint = midpoint(first, second);
-            const dx = currentMidpoint.x - this.startMidpoint.x;
-            const dy = currentMidpoint.y - this.startMidpoint.y;
             const previewRatio = this.targetZoom / Math.max(this.startZoom, 0.01);
 
-            // This transform is only a live preview. On release the bridge restores the
-            // reader-owned transform and commits the zoom through the reader's own controls.
+            // Keep the page anchored while pinching. In continuous modes some WebViews
+            // may begin a native one-finger pan before the second touch arrives; restoring
+            // the captured scroll position prevents the document itself drifting.
+            if (this.isContinuous()) {
+                this.stage.scrollLeft = this.startScrollLeft;
+                this.stage.scrollTop = this.startScrollTop;
+            }
+
             const baseTransform = this.originalTransform && this.originalTransform !== 'none'
                 ? this.originalTransform
                 : '';
-            this.pages.style.transform = `${baseTransform} translate(${dx}px, ${dy}px) scale(${previewRatio})`.trim();
+            this.pages.style.transform = `${baseTransform} scale(${previewRatio})`.trim();
 
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -252,6 +268,7 @@
                 if (this.pointers.size === 0) {
                     this.suppressUntilRelease = false;
                     this.pinchPointerIds = [];
+                    this.overlay.__advancedBooksReaderSession?.endExternalPinch?.();
                 }
             }
         }
@@ -260,6 +277,7 @@
             if (!this.pinching) return;
             this.pinching = false;
             this.pages.style.transform = this.originalTransform;
+            this.pages.style.transformOrigin = this.originalTransformOrigin;
             this.pages.style.transition = this.originalTransition;
             this.pages.style.willChange = this.originalWillChange;
 
@@ -276,6 +294,7 @@
         dispose() {
             if (this.pinching) {
                 this.pages.style.transform = this.originalTransform;
+                this.pages.style.transformOrigin = this.originalTransformOrigin;
                 this.pages.style.transition = this.originalTransition;
                 this.pages.style.willChange = this.originalWillChange;
             }
@@ -288,6 +307,7 @@
             this.pinchPointerIds = [];
             this.pinching = false;
             this.suppressUntilRelease = false;
+            this.overlay.__advancedBooksReaderSession?.endExternalPinch?.();
             if (activeSession === this) activeSession = null;
         }
     }

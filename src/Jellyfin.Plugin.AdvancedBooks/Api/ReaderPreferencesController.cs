@@ -24,6 +24,7 @@ public sealed class ReaderPreferencesController : ControllerBase
     private const string ZoomKey = "zoom";
     private const string SidePaddingKey = "sidePadding";
     private const string PageGapKey = "pageGap";
+    private const string PreferenceSchemaVersionKey = "schemaVersion";
 
     // Stable pseudo-item namespace reserved for global Advanced Reader preferences.
     private static readonly Guid PreferencesItemId = new("9d7f1b84-7d41-4f9f-bf32-9f26d8601a72");
@@ -65,6 +66,14 @@ public sealed class ReaderPreferencesController : ControllerBase
         stored.TryGetValue(ZoomKey, out var zoomText);
         stored.TryGetValue(SidePaddingKey, out var sidePaddingText);
         stored.TryGetValue(PageGapKey, out var pageGapText);
+        stored.TryGetValue(PreferenceSchemaVersionKey, out var schemaVersionText);
+
+        var schemaVersion = 1;
+        if (!string.IsNullOrWhiteSpace(schemaVersionText)
+            && int.TryParse(schemaVersionText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedSchemaVersion))
+        {
+            schemaVersion = parsedSchemaVersion;
+        }
 
         var zoom = ReaderPreferenceRules.DefaultZoom;
         if (!string.IsNullOrWhiteSpace(zoomText)
@@ -87,10 +96,12 @@ public sealed class ReaderPreferencesController : ControllerBase
             pageGap = ReaderPreferenceRules.NormalizePageGap(parsedPageGap);
         }
 
+        var normalizedFit = ReaderPreferenceRules.NormalizeStoredFit(fit, schemaVersion);
+
         return Ok(new ReaderPreferencesDto(
             ReaderPreferenceRules.NormalizeLayout(layout),
             ReaderPreferenceRules.NormalizeDirection(direction),
-            ReaderPreferenceRules.NormalizeFit(fit),
+            normalizedFit,
             zoom,
             sidePadding,
             pageGap));
@@ -151,7 +162,8 @@ public sealed class ReaderPreferencesController : ControllerBase
             [FitKey] = request.Fit,
             [ZoomKey] = normalizedZoom.ToString("0.00", CultureInfo.InvariantCulture),
             [SidePaddingKey] = request.SidePadding.ToString(CultureInfo.InvariantCulture),
-            [PageGapKey] = request.PageGap.ToString(CultureInfo.InvariantCulture)
+            [PageGapKey] = request.PageGap.ToString(CultureInfo.InvariantCulture),
+            [PreferenceSchemaVersionKey] = ReaderPreferenceRules.CurrentPreferenceSchemaVersion.ToString(CultureInfo.InvariantCulture)
         };
 
         _displayPreferencesManager.SetCustomItemDisplayPreferences(

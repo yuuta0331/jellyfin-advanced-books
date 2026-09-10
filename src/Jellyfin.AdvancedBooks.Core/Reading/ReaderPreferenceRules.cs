@@ -14,6 +14,9 @@ public static class ReaderPreferenceRules
     /// <summary>Default image fit mode.</summary>
     public const string DefaultFit = "screen";
 
+    /// <summary>Current persisted reader-preference schema version.</summary>
+    public const int CurrentPreferenceSchemaVersion = 2;
+
     /// <summary>Default reader zoom.</summary>
     public const double DefaultZoom = 1d;
 
@@ -64,6 +67,19 @@ public static class ReaderPreferenceRules
     /// <summary>Normalizes a stored fit mode, falling back when stale or unknown.</summary>
     public static string NormalizeFit(string? value)
         => IsValidFit(value) ? value! : DefaultFit;
+
+    /// <summary>
+    /// Normalizes a stored fit mode and migrates legacy schema values.
+    /// Early builds could persist Height as the apparent default; schema v2+
+    /// treats Height as an explicit user choice and preserves it.
+    /// </summary>
+    public static string NormalizeStoredFit(string? value, int schemaVersion)
+    {
+        var normalized = NormalizeFit(value);
+        return schemaVersion < CurrentPreferenceSchemaVersion && normalized == "height"
+            ? DefaultFit
+            : normalized;
+    }
 
     /// <summary>Normalizes side padding, falling back when stale or unknown.</summary>
     public static int NormalizeSidePadding(int value)
