@@ -337,7 +337,7 @@
             if (!this.overlay?.isConnected || index < 0 || index >= this.pages.length) return;
             const reader = this.overlay.__advancedBooksReaderSession;
             if (reader && typeof reader.goTo === 'function') {
-                reader.goTo(index);
+                reader.goTo(index, 'auto');
                 return;
             }
 
