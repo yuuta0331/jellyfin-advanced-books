@@ -4,7 +4,7 @@
 
 - .NET 10 SDK
 - Git
-- Node.js for `node --check` when modifying the reader script
+- Node.js for `node --check` when modifying reader scripts
 - a Jellyfin 12 test server for integration testing
 - the Jellyfin 12-compatible JavaScript Injector plugin when testing automatic Web reader integration
 
@@ -18,8 +18,10 @@ From the repository root:
 dotnet restore jellyfin-advanced-books.slnx
 dotnet build jellyfin-advanced-books.slnx -c Release
 dotnet test jellyfin-advanced-books.slnx -c Release
-node --check src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksReader.js
+for file in src/Jellyfin.Plugin.AdvancedBooks/Reader/*.js; do node --check "$file"; done
 ```
+
+On PowerShell, run `node --check` once for each `.js` file instead of the shell loop.
 
 The Jellyfin assemblies are compile-time dependencies and are excluded from the plugin's runtime assets. Do not copy Jellyfin server assemblies into the plugin package.
 
@@ -32,10 +34,11 @@ src/
   Jellyfin.AdvancedBooks.Core/
     Archives/                         host-independent ZIP reader and safety policy
     Komga/                            host-independent Komga compatibility logic
+    Reading/                          host-independent progress/page mapping
   Jellyfin.Plugin.AdvancedBooks/
-    Api/                              Jellyfin-authenticated reader endpoints
+    Api/                              Jellyfin-authenticated page/progress endpoints
     Configuration/                    server/plugin settings
-    Reader/                           isolated Jellyfin Web reader adapter and UI
+    Reader/                           isolated Jellyfin Web reader + progress bridge
     Resolvers/                        Jellyfin library resolver integration
     Services/                         optional runtime integrations
 tests/
@@ -74,6 +77,27 @@ The first request should return JSON page metadata without a server filesystem p
 
 Also test a corrupt ZIP and a deliberately over-limit fixture; these should fail cleanly with HTTP 422 rather than exhausting server memory or extracting files.
 
+### Progress API smoke test
+
+For the same authenticated Book, verify:
+
+```text
+GET /AdvancedBooks/Books/{itemId}/Progress
+PUT /AdvancedBooks/Books/{itemId}/Progress
+```
+
+A PUT body such as:
+
+```json
+{
+  "PageIndex": 4
+}
+```
+
+should store `PlaybackPositionTicks = 40000`. A subsequent GET should return page index `4`. An index below zero or at/above the archive page count must return HTTP 400.
+
+Saving the final page must set the Jellyfin Book's played state. Saving an earlier page on a Book that is already played must not automatically clear that played state.
+
 ### Web reader smoke test
 
 After Advanced Books and JavaScript Injector are both installed and Jellyfin has restarted:
@@ -83,18 +107,24 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 3. confirm **Advanced Reader** appears in the main detail buttons;
 4. open it and verify only the current/nearby page endpoints are requested in browser developer tools rather than a full-book download;
 5. verify Single/Double, RTL/LTR and all four fit modes;
-6. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and fit-screen wheel navigation;
-7. zoom above 100%, drag to pan, then close with Escape;
-8. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+6. verify Vertical Continuous and Webtoon lazy-load pages as they approach the viewport;
+7. navigate to a middle page, close the reader, reopen it, and confirm it resumes at that page;
+8. repeat the reopen test from a second Jellyfin Web browser/client signed in as the same user;
+9. navigate to the final page and confirm the Book becomes played in Jellyfin;
+10. reopen the completed Book and verify rereading earlier pages does not clear the played state;
+11. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and wheel navigation;
+12. zoom above 100% in a paged mode, drag to pan, then close with Escape;
+13. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.
 
 ## Coding rules
 
 - Keep Jellyfin-specific types out of `Jellyfin.AdvancedBooks.Core`.
-- Add tests for path parsing, ordering and archive edge cases.
-- Run `node --check` after modifying the embedded reader script.
+- Add tests for path parsing, ordering, archive edge cases and progress conversion.
+- Run `node --check` on every embedded reader script after modifications.
 - Never use client-provided filesystem paths in HTTP APIs.
+- Validate client-provided page indexes against server-side archive metadata before persisting them.
 - Prefer streaming over buffering full comic archives.
 - Revoke browser Blob URLs when evicting pages or closing the reader.
 - Preserve the user's source files; metadata writes must be explicit opt-in behavior if introduced.
@@ -103,6 +133,8 @@ The JavaScript Injector integration is optional at runtime and loaded by reflect
 ## Updating Jellyfin dependencies
 
 Jellyfin plugin ABI changes can be breaking. Update `Jellyfin.Controller`, `Jellyfin.Model`, `Jellyfin.Naming`, `build.yaml`'s `targetAbi`, and the target framework together, then run unit and integration tests.
+
+The progress mapping must also be rechecked whenever Jellyfin Web changes `ComicsPlayer.currentTime()`, `startPositionTicks`, or playbackmanager's millisecond/tick conversion.
 
 ## Pull requests
 

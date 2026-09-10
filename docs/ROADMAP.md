@@ -50,9 +50,11 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] IntersectionObserver-based lazy loading
 - [x] Bounded continuous-mode prefetch/cache
 - [x] Viewport-aware current-page tracking
-- [ ] Resume last position
-- [ ] Mark completed at end
-- [ ] Jellyfin reading-position synchronization
+- [x] Resume last position
+- [x] Mark completed at end
+- [x] Jellyfin reading-position synchronization
+- [x] Preserve existing played state during rereads
+- [ ] Live cross-client resume test against Jellyfin 12
 
 ## Phase 5 - Formats and clients
 

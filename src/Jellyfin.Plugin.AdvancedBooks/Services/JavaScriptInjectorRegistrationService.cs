@@ -7,13 +7,14 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.AdvancedBooks.Services;
 
 /// <summary>
-/// Registers the Advanced Books reader script with the optional JavaScript Injector plugin.
+/// Registers the Advanced Books Web reader scripts with the optional JavaScript Injector plugin.
 /// </summary>
 public sealed class JavaScriptInjectorRegistrationService : IHostedService
 {
     private const string InjectorAssemblyName = "Jellyfin.Plugin.JavaScriptInjector";
     private const string InjectorInterfaceTypeName = "Jellyfin.Plugin.JavaScriptInjector.PluginInterface";
     private const string ReaderResourceName = "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksReader.js";
+    private const string ProgressResourceName = "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksProgress.js";
     private const string ReaderScriptId = "jellyfin-advanced-books-reader";
 
     private readonly ILogger<JavaScriptInjectorRegistrationService> _logger;
@@ -21,7 +22,6 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
     /// <summary>
     /// Initializes a new instance of the <see cref="JavaScriptInjectorRegistrationService"/> class.
     /// </summary>
-    /// <param name="logger">Logger.</param>
     public JavaScriptInjectorRegistrationService(ILogger<JavaScriptInjectorRegistrationService> logger)
     {
         _logger = logger;
@@ -60,7 +60,7 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
         if (injectorAssembly is null)
         {
             _logger.LogInformation(
-                "JavaScript Injector is not installed or loaded. The Advanced Books page API remains available, but the reader button will not be injected into Jellyfin Web.");
+                "JavaScript Injector is not installed or loaded. The Advanced Books server APIs remain available, but the reader button will not be injected into Jellyfin Web.");
             return;
         }
 
@@ -93,7 +93,7 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
                 return;
             }
 
-            var script = LoadReaderScript();
+            var script = LoadCombinedReaderScript();
             var version = typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "0.0.0";
             var payloadJson = JsonSerializer.Serialize(new Dictionary<string, object?>
             {
@@ -117,7 +117,7 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             var result = registerMethod.Invoke(null, [payload]);
             if (result is bool success && success)
             {
-                _logger.LogInformation("Registered the Advanced Books reader with JavaScript Injector.");
+                _logger.LogInformation("Registered the Advanced Books reader and progress bridge with JavaScript Injector.");
             }
             else
             {
@@ -164,11 +164,19 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
                 string.Equals(assembly.GetName().Name, InjectorAssemblyName, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static string LoadReaderScript()
+    private static string LoadCombinedReaderScript()
+    {
+        return string.Concat(
+            LoadEmbeddedText(ReaderResourceName),
+            Environment.NewLine,
+            LoadEmbeddedText(ProgressResourceName));
+    }
+
+    private static string LoadEmbeddedText(string resourceName)
     {
         var assembly = typeof(JavaScriptInjectorRegistrationService).Assembly;
-        using var stream = assembly.GetManifestResourceStream(ReaderResourceName)
-            ?? throw new InvalidOperationException($"Embedded reader resource '{ReaderResourceName}' was not found.");
+        using var stream = assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded reader resource '{resourceName}' was not found.");
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }
