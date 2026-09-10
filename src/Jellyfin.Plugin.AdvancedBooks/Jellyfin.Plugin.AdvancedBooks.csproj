@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Jellyfin.Plugin.AdvancedBooks</RootNamespace>
     <AssemblyName>Jellyfin.Plugin.AdvancedBooks</AssemblyName>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>yuuta0331</Authors>
     <Description>Advanced book and comic features for Jellyfin 12.</Description>
   </PropertyGroup>
@@ -27,5 +27,7 @@
   <ItemGroup>
     <None Remove="Configuration/configPage.html" />
     <EmbeddedResource Include="Configuration/configPage.html" />
+    <None Remove="Reader/advancedBooksReader.js" />
+    <EmbeddedResource Include="Reader/advancedBooksReader.js" />
   </ItemGroup>
 </Project>
