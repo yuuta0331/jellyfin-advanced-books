@@ -1,19 +1,19 @@
 ---
 name: "Advanced Books"
 guid: "843f3c69-88ee-4e82-84f3-330b84d64d88"
-version: "0.6.0.0"
+version: "0.7.0.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Komga-compatible book handling and an advanced comic reader for Jellyfin."
 description: >
   Adds advanced book and comic features to Jellyfin 12, including Komga-compatible
-  One-Shots, safe per-page CBZ delivery, paged/continuous reading, resume, and a
-  lazy thumbnail page navigator.
+  One-Shots, safe per-page CBZ delivery, paged/continuous reading, resume, a lazy
+  thumbnail navigator, and per-user reader preferences.
 category: "General"
 owner: "yuuta0331"
 artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: >
-  Add an authenticated lazy-loading thumbnail page navigator with bounded browser
-  caching and server-side thumbnail generation through Jellyfin's image processor.
+  Persist layout, reading direction, fit mode and paged zoom per Jellyfin user using
+  Jellyfin's display-preferences database and restore them after reading-position resume.
