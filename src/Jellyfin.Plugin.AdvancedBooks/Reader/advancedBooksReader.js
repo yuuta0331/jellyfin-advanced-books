@@ -689,12 +689,6 @@
             this.sliderThumbnailPending?.controller.abort();
             this.sliderThumbnailPending = null;
 
-            const pageUrl = this.cache.get(index);
-            if (pageUrl) {
-                this.applySliderThumbnail(index, pageUrl, sequence);
-                return;
-            }
-
             const cached = this.sliderThumbnailCache.get(index);
             if (cached) {
                 this.applySliderThumbnail(index, cached, sequence);
