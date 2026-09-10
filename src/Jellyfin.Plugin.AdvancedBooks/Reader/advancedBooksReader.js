@@ -749,6 +749,39 @@
                 slot.appendChild(image);
             }
             if (image.src !== url) image.src = url;
+            const applySize = () => this.applyContinuousImageSizing(image);
+            image.addEventListener('load', applySize, { once: true });
+            if (image.complete) applySize();
+        }
+
+        applyContinuousImageSizing(image) {
+            if (!image || !this.isContinuous()) return;
+            image.style.width = '';
+            image.style.height = '';
+            image.style.maxWidth = '';
+            image.style.maxHeight = '';
+
+            if (this.fit === 'height') {
+                const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+                image.style.height = `${Math.max(1, Math.round(viewportHeight * this.zoom))}px`;
+                image.style.width = 'auto';
+                image.style.maxWidth = 'none';
+                return;
+            }
+
+            if (this.fit === 'original' && image.naturalWidth > 0) {
+                image.style.width = `${Math.max(1, Math.round(image.naturalWidth * this.zoom))}px`;
+                image.style.height = 'auto';
+                image.style.maxWidth = 'none';
+                image.style.maxHeight = 'none';
+            }
+        }
+
+        refreshContinuousImageSizing() {
+            if (!this.isContinuous()) return;
+            for (const image of this.pagesElement.querySelectorAll('img')) {
+                this.applyContinuousImageSizing(image);
+            }
         }
 
         async loadPage(index) {
@@ -872,11 +905,15 @@
             if (this.isContinuous()) {
                 this.pagesElement.className = `advancedBooksReaderPages ab-continuous ab-layout-${this.layout} ab-fit-${this.fit}`;
                 this.pagesElement.style.transform = 'none';
-                this.pagesElement.style.width = `${Math.round(this.zoom * 100)}%`;
-                this.pagesElement.style.minWidth = this.zoom >= 1 ? `${Math.round(this.zoom * 100)}%` : '0';
+                const scalableCanvas = this.fit === 'screen' || this.fit === 'width';
+                this.pagesElement.style.width = scalableCanvas ? `${Math.round(this.zoom * 100)}%` : '100%';
+                this.pagesElement.style.minWidth = scalableCanvas && this.zoom >= 1
+                    ? `${Math.round(this.zoom * 100)}%`
+                    : '0';
                 this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
                 this.stage.style.touchAction = 'pan-y';
                 this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
+                this.refreshContinuousImageSizing();
                 return;
             }
             this.pagesElement.style.width = '';
