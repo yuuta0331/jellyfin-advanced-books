@@ -8,6 +8,7 @@
     window.__jellyfinAdvancedBooksReaderLoaded = true;
 
     const metadataCache = new Map();
+    const cacheLimit = 8;
     let attachSequence = 0;
     let attachTimer = null;
     let activeReader = null;
@@ -75,6 +76,10 @@
         }
     }
 
+    function removeReaderButtons() {
+        document.querySelectorAll('.advancedBooksReaderButton').forEach(button => button.remove());
+    }
+
     function createReaderButton(itemId, metadata) {
         const button = document.createElement('button');
         button.type = 'button';
@@ -96,8 +101,7 @@
         text.textContent = 'Advanced Reader';
 
         content.appendChild(icon);
-        button.appendChild(content);
-        button.appendChild(text);
+        button.append(content, text);
         button.addEventListener('click', () => {
             activeReader?.close();
             activeReader = new AdvancedBooksReaderSession(getApiClient(), itemId, metadata);
@@ -111,6 +115,12 @@
         const sequence = ++attachSequence;
         const itemId = getCurrentItemId();
         if (!itemId) {
+            removeReaderButtons();
+            return;
+        }
+
+        if (!getApiClient()) {
+            window.setTimeout(scheduleAttach, 400);
             return;
         }
 
@@ -126,6 +136,7 @@
         if (existingButton?.dataset.advancedBooksItemId === itemId) {
             return;
         }
+        existingButton?.remove();
 
         try {
             const metadata = await getMetadata(itemId);
@@ -143,7 +154,7 @@
             currentHost.querySelector('.advancedBooksReaderButton')?.remove();
             currentHost.appendChild(createReaderButton(itemId, metadata));
         } catch {
-            // Unsupported books and pages rejected by the server intentionally receive no reader button.
+            // Unsupported, inaccessible and safety-rejected books intentionally receive no reader button.
         }
     }
 
@@ -156,7 +167,6 @@
         constructor(apiClient, itemId, metadata) {
             this.apiClient = apiClient;
             this.itemId = itemId;
-            this.metadata = metadata;
             this.pageCount = metadata.pages.length;
             this.currentPage = 0;
             this.layout = 'single';
@@ -192,8 +202,8 @@
 
         close() {
             this.unbindEvents();
-            for (const controller of this.pending.values()) {
-                controller.abort();
+            for (const pending of this.pending.values()) {
+                pending.controller.abort();
             }
             this.pending.clear();
 
@@ -268,7 +278,7 @@
                     align-items: center;
                     justify-content: center;
                     background: #080808;
-                    touch-action: none;
+                    touch-action: pan-y;
                     user-select: none;
                 }
                 .advancedBooksReaderPages {
@@ -314,9 +324,6 @@
                     max-height: none;
                     width: auto;
                 }
-                .advancedBooksReaderPages.ab-layout-double.ab-fit-height img {
-                    max-width: calc(50vw - .7rem);
-                }
                 .advancedBooksReaderPages.ab-fit-original img {
                     max-width: none;
                     max-height: none;
@@ -332,6 +339,8 @@
                     pointer-events: none;
                     font-size: 1.05rem;
                     color: rgba(255,255,255,.82);
+                    padding: 1rem;
+                    text-align: center;
                 }
                 @media (max-width: 700px) {
                     .advancedBooksReaderToolbar {
@@ -398,9 +407,8 @@
 
             const zoomOut = this.makeButton('−', () => this.setZoom(this.zoom - .25));
             zoomOut.title = 'Zoom out';
-            const zoomReset = this.makeButton('100%', () => this.setZoom(1));
-            zoomReset.title = 'Reset zoom';
-            this.zoomResetButton = zoomReset;
+            this.zoomResetButton = this.makeButton('100%', () => this.setZoom(1));
+            this.zoomResetButton.title = 'Reset zoom';
             const zoomIn = this.makeButton('+', () => this.setZoom(this.zoom + .25));
             zoomIn.title = 'Zoom in';
 
@@ -418,7 +426,7 @@
                 this.directionSelect,
                 this.fitSelect,
                 zoomOut,
-                zoomReset,
+                this.zoomResetButton,
                 zoomIn,
                 spacer,
                 this.counter
@@ -482,11 +490,7 @@
         }
 
         alignPage(index) {
-            if (this.layout !== 'double') {
-                return index;
-            }
-
-            return Math.floor(index / 2) * 2;
+            return this.layout === 'double' ? Math.floor(index / 2) * 2 : index;
         }
 
         previous() {
@@ -499,8 +503,7 @@
 
         goTo(index) {
             const maximum = Math.max(0, this.pageCount - 1);
-            const clamped = Math.min(maximum, Math.max(0, index));
-            const aligned = this.alignPage(clamped);
+            const aligned = this.alignPage(Math.min(maximum, Math.max(0, index)));
             if (aligned === this.currentPage) {
                 return;
             }
@@ -515,11 +518,9 @@
             if (this.layout === 'double' && this.currentPage + 1 < this.pageCount) {
                 indexes.push(this.currentPage + 1);
             }
-
             if (this.direction === 'rtl' && indexes.length > 1) {
                 indexes.reverse();
             }
-
             return indexes;
         }
 
@@ -541,7 +542,6 @@
                     image.src = urls[position];
                     image.alt = `Page ${index + 1}`;
                     image.draggable = false;
-                    image.addEventListener('dblclick', () => this.setZoom(this.zoom === 1 ? 2 : 1));
                     this.pagesElement.appendChild(image);
                 });
 
@@ -561,8 +561,9 @@
                 return this.cache.get(index);
             }
 
-            if (this.pending.has(index)) {
-                return this.pending.get(index).promise;
+            const pending = this.pending.get(index);
+            if (pending) {
+                return pending.promise;
             }
 
             const controller = new AbortController();
@@ -583,6 +584,7 @@
             const blob = await response.blob();
             const objectUrl = URL.createObjectURL(blob);
             this.cache.set(index, objectUrl);
+            this.trimCache();
             return objectUrl;
         }
 
@@ -602,10 +604,14 @@
         }
 
         trimCache() {
+            if (this.cache.size <= cacheLimit) {
+                return;
+            }
+
             const visible = new Set(this.visibleIndexes());
             const distance = index => Math.min(...Array.from(visible, visibleIndex => Math.abs(visibleIndex - index)));
             const cachedIndexes = Array.from(this.cache.keys()).sort((a, b) => distance(a) - distance(b));
-            const keep = new Set(cachedIndexes.slice(0, 8));
+            const keep = new Set(cachedIndexes.slice(0, cacheLimit));
 
             for (const [index, objectUrl] of this.cache) {
                 if (!keep.has(index)) {
@@ -640,9 +646,6 @@
             this.zoom = 1;
             this.panX = 0;
             this.panY = 0;
-            if (this.zoomResetButton) {
-                this.zoomResetButton.textContent = '100%';
-            }
         }
 
         applyTransform() {
@@ -653,9 +656,8 @@
             this.pagesElement.className = `advancedBooksReaderPages ab-layout-${this.layout} ab-fit-${this.fit}`;
             this.pagesElement.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
             this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
-            if (this.zoomResetButton) {
-                this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
-            }
+            this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
+            this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
         }
 
         onKeyDown(event) {
