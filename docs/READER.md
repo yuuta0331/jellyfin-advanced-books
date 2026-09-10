@@ -15,6 +15,24 @@ Paged modes support Fit Screen, Fit Width, Fit Height and Original Size, 50%-400
 
 Vertical Continuous supports the fit modes at 100% reader zoom. Webtoon is intentionally locked to Fit Width. Continuous modes use normal vertical mouse/touch scrolling; reader-level zoom/pan is disabled there for now to avoid fighting native scrolling and pinch gestures.
 
+## Thumbnail page navigator
+
+The reader toolbar exposes a **Pages** button. It opens a side panel containing page thumbnails, highlights the currently visible page or spread, and lets the reader jump directly to any page.
+
+The navigator does not fetch every original page. Thumbnail cards are observed with an `IntersectionObserver`, and only thumbnails near the navigator viewport are requested. Browser Blob URLs are bounded and distant entries are revoked.
+
+Thumbnail endpoint:
+
+```text
+GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}/Thumbnail?width=180
+```
+
+The server accepts widths from 96 through 320 pixels. It opens only the validated target archive page, writes that page to a temporary work file, and passes the file through Jellyfin's `IImageProcessor`. The resized output is copied into the plugin's thumbnail cache. The full-resolution temporary work file is deleted immediately after processing.
+
+Cache keys include archive size and modification time plus page identity and requested width, so changing a CBZ invalidates the old thumbnail version without modifying the source media. Thumbnail generation is limited to two concurrent operations to reduce CPU and memory spikes when a large magazine navigator is opened.
+
+Direct page jumps reuse the continuous page-slot model to reach a distant page efficiently, then return to the user's prior paged layout when necessary.
+
 ## Reading progress and resume
 
 Advanced Books stores progress in Jellyfin's normal per-user `UserItemData`, not in a plugin-owned database.
@@ -36,7 +54,7 @@ The browser progress bridge observes the Advanced Reader's page counter. After n
 
 When opening an unfinished book, the saved server-side position is restored before the reader is shown. The current integration temporarily uses the continuous page-slot model to jump directly to a distant saved page, then returns to the reader's original layout. This avoids issuing hundreds of sequential Next operations for a large magazine.
 
-Reaching the final page marks the Jellyfin Book as played. Non-final progress writes intentionally leave the existing `Played` value unchanged; this means opening a previously completed book for a reread does not silently mark it unread.
+Reaching the final page marks the Jellyfin Book as played. Completion is server-authoritative: clients submit only a page index, and the server checks that it is the actual final page. Non-final progress writes intentionally leave the existing `Played` value unchanged; this means opening a previously completed book for a reread does not silently mark it unread.
 
 ## Continuous lazy loading
 
@@ -51,9 +69,9 @@ This keeps a large magazine or manga volume from turning into a full-archive bro
 
 ## Jellyfin Web integration
 
-For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers the embedded reader and progress scripts as one combined injection payload through that plugin's public `PluginInterface.RegisterScript` contract.
+For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers the embedded reader, progress and navigator scripts as one combined injection payload through that plugin's public `PluginInterface.RegisterScript` contract.
 
-This is an optional runtime integration. Advanced Books does not reference or ship JavaScript Injector assemblies, and the server-side One-Shot resolver/page/progress APIs continue to work without it.
+This is an optional runtime integration. Advanced Books does not reference or ship JavaScript Injector assemblies, and the server-side One-Shot resolver/page/progress/thumbnail APIs continue to work without it.
 
 The injected reader watches Jellyfin Web item-detail navigation and probes:
 
@@ -65,7 +83,7 @@ Only a supported, accessible archive with at least one page receives an **Advanc
 
 ## Page loading
 
-Image elements cannot attach Jellyfin's custom authorization header directly. Pages are therefore requested through Jellyfin's authenticated `ApiClient.fetch(...)`, converted to temporary Blob URLs and then assigned to images. The complete CBZ is never intentionally downloaded by the Advanced Reader.
+Image elements cannot attach Jellyfin's custom authorization header directly. Full pages and thumbnail images are therefore requested through Jellyfin's authenticated `ApiClient.fetch(...)`, converted to temporary Blob URLs and then assigned to images. The complete CBZ is never intentionally downloaded by the Advanced Reader.
 
 ## Controls
 
@@ -83,16 +101,16 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Pa
 | Wheel | Previous/next in Fit Screen | Native vertical scroll |
 | Ctrl+wheel | Reader zoom | Browser/native behavior |
 | Drag at >100% | Pan | Native scrolling |
+| Pages button | Open thumbnail navigator | Open thumbnail navigator |
 
 ## Compatibility boundary
 
 The injected UI is intended for Jellyfin Web and clients that wrap Jellyfin Web. Native clients with their own UI, such as Android TV clients, do not receive the injected reader.
 
-The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`, while progress persistence is isolated in `Reader/advancedBooksProgress.js`. If Jellyfin changes the item-details or reader DOM, the integration layer can be replaced without changing the archive or user-data APIs.
+The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`, progress persistence is isolated in `Reader/advancedBooksProgress.js`, and page navigation is isolated in `Reader/advancedBooksNavigator.js`. If Jellyfin changes the item-details or reader DOM, the integration layer can be replaced without changing the archive or user-data APIs.
 
 ## Not implemented yet
 
-- thumbnail/page navigator;
 - persisted per-user reader preferences;
 - dedicated pinch-zoom behavior;
 - CBR/PDF/EPUB Advanced Reader pipelines;
