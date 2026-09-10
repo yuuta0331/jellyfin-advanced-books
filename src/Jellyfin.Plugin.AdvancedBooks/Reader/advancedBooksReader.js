@@ -8,6 +8,12 @@
     const pagedCacheLimit = 8;
     const continuousCacheLimit = 12;
     const continuousKeepRadius = 5;
+    const controlsRevealDistance = 40;
+    const controlsEdgeRevealDistance = 12;
+    const controlsVisibleActivityDistance = 14;
+    const controlsEdgeSize = 72;
+    const sliderThumbnailDelayMs = 80;
+    const sliderThumbnailCacheLimit = 10;
     let attachSequence = 0;
     let attachTimer = null;
     let activeReader = null;
@@ -140,6 +146,7 @@
         constructor(apiClient, itemId, metadata) {
             this.apiClient = apiClient;
             this.itemId = itemId;
+            this.pages = metadata.pages;
             this.pageCount = metadata.pages.length;
             this.currentPage = 0;
             this.layout = 'single';
@@ -166,15 +173,21 @@
             this.controlsTimer = null;
             this.settingsOpen = false;
             this.suppressNextStageClick = false;
+            this.lastPointerPosition = null;
+            this.hiddenPointerAnchor = null;
+            this.visiblePointerAnchor = null;
+            this.sliderPreviewTimer = null;
+            this.sliderPreviewHideTimer = null;
+            this.sliderPreviewSequence = 0;
+            this.sliderThumbnailCache = new Map();
+            this.sliderThumbnailPending = null;
             this.boundKeyDown = event => this.onKeyDown(event);
             this.boundWheel = event => this.onWheel(event);
             this.boundPointerDown = event => this.onPointerDown(event);
             this.boundPointerMove = event => this.onPointerMove(event);
             this.boundPointerUp = event => this.onPointerUp(event);
             this.boundStageClick = event => this.onStageClick(event);
-            this.boundPointerActivity = event => {
-                if (event.pointerType !== 'touch') this.showControls();
-            };
+            this.boundPointerActivity = event => this.onPointerActivity(event);
             this.boundFocusIn = () => this.showControls();
             this.boundFullscreenChange = () => this.updateFullscreenButton();
         }
@@ -195,6 +208,9 @@
             if (this.closed) return;
             this.closed = true;
             window.clearTimeout(this.controlsTimer);
+            window.clearTimeout(this.sliderPreviewTimer);
+            window.clearTimeout(this.sliderPreviewHideTimer);
+            this.hideSliderPreview(true);
             this.teardownContinuous();
             this.unbindEvents();
 
@@ -202,6 +218,8 @@
             this.pending.clear();
             for (const objectUrl of this.cache.values()) URL.revokeObjectURL(objectUrl);
             this.cache.clear();
+            for (const objectUrl of this.sliderThumbnailCache.values()) URL.revokeObjectURL(objectUrl);
+            this.sliderThumbnailCache.clear();
 
             if (this.fullscreenOwned && document.fullscreenElement === this.overlay && document.exitFullscreen) {
                 document.exitFullscreen().catch(() => {});
@@ -258,8 +276,14 @@
                 .advancedBooksReaderCounter{font-variant-numeric:tabular-nums;white-space:nowrap;padding:.3rem .55rem;border-radius:999px;background:rgba(0,0,0,.35)}
                 .advancedBooksReaderTopSpacer{flex:1 1 auto}
                 .advancedBooksReaderPagesHost{display:flex;align-items:center;gap:.4rem}
-                .advancedBooksReaderPageSlider{flex:1 1 auto;min-width:5rem;height:2.75rem;margin:0;cursor:pointer;accent-color:var(--ab-accent)}
+                .advancedBooksReaderPageSlider{flex:1 1 auto;min-width:5rem;height:2.75rem;margin:0;cursor:ew-resize;accent-color:var(--ab-accent);touch-action:none}
                 .advancedBooksReaderPageSliderValue{min-width:5.2rem;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+                .advancedBooksReaderSliderPreview{position:absolute;z-index:10;bottom:calc(100% - .1rem);left:50%;transform:translate(-50%,-.35rem);width:min(10rem,30vw);padding:.4rem;border:1px solid rgba(255,255,255,.18);border-radius:.6rem;background:rgba(15,15,15,.96);box-shadow:0 10px 32px rgba(0,0,0,.55);pointer-events:none;box-sizing:border-box;backdrop-filter:blur(12px)}
+                .advancedBooksReaderSliderPreview[hidden]{display:none!important}
+                .advancedBooksReaderSliderPreviewImageWrap{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:.35rem;background:#070707}
+                .advancedBooksReaderSliderPreview img{display:block;width:100%;height:100%;object-fit:contain}
+                .advancedBooksReaderSliderPreviewStatus{padding:.75rem .35rem;text-align:center;font-size:.82rem;opacity:.66}
+                .advancedBooksReaderSliderPreviewLabel{padding:.35rem .2rem 0;text-align:center;font-size:.85rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
                 .advancedBooksReaderProgressRail{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:5;pointer-events:none;background:rgba(255,255,255,.16)}
                 .advancedBooksReaderProgressRail::after{content:"";display:block;width:var(--ab-progress);height:100%;background:var(--ab-accent);transition:width .12s linear}
                 .advancedBooksReaderSettingsPanel{position:absolute!important;z-index:9;top:calc(3.6rem + env(safe-area-inset-top,0px));right:.65rem;width:min(24rem,calc(100vw - 1.3rem));max-height:calc(100dvh - 5rem);overflow:auto;display:grid!important;gap:.8rem;padding:1rem;border:1px solid rgba(255,255,255,.14);border-radius:.8rem;background:rgba(20,20,20,.97);box-shadow:0 14px 48px rgba(0,0,0,.55);box-sizing:border-box;backdrop-filter:blur(14px)}
@@ -280,12 +304,16 @@
                     .advancedBooksReaderChromeBottom{gap:.35rem;padding-inline:.45rem}
                     .advancedBooksReaderNavButton{min-width:2.7rem;padding-inline:.55rem}
                     .advancedBooksReaderPageSliderValue{min-width:4.4rem;font-size:.88rem}
+                    .advancedBooksReaderSliderPreview{width:min(8.5rem,36vw)}
                     .advancedBooksReaderSettingsPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(72dvh,38rem);border-radius:1rem 1rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
                     .advancedBooksReaderSettingRow{grid-template-columns:1fr;gap:.35rem}
                     .advancedBooksReaderPageSlot{min-height:45vh}
                 }
                 @media(pointer:coarse){
                     .advancedBooksReaderIconButton,.advancedBooksReaderNavButton,.advancedBooksReaderSettingRow select,.advancedBooksReaderZoomRow button{min-height:3rem}
+                }
+                @media(prefers-reduced-motion:reduce){
+                    .advancedBooksReaderChrome,.advancedBooksReaderProgressRail::after{transition:none!important}
                 }
             `;
             document.head.appendChild(style);
@@ -482,18 +510,29 @@
             this.pageSlider.step = '1';
             this.pageSlider.value = '1';
             this.pageSlider.setAttribute('aria-label', 'Jump to page');
-            this.pageSlider.addEventListener('pointerdown', () => this.showControls(false));
+            this.pageSlider.addEventListener('pointerdown', () => {
+                this.showControls(false);
+                this.previewSlider(true);
+            });
             this.pageSlider.addEventListener('input', () => {
-                this.previewSlider();
+                this.previewSlider(true);
                 this.showControls(false);
             });
-            const finishSliderInteraction = () => this.showControls();
+            const finishSliderInteraction = () => {
+                this.showControls();
+                this.scheduleSliderPreviewHide();
+            };
             this.pageSlider.addEventListener('pointerup', finishSliderInteraction);
-            this.pageSlider.addEventListener('pointercancel', finishSliderInteraction);
+            this.pageSlider.addEventListener('pointercancel', () => {
+                this.showControls();
+                this.hideSliderPreview(true);
+            });
+            this.pageSlider.addEventListener('blur', () => this.scheduleSliderPreviewHide(250));
             this.pageSlider.addEventListener('change', () => {
                 const index = Number(this.pageSlider.value) - 1;
                 if (Number.isFinite(index)) this.goTo(index, 'auto');
                 this.showControls();
+                this.scheduleSliderPreviewHide();
             });
 
             this.pageSliderValue = document.createElement('div');
@@ -503,7 +542,28 @@
             this.nextButton.className = 'advancedBooksReaderNavButton';
             this.nextButton.title = 'Next page';
             this.nextButton.setAttribute('aria-label', 'Next page');
-            bottom.append(this.previousButton, this.pageSlider, this.pageSliderValue, this.nextButton);
+
+            this.sliderPreview = document.createElement('div');
+            this.sliderPreview.className = 'advancedBooksReaderSliderPreview';
+            this.sliderPreview.hidden = true;
+            this.sliderPreview.setAttribute('aria-hidden', 'true');
+
+            const sliderPreviewImageWrap = document.createElement('div');
+            sliderPreviewImageWrap.className = 'advancedBooksReaderSliderPreviewImageWrap';
+            this.sliderPreviewImage = document.createElement('img');
+            this.sliderPreviewImage.alt = '';
+            this.sliderPreviewImage.hidden = true;
+            this.sliderPreviewStatus = document.createElement('div');
+            this.sliderPreviewStatus.className = 'advancedBooksReaderSliderPreviewStatus';
+            this.sliderPreviewStatus.textContent = 'Loading preview…';
+            sliderPreviewImageWrap.append(this.sliderPreviewImage, this.sliderPreviewStatus);
+
+            this.sliderPreviewLabel = document.createElement('div');
+            this.sliderPreviewLabel.className = 'advancedBooksReaderSliderPreviewLabel';
+            this.sliderPreview.append(sliderPreviewImageWrap, this.sliderPreviewLabel);
+
+            this.bottomChrome = bottom;
+            bottom.append(this.previousButton, this.pageSlider, this.pageSliderValue, this.nextButton, this.sliderPreview);
 
             const rail = document.createElement('div');
             rail.className = 'advancedBooksReaderProgressRail';
@@ -516,6 +576,8 @@
         showControls(autoHide = true) {
             if (!this.overlay?.isConnected) return;
             this.overlay.classList.remove('ab-controls-hidden');
+            this.hiddenPointerAnchor = null;
+            if (this.lastPointerPosition) this.visiblePointerAnchor = { ...this.lastPointerPosition };
             window.clearTimeout(this.controlsTimer);
             if (autoHide && !this.settingsOpen) {
                 this.controlsTimer = window.setTimeout(() => this.hideControls(), 2800);
@@ -525,6 +587,8 @@
         hideControls() {
             if (!this.overlay?.isConnected || this.settingsOpen) return;
             this.overlay.classList.add('ab-controls-hidden');
+            this.hiddenPointerAnchor = this.lastPointerPosition ? { ...this.lastPointerPosition } : null;
+            this.visiblePointerAnchor = null;
         }
 
         toggleControls() {
@@ -580,10 +644,142 @@
             if (!active) this.fullscreenOwned = false;
         }
 
-        previewSlider() {
+        previewSlider(showThumbnail = false) {
             if (!this.pageSlider || !this.pageSliderValue) return;
             const page = Math.max(1, Math.min(this.pageCount, Number(this.pageSlider.value) || 1));
             this.pageSliderValue.textContent = `${page} / ${this.pageCount}`;
+            if (showThumbnail) this.showSliderPreview(page - 1);
+        }
+
+        showSliderPreview(index) {
+            if (!this.sliderPreview || !this.pageSlider) return;
+            const clamped = Math.max(0, Math.min(this.pageCount - 1, index));
+            const last = this.layout === 'double'
+                ? Math.min(this.pageCount - 1, clamped + 1)
+                : clamped;
+            this.sliderPreviewLabel.textContent = last > clamped
+                ? `Pages ${clamped + 1}–${last + 1}`
+                : `Page ${clamped + 1}`;
+            this.sliderPreview.hidden = false;
+            window.clearTimeout(this.sliderPreviewHideTimer);
+            this.positionSliderPreview(clamped);
+            this.scheduleSliderThumbnail(clamped);
+        }
+
+        positionSliderPreview(index) {
+            if (!this.sliderPreview || !this.bottomChrome || !this.pageSlider) return;
+            const sliderRect = this.pageSlider.getBoundingClientRect();
+            const chromeRect = this.bottomChrome.getBoundingClientRect();
+            if (sliderRect.width <= 0 || chromeRect.width <= 0) return;
+
+            const denominator = Math.max(1, this.pageCount - 1);
+            let ratio = Math.max(0, Math.min(1, index / denominator));
+            if (this.pageSlider.dir === 'rtl') ratio = 1 - ratio;
+
+            const rawLeft = sliderRect.left - chromeRect.left + (sliderRect.width * ratio);
+            const halfWidth = Math.max(52, this.sliderPreview.offsetWidth / 2);
+            const left = Math.max(halfWidth + 8, Math.min(chromeRect.width - halfWidth - 8, rawLeft));
+            this.sliderPreview.style.left = `${left}px`;
+        }
+
+        scheduleSliderThumbnail(index) {
+            window.clearTimeout(this.sliderPreviewTimer);
+            const sequence = ++this.sliderPreviewSequence;
+
+            this.sliderThumbnailPending?.controller.abort();
+            this.sliderThumbnailPending = null;
+
+            const pageUrl = this.cache.get(index);
+            if (pageUrl) {
+                this.applySliderThumbnail(index, pageUrl, sequence);
+                return;
+            }
+
+            const cached = this.sliderThumbnailCache.get(index);
+            if (cached) {
+                this.applySliderThumbnail(index, cached, sequence);
+                return;
+            }
+
+            this.sliderPreviewImage.hidden = true;
+            this.sliderPreviewStatus.hidden = false;
+            this.sliderPreviewStatus.textContent = 'Loading preview…';
+            this.sliderPreviewTimer = window.setTimeout(
+                () => this.loadSliderThumbnail(index, sequence),
+                sliderThumbnailDelayMs
+            );
+        }
+
+        async loadSliderThumbnail(index, sequence) {
+            if (this.closed || this.sliderPreview?.hidden || sequence !== this.sliderPreviewSequence) return;
+            const controller = new AbortController();
+            const url = this.apiClient.getUrl(
+                `AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}/Thumbnail?width=240`
+            );
+            const pending = { index, controller };
+            this.sliderThumbnailPending = pending;
+            try {
+                const response = await this.apiClient.fetch({ url, method: 'GET', signal: controller.signal }, true);
+                if (!response || response.ok === false) throw new Error(`HTTP ${response?.status ?? 'error'}`);
+                const blob = await response.blob();
+                if (this.closed || sequence !== this.sliderPreviewSequence || this.sliderPreview?.hidden) return;
+                const objectUrl = URL.createObjectURL(blob);
+                const existing = this.sliderThumbnailCache.get(index);
+                if (existing) URL.revokeObjectURL(existing);
+                this.sliderThumbnailCache.delete(index);
+                this.sliderThumbnailCache.set(index, objectUrl);
+                this.trimSliderThumbnailCache(index);
+                this.applySliderThumbnail(index, objectUrl, sequence);
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                if (sequence === this.sliderPreviewSequence && !this.sliderPreview?.hidden) {
+                    this.sliderPreviewImage.hidden = true;
+                    this.sliderPreviewStatus.hidden = false;
+                    this.sliderPreviewStatus.textContent = 'Preview unavailable';
+                }
+            } finally {
+                if (this.sliderThumbnailPending === pending) this.sliderThumbnailPending = null;
+            }
+        }
+
+        applySliderThumbnail(index, objectUrl, sequence) {
+            if (sequence !== this.sliderPreviewSequence || this.sliderPreview?.hidden) return;
+            this.sliderPreviewImage.src = objectUrl;
+            this.sliderPreviewImage.alt = `Preview of page ${index + 1}`;
+            this.sliderPreviewImage.hidden = false;
+            this.sliderPreviewStatus.hidden = true;
+        }
+
+        trimSliderThumbnailCache(protectedIndex) {
+            while (this.sliderThumbnailCache.size > sliderThumbnailCacheLimit) {
+                const candidate = this.sliderThumbnailCache.keys().next().value;
+                if (candidate === undefined) break;
+                if (candidate === protectedIndex && this.sliderThumbnailCache.size > 1) {
+                    const objectUrl = this.sliderThumbnailCache.get(candidate);
+                    this.sliderThumbnailCache.delete(candidate);
+                    this.sliderThumbnailCache.set(candidate, objectUrl);
+                    continue;
+                }
+                const objectUrl = this.sliderThumbnailCache.get(candidate);
+                this.sliderThumbnailCache.delete(candidate);
+                URL.revokeObjectURL(objectUrl);
+            }
+        }
+
+        scheduleSliderPreviewHide(delay = 650) {
+            window.clearTimeout(this.sliderPreviewHideTimer);
+            this.sliderPreviewHideTimer = window.setTimeout(() => this.hideSliderPreview(true), delay);
+        }
+
+        hideSliderPreview(abortPending = false) {
+            window.clearTimeout(this.sliderPreviewTimer);
+            window.clearTimeout(this.sliderPreviewHideTimer);
+            ++this.sliderPreviewSequence;
+            if (abortPending) {
+                this.sliderThumbnailPending?.controller.abort();
+                this.sliderThumbnailPending = null;
+            }
+            if (this.sliderPreview) this.sliderPreview.hidden = true;
         }
 
         makeButton(label, onClick) {
@@ -651,6 +847,60 @@
             this.overlay?.removeEventListener('pointermove', this.boundPointerActivity);
             this.overlay?.removeEventListener('focusin', this.boundFocusIn);
             document.removeEventListener('fullscreenchange', this.boundFullscreenChange);
+        }
+
+        onPointerActivity(event) {
+            if (event.pointerType === 'touch' || !this.overlay?.isConnected) return;
+
+            const point = { x: event.clientX, y: event.clientY };
+            const previous = this.lastPointerPosition;
+            this.lastPointerPosition = point;
+
+            if (this.pointerStart || this.settingsOpen) return;
+
+            const hidden = this.overlay.classList.contains('ab-controls-hidden');
+            if (hidden) {
+                if (!this.hiddenPointerAnchor) {
+                    this.hiddenPointerAnchor = previous ? { ...previous } : point;
+                    return;
+                }
+
+                const distance = Math.hypot(
+                    point.x - this.hiddenPointerAnchor.x,
+                    point.y - this.hiddenPointerAnchor.y
+                );
+                const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+                const nearChromeEdge = point.y <= controlsEdgeSize
+                    || point.y >= viewportHeight - controlsEdgeSize;
+                const threshold = nearChromeEdge ? controlsEdgeRevealDistance : controlsRevealDistance;
+
+                if (distance >= threshold) {
+                    this.hiddenPointerAnchor = point;
+                    this.visiblePointerAnchor = point;
+                    this.showControls();
+                }
+                return;
+            }
+
+            if (event.target?.closest?.('.advancedBooksReaderChrome,.advancedBooksReaderSettingsPanel,.advancedBooksNavigatorPanel')) {
+                this.visiblePointerAnchor = point;
+                this.showControls();
+                return;
+            }
+
+            if (!this.visiblePointerAnchor) {
+                this.visiblePointerAnchor = previous ? { ...previous } : point;
+                return;
+            }
+
+            const distance = Math.hypot(
+                point.x - this.visiblePointerAnchor.x,
+                point.y - this.visiblePointerAnchor.y
+            );
+            if (distance >= controlsVisibleActivityDistance) {
+                this.visiblePointerAnchor = point;
+                this.showControls();
+            }
         }
 
         onStageClick(event) {
@@ -974,6 +1224,7 @@
                 this.pageSlider.value = String(Math.min(this.pageCount, this.currentPage + 1));
                 this.pageSlider.setAttribute('aria-valuetext', this.counter.textContent);
                 this.pageSlider.dir = !this.isContinuous() && this.direction === 'rtl' ? 'rtl' : 'ltr';
+                if (!this.sliderPreview?.hidden) this.positionSliderPreview(Number(this.pageSlider.value) - 1);
             }
             if (this.pageSliderValue) this.pageSliderValue.textContent = this.counter.textContent;
             const reachedPage = this.layout === 'double'
