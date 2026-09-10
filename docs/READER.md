@@ -1,77 +1,77 @@
 # Advanced Reader
 
-The Advanced Reader is a client-side overlay backed by Advanced Books' authenticated page API. It is intentionally separated from the archive scanner and page-serving code so Jellyfin Web integration can evolve without changing the media pipeline.
+The Advanced Reader is a client-side overlay backed by Advanced Books' authenticated per-page API. It is separated from scanner/archive code so Jellyfin Web integration can evolve without changing the media pipeline.
 
-## Current feature set
+## Current modes
 
-The first reader milestone supports CBZ/ZIP-backed Jellyfin Book items and provides:
+Four reading modes are available for CBZ/ZIP-backed Jellyfin Book items:
 
-- single-page and double-page layouts;
-- right-to-left and left-to-right navigation;
-- fit screen, fit width, fit height and original-size modes;
-- zoom from 50% to 400%;
-- drag-to-pan while zoomed;
-- mouse/touch click zones;
-- horizontal swipe navigation;
-- keyboard navigation;
-- wheel page navigation in fit-screen mode;
-- Ctrl+wheel zoom;
-- bounded object-URL cache and nearby-page prefetch;
-- a full-window reader overlay that does not modify the source book.
+- **Single page** - one page at a time;
+- **Double page** - two-page spreads with RTL/LTR ordering;
+- **Vertical continuous** - independent comic pages stacked vertically;
+- **Webtoon** - edge-to-edge continuous vertical pages with no page gap.
 
-Vertical continuous reading, Webtoon mode, thumbnails and Jellyfin progress synchronization are not part of this milestone.
+Paged modes support Fit Screen, Fit Width, Fit Height and Original Size, 50%-400% zoom, drag-to-pan, click/tap zones, horizontal swipe, keyboard navigation and fit-screen wheel navigation.
+
+Vertical Continuous supports the fit modes at 100% reader zoom. Webtoon is intentionally locked to Fit Width. Continuous modes use normal vertical mouse/touch scrolling; reader-level zoom/pan is disabled there for now to avoid fighting native scrolling and pinch gestures.
+
+## Continuous lazy loading
+
+Continuous mode creates lightweight page placeholders but does **not** download every image. Two `IntersectionObserver`s are rooted to the reader viewport:
+
+1. a prefetch observer begins authenticated page loading only when a placeholder enters an expanded area around the viewport; and
+2. a visibility observer tracks which page occupies the viewport and updates the current page counter.
+
+Nearby pages are kept in memory. Continuous mode has a bounded Blob cache and evicts distant pages, revoking their object URLs and returning the page to a lightweight placeholder. Distant in-flight requests are aborted as the reading position moves.
+
+This keeps a large magazine or manga volume from turning into a full-archive browser download while still allowing smooth continuous scrolling.
 
 ## Jellyfin Web integration
 
-Jellyfin does not currently expose a stable general-purpose server-plugin API for replacing arbitrary Web UI components. The reader therefore treats Web integration as a replaceable adapter.
-
 For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers its embedded reader script through that plugin's public `PluginInterface.RegisterScript` contract.
 
-This is an optional runtime integration:
+This is an optional runtime integration. Advanced Books does not reference or ship JavaScript Injector assemblies, and the server-side One-Shot resolver/page API continue to work without it.
 
-- Advanced Books does not reference or ship JavaScript Injector assemblies;
-- the server-side One-Shot resolver and page API work without it;
-- when JavaScript Injector is absent, no Web reader button is injected;
-- disabling **Enable Advanced Reader integration** causes Advanced Books to unregister its reader script on startup.
-
-The registration payload is constructed through reflection so Advanced Books does not take a compile-time dependency on Newtonsoft.Json or JavaScript Injector internals.
-
-## Reader discovery
-
-The injected script watches Jellyfin Web item-detail navigation. It obtains the current item ID from the route and probes:
+The injected script watches Jellyfin Web item-detail navigation and probes:
 
 ```text
 GET /AdvancedBooks/Books/{itemId}/Pages
 ```
 
-Only when that endpoint succeeds and reports one or more pages does the script add an **Advanced Reader** button to the visible `.mainDetailButtons` container. Unsupported formats, inaccessible books and rejected archives therefore do not expose a broken reader action.
+Only a supported, accessible archive with at least one page receives an **Advanced Reader** button.
 
 ## Page loading
 
-Image elements cannot attach Jellyfin's custom authorization header directly. The reader therefore requests each page with Jellyfin's authenticated `ApiClient.fetch(...)`, converts the response to a Blob URL, and assigns that local URL to the image element.
-
-The reader prefetches nearby pages and retains at most eight Blob URLs. Evicted and closed-reader Blob URLs are revoked.
+Image elements cannot attach Jellyfin's custom authorization header directly. Pages are therefore requested through Jellyfin's authenticated `ApiClient.fetch(...)`, converted to temporary Blob URLs and then assigned to images. The complete CBZ is never intentionally downloaded by the Advanced Reader.
 
 ## Controls
 
-Default controls:
-
-| Input | Action |
-| --- | --- |
-| Escape | Close reader |
-| Arrow Left / Right | Direction-aware page navigation |
-| Page Up / Page Down | Previous / next page group |
-| Space | Next page group |
-| Home / End | First / last page |
-| + / - / 0 | Zoom in / out / reset |
-| Click/tap left or right half | Direction-aware navigation |
-| Horizontal swipe | Direction-aware navigation |
-| Wheel | Previous/next in Fit Screen at 100% |
-| Ctrl+wheel | Zoom |
-| Drag while zoomed | Pan |
+| Input | Paged modes | Continuous / Webtoon |
+| --- | --- | --- |
+| Escape | Close | Close |
+| Arrow Left / Right | Direction-aware previous/next | Native/no reader action |
+| Arrow Up / Down | Native | Previous/next page |
+| Page Up / Page Down | Previous/next group | Previous/next page |
+| Space | Next group | Next page |
+| Home / End | First/last page | First/last page |
+| + / - / 0 | Zoom | Disabled |
+| Left/right click or tap | Direction-aware navigation | Native scrolling |
+| Horizontal swipe | Direction-aware navigation | Native scrolling |
+| Wheel | Previous/next in Fit Screen | Native vertical scroll |
+| Ctrl+wheel | Reader zoom | Browser/native behavior |
+| Drag at >100% | Pan | Native scrolling |
 
 ## Compatibility boundary
 
-The injected UI is expected to work in Jellyfin Web and clients that wrap Jellyfin Web. Native clients with their own UI, such as Android TV clients, do not receive the injected reader.
+The injected UI is intended for Jellyfin Web and clients that wrap Jellyfin Web. Native clients with their own UI, such as Android TV clients, do not receive the injected reader.
 
-The selector and route adapter are deliberately isolated inside `Reader/advancedBooksReader.js`. If Jellyfin changes the item-details DOM or navigation model, only this adapter should need adjustment.
+The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`. If Jellyfin changes the item-details DOM, only that adapter should require adjustment.
+
+## Not implemented yet
+
+- thumbnail/page navigator;
+- persisted per-user reader preferences;
+- Jellyfin reading-position synchronization/resume;
+- mark-completed behavior;
+- dedicated pinch-zoom behavior;
+- CBR/PDF/EPUB Advanced Reader pipelines.
