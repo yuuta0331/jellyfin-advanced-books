@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using Jellyfin.AdvancedBooks.Core.Archives;
@@ -35,9 +36,11 @@ public interface IReaderThumbnailService
 /// </summary>
 public sealed class ReaderThumbnailService : IReaderThumbnailService
 {
-    private const int ThumbnailQuality = 75;
-    private static readonly SemaphoreSlim GenerationSlots = new(2, 2);
+    private const int ThumbnailQuality = 70;
+    private static readonly SemaphoreSlim GenerationSlots = new(3, 3);
 
+    private readonly ConcurrentDictionary<string, CachedArchiveInfo> _archiveInfoCache =
+        new(StringComparer.OrdinalIgnoreCase);
     private readonly IZipBookArchiveReader _archiveReader;
     private readonly IImageProcessor _imageProcessor;
 
@@ -66,7 +69,7 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
             throw new NotSupportedException("The book is not backed by a supported archive.");
         }
 
-        var info = _archiveReader.GetBookInfo(book.Path);
+        var info = GetBookInfo(book.Path);
         if (pageIndex < 0 || pageIndex >= info.Pages.Count)
         {
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -205,6 +208,28 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
         }
     }
 
+    private ArchiveBookInfo GetBookInfo(string path)
+    {
+        var file = new FileInfo(path);
+        if (!file.Exists)
+        {
+            throw new FileNotFoundException("Comic archive was not found.", path);
+        }
+
+        var length = file.Length;
+        var lastWriteUtcTicks = file.LastWriteTimeUtc.Ticks;
+        if (_archiveInfoCache.TryGetValue(path, out var cached)
+            && cached.Length == length
+            && cached.LastWriteUtcTicks == lastWriteUtcTicks)
+        {
+            return cached.Info;
+        }
+
+        var info = _archiveReader.GetBookInfo(path);
+        _archiveInfoCache[path] = new CachedArchiveInfo(length, lastWriteUtcTicks, info);
+        return info;
+    }
+
     private static string BuildCacheStem(
         ArchiveBookInfo info,
         ArchivePage page,
@@ -274,6 +299,8 @@ public sealed class ReaderThumbnailService : IReaderThumbnailService
             _ => "image/jpeg"
         };
     }
+
+    private sealed record CachedArchiveInfo(long Length, long LastWriteUtcTicks, ArchiveBookInfo Info);
 
     private static void TryDelete(string path)
     {
