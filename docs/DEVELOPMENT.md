@@ -38,7 +38,7 @@ src/
   Jellyfin.Plugin.AdvancedBooks/
     Api/                              page/progress/preferences/thumbnail endpoints
     Configuration/                    server/plugin settings
-    Reader/                           reader, progress, preferences and navigator scripts
+    Reader/                           reader, progress, preferences, navigator and gesture scripts
     Resolvers/                        Jellyfin library resolver integration
     Services/                         runtime integration + thumbnail generation
 tests/
@@ -46,6 +46,7 @@ tests/
 docs/
   ARCHITECTURE.md
   DEVELOPMENT.md
+  PINCH_ZOOM.md
   READER.md
   ROADMAP.md
 ```
@@ -160,6 +161,21 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 18. zoom above 100% in a paged mode, drag to pan, then close with Escape;
 19. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
+### Mobile pinch smoke test
+
+Run these checks on a real touch device or browser/device mode that emits touch Pointer Events. Android Chrome should be covered first; also test iOS Safari or a Jellyfin Web wrapper before claiming that client as supported.
+
+1. In Single Page at 100%, pinch outward and confirm the page follows the two-finger gesture smoothly, then releases to a toolbar zoom between 50% and 400%.
+2. Close and reopen the reader and confirm the final pinch zoom is restored through the per-user preference bridge.
+3. Pinch inward/outward and release without crossing a 5% normalized zoom step; confirm an existing one-finger pan offset above 100% is not reset.
+4. Complete a pinch with a large horizontal component and confirm releasing the fingers does not turn the page.
+5. Add a third finger during a pinch; confirm the original two-finger pair remains authoritative and zoom does not jump.
+6. With a third finger still down, lift either original pinch finger; confirm the pinch ends cleanly rather than switching to a different pair.
+7. Start with two fingers closer than the minimum pinch distance, spread them apart, and confirm the gesture can become a pinch without creating a page-turn tap/swipe.
+8. At greater than 100% zoom, confirm ordinary one-finger drag-to-pan still works after the pinch finishes.
+9. In Vertical Continuous and Webtoon, confirm the custom pinch bridge does not activate and normal vertical touch scrolling remains usable.
+10. In paged Fit Width/Original at 100% or below, confirm normal vertical panning/scrolling remains usable where content exceeds the viewport; the pinch feature must not globally force `touch-action:none`.
+
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.
 
 ## Coding rules
@@ -167,6 +183,8 @@ The JavaScript Injector integration is optional at runtime and loaded by reflect
 - Keep Jellyfin-specific types out of `Jellyfin.AdvancedBooks.Core`.
 - Add tests for path parsing, ordering, archive edge cases, progress conversion and reader preference validation.
 - Run `node --check` on every embedded reader script after modifications.
+- Keep multi-touch handling isolated from the base reader unless a shared reader API is deliberately introduced.
+- Do not globally disable native touch scrolling merely to make pinch handling easier.
 - Never use client-provided filesystem paths in HTTP APIs.
 - Validate client-provided page indexes against server-side archive metadata before persisting them.
 - Validate reader preference values on the server even when the Web client also normalizes them.
@@ -182,7 +200,7 @@ The JavaScript Injector integration is optional at runtime and loaded by reflect
 
 Jellyfin plugin ABI changes can be breaking. Update `Jellyfin.Controller`, `Jellyfin.Model`, `Jellyfin.Naming`, `build.yaml`'s `targetAbi`, and the target framework together, then run unit and integration tests.
 
-The progress mapping must also be rechecked whenever Jellyfin Web changes `ComicsPlayer.currentTime()`, `startPositionTicks`, or playbackmanager's millisecond/tick conversion. Thumbnail generation must be rechecked if Jellyfin changes `IImageProcessor`, `ImageProcessingOptions`, or supported output formats. Preference persistence must be rechecked if Jellyfin changes `IDisplayPreferencesManager` or custom item display-preference semantics.
+The progress mapping must also be rechecked whenever Jellyfin Web changes `ComicsPlayer.currentTime()`, `startPositionTicks`, or playbackmanager's millisecond/tick conversion. Thumbnail generation must be rechecked if Jellyfin changes `IImageProcessor`, `ImageProcessingOptions`, or supported output formats. Preference persistence must be rechecked if Jellyfin changes `IDisplayPreferencesManager` or custom item display-preference semantics. Touch handling must be rechecked if Jellyfin Web changes reader-stage `touch-action` behavior or pointer-event handling.
 
 ## Pull requests
 
