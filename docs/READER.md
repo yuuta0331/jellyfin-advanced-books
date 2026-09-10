@@ -11,9 +11,7 @@ Four reading modes are available for CBZ/ZIP-backed Jellyfin Book items:
 - **Vertical continuous** - independent comic pages stacked vertically;
 - **Webtoon** - edge-to-edge continuous vertical pages with no page gap.
 
-Paged modes support Fit Screen, Fit Width, Fit Height and Original Size, 50%-400% zoom, drag-to-pan, click/tap zones, horizontal swipe, two-finger pinch zoom, keyboard navigation and fit-screen wheel navigation.
-
-Vertical Continuous supports the fit modes at 100% reader zoom. Webtoon is intentionally locked to Fit Width. Continuous modes use normal vertical mouse/touch scrolling; reader-level zoom/pan is disabled there for now to avoid fighting native scrolling and pinch gestures.
+All four modes support Fit Screen, Fit Width, Fit Height and Original Size plus 50%-400% reader zoom. Paged modes retain click/tap zones, horizontal swipe, keyboard navigation and drag-to-pan. Vertical Continuous and Webtoon retain native one-finger/mouse-wheel scrolling; their zoom changes the continuous canvas width so high zoom can be panned with normal scrolling/touch or desktop drag panning.
 
 ## Touch pinch zoom
 
@@ -25,9 +23,17 @@ During the gesture, the page container receives a temporary smooth scale/transla
 
 If the gesture rounds back to its starting zoom, the bridge leaves the committed reader state untouched so an existing drag-to-pan offset above 100% is preserved. A completed multi-touch gesture suppresses its final pointer-up events to prevent an accidental page turn.
 
-Vertical Continuous and Webtoon intentionally do not use the custom pinch bridge. They retain native vertical touch scrolling and the current 100% reader zoom model.
+Vertical Continuous and Webtoon also use the custom pinch bridge. One-finger vertical scrolling remains native, while a second touch commits the gesture to reader zoom. On release the normalized zoom value is persisted through the same reader preference bridge as the toolbar controls.
 
 The committed paged zoom recenters using the reader's normal transform; midpoint translation is currently a live preview rather than a persisted pan offset. After zooming above 100%, normal one-finger drag-to-pan remains available.
+
+## Reader chrome and direct page navigation
+
+The reader UI is optimized to disappear while reading. A compact top chrome and bottom navigation strip are shown when the reader opens, then auto-hide after inactivity. Pointer movement on desktop or a center tap/click restores them. Opening Reader Settings pins the chrome open until the sheet is closed.
+
+The bottom strip is available in Single, Double, Vertical Continuous and Webtoon modes. It contains Previous/Next controls, the current page/range, and a range scrubber for direct jumps across long books. A thin progress rail remains visible at the bottom edge even when the larger controls are hidden.
+
+Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit and zoom remain available from the same sheet.
 
 ## Per-user reader preferences
 
@@ -134,10 +140,11 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 | + / - / 0 | Zoom | Disabled |
 | Left/right click or tap | Direction-aware navigation | Native scrolling |
 | Horizontal swipe | Direction-aware navigation | Native scrolling |
-| Two-finger pinch | 50%-400% zoom | Native/no reader zoom |
+| Two-finger pinch | 50%-400% reader zoom | 50%-400% reader zoom |
 | Wheel | Previous/next in Fit Screen | Native vertical scroll |
-| Ctrl+wheel | Reader zoom | Browser/native behavior |
-| Drag at >100% | Pan | Native scrolling |
+| Ctrl+wheel | Reader zoom | Reader zoom |
+| Drag at >100% | Pan | Desktop drag pan; native touch/scroll pan |
+| Bottom page scrubber | Direct page jump | Direct page jump |
 | Pages button | Open thumbnail navigator | Open thumbnail navigator |
 
 ## Compatibility boundary
@@ -149,5 +156,6 @@ The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`, p
 ## Not implemented yet
 
 - focal-point pan persistence across pinch release;
+- additional mobile polish after live device testing;
 - CBR/PDF/EPUB Advanced Reader pipelines;
 - live end-to-end browser tests against a running Jellyfin 12 instance.
