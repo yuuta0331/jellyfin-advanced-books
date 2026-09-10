@@ -179,6 +179,7 @@
             this.sliderPreviewTimer = null;
             this.sliderPreviewHideTimer = null;
             this.sliderPreviewSequence = 0;
+            this.sliderScrubbing = false;
             this.sliderThumbnailCache = new Map();
             this.sliderThumbnailPending = null;
             this.boundKeyDown = event => this.onKeyDown(event);
@@ -516,6 +517,7 @@
             this.pageSlider.value = '1';
             this.pageSlider.setAttribute('aria-label', 'Jump to page');
             this.pageSlider.addEventListener('pointerdown', () => {
+                this.sliderScrubbing = true;
                 this.showControls(false);
                 this.previewSlider(true);
             });
@@ -524,16 +526,22 @@
                 this.showControls(false);
             });
             const finishSliderInteraction = () => {
+                this.sliderScrubbing = false;
                 this.showControls();
                 this.scheduleSliderPreviewHide();
             };
             this.pageSlider.addEventListener('pointerup', finishSliderInteraction);
             this.pageSlider.addEventListener('pointercancel', () => {
+                this.sliderScrubbing = false;
                 this.showControls();
                 this.hideSliderPreview(true);
             });
-            this.pageSlider.addEventListener('blur', () => this.scheduleSliderPreviewHide(250));
+            this.pageSlider.addEventListener('blur', () => {
+                this.sliderScrubbing = false;
+                this.scheduleSliderPreviewHide(250);
+            });
             this.pageSlider.addEventListener('change', () => {
+                this.sliderScrubbing = false;
                 const index = Number(this.pageSlider.value) - 1;
                 if (Number.isFinite(index)) this.goTo(index, 'auto');
                 this.showControls();
@@ -558,6 +566,8 @@
             this.sliderPreviewImage = document.createElement('img');
             this.sliderPreviewImage.alt = '';
             this.sliderPreviewImage.hidden = true;
+            this.sliderPreviewImage.decoding = 'async';
+            this.sliderPreviewImage.draggable = false;
             this.sliderPreviewStatus = document.createElement('div');
             this.sliderPreviewStatus.className = 'advancedBooksReaderSliderPreviewStatus';
             this.sliderPreviewStatus.textContent = 'Loading preview…';
@@ -590,7 +600,7 @@
         }
 
         hideControls() {
-            if (!this.overlay?.isConnected || this.settingsOpen) return;
+            if (!this.overlay?.isConnected || this.settingsOpen || this.sliderScrubbing) return;
             this.overlay.classList.add('ab-controls-hidden');
             this.hiddenPointerAnchor = this.lastPointerPosition ? { ...this.lastPointerPosition } : null;
             this.visiblePointerAnchor = null;
@@ -867,7 +877,7 @@
             const previous = this.lastPointerPosition;
             this.lastPointerPosition = point;
 
-            if (this.pointerStart || this.settingsOpen) return;
+            if (this.pointerStart || this.settingsOpen || this.sliderScrubbing) return;
 
             const hidden = this.overlay.classList.contains('ab-controls-hidden');
             if (hidden) {
