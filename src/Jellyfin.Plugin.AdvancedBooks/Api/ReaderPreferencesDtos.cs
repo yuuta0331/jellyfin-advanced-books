@@ -7,7 +7,9 @@ public sealed record ReaderPreferencesDto(
     string Layout,
     string Direction,
     string Fit,
-    double Zoom);
+    double Zoom,
+    int SidePadding,
+    int PageGap);
 
 /// <summary>
 /// Replaces the current user's Advanced Reader preferences.
@@ -23,6 +25,12 @@ public sealed class UpdateReaderPreferencesRequest
     /// <summary>Gets or sets the fit mode.</summary>
     public string Fit { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the paged zoom multiplier.</summary>
+    /// <summary>Gets or sets the reader zoom multiplier.</summary>
     public double Zoom { get; set; } = 1d;
+
+    /// <summary>Gets or sets continuous-reader side padding as a percentage.</summary>
+    public int SidePadding { get; set; }
+
+    /// <summary>Gets or sets continuous-reader page gap in pixels.</summary>
+    public int PageGap { get; set; }
 }

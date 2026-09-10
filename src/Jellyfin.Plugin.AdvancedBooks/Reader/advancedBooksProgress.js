@@ -124,15 +124,23 @@
     async function restorePage(session, pageIndex) {
         if (pageIndex <= 0 || !session.overlay?.isConnected) return;
 
-        const layoutSelect = session.overlay.querySelector('.advancedBooksReaderToolbar select');
         const counter = session.overlay.querySelector('.advancedBooksReaderCounter');
-        if (!layoutSelect || !counter) return;
+        if (!counter) return;
 
-        const originalLayout = layoutSelect.value || 'single';
+        const reader = session.overlay.__advancedBooksReaderSession;
         session.suppressSave = true;
-        session.overlay.style.visibility = 'hidden';
-
         try {
+            if (reader && typeof reader.goTo === 'function') {
+                reader.goTo(pageIndex, 'auto');
+                await new Promise(resolve => window.setTimeout(resolve, 0));
+                return;
+            }
+
+            const layoutSelect = session.overlay.querySelector('[data-ab-control="layout"]')
+                ?? session.overlay.querySelector('.advancedBooksReaderToolbar select');
+            if (!layoutSelect) return;
+
+            const originalLayout = layoutSelect.value || 'single';
             if (originalLayout !== 'vertical') {
                 layoutSelect.value = 'vertical';
                 layoutSelect.dispatchEvent(new Event('change', { bubbles: true }));
@@ -142,20 +150,15 @@
             if (!slot || !session.overlay.isConnected) return;
 
             const stage = session.overlay.querySelector('.advancedBooksReaderStage');
-            if (stage) {
-                stage.scrollTop = Math.max(0, slot.offsetTop - 4);
-            } else {
-                slot.scrollIntoView({ block: 'start' });
-            }
+            if (stage) stage.scrollTop = Math.max(0, slot.offsetTop - 4);
+            else slot.scrollIntoView({ block: 'start' });
 
             await waitForCounterPage(counter, pageIndex);
-
             if (originalLayout !== 'vertical' && session.overlay.isConnected) {
                 layoutSelect.value = originalLayout;
                 layoutSelect.dispatchEvent(new Event('change', { bubbles: true }));
             }
         } finally {
-            if (session.overlay?.isConnected) session.overlay.style.visibility = '';
             session.suppressSave = false;
         }
     }

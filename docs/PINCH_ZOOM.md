@@ -1,11 +1,11 @@
 # Pinch zoom behavior
 
-The Advanced Reader has a dedicated touch gesture bridge for two-finger pinch zoom in paged modes.
+The Advanced Reader has a dedicated touch gesture bridge for two-finger pinch zoom in reader modes.
 
 ## Scope
 
-- Enabled in **Single Page** and **Double Page** modes.
-- Disabled in **Vertical Continuous** and **Webtoon** modes so native vertical scrolling remains predictable.
+- Enabled in **Single Page**, **Double Page**, **Vertical Continuous**, and **Webtoon** modes.
+- Continuous layouts keep native one-finger vertical scrolling; the reader pinch bridge takes over only once a second touch establishes a multi-touch gesture.
 - Zoom is bounded to **50%-400%**, matching the reader and persisted preference range.
 - The final value is normalized to the same 5% grid used by reader preferences.
 
@@ -21,4 +21,4 @@ Both final pointer-up events are suppressed after a pinch so the original first 
 
 ## Current limitation
 
-The committed zoom recenters using the reader's normal transform. The midpoint translation is a live gesture preview rather than a separately persisted pan offset. After zooming above 100%, the existing one-finger drag-to-pan behavior remains available.
+The committed zoom recenters using the reader's normal transform. The midpoint translation is a live gesture preview rather than a separately persisted pan offset. After zooming above 100%, paged modes retain one-finger drag-to-pan. Continuous/Webtoon keep native touch scrolling and also support desktop drag panning.

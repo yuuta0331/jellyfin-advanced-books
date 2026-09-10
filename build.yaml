@@ -1,21 +1,24 @@
 ---
 name: "Advanced Books"
 guid: "843f3c69-88ee-4e82-84f3-330b84d64d88"
-version: "0.8.0.0"
+version: "0.9.0.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Komga-compatible book handling and an advanced comic reader for Jellyfin."
 description: >
   Adds advanced book and comic features to Jellyfin 12, including Komga-compatible
   One-Shots, safe per-page CBZ delivery, paged/continuous reading, resume, a lazy
-  thumbnail page navigator, per-user reader preferences, and touch pinch zoom.
+  thumbnail page navigator, per-user reader preferences, responsive auto-hiding
+  reader controls, all-mode page scrubbing, and touch zoom.
 category: "General"
 owner: "yuuta0331"
 artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: >
-  Add dedicated two-finger pinch-to-zoom for paged Advanced Reader modes. Pinch
-  gestures render a smooth live preview, suppress accidental page-turn swipes,
-  and commit the final zoom through the reader's existing controls so persisted
-  per-user zoom stays synchronized.
+  Redesign the Advanced Reader UI for desktop and mobile. Add auto-hiding reader
+  chrome, a direct page scrubber in every layout, responsive settings sheets,
+  corrected Jellyfin detail-button markup, and an optional fullscreen toggle.
+  Vertical Continuous and Webtoon now support fit controls, persisted zoom,
+  side padding, page gaps, Ctrl+wheel zoom, two-finger pinch zoom, and desktop
+  drag panning while retaining native one-finger scrolling.

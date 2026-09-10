@@ -46,7 +46,12 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Full-window reader overlay
 - [x] Persist reader preferences per user
 - [x] Restore layout/direction/fit/zoom after resume
-- [x] Dedicated two-finger pinch-to-zoom for paged modes
+- [x] Dedicated two-finger pinch-to-zoom across all reader modes
+- [x] Responsive auto-hiding reader chrome
+- [x] Direct page scrubber across all reader modes
+- [x] Responsive desktop settings panel / mobile bottom sheet
+- [x] Continuous/Webtoon side padding and page-gap preferences
+- [x] Reader fullscreen toggle where browser APIs are available
 
 ## Phase 4 - Continuous reader and progress
 
@@ -66,7 +71,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [ ] CBR support
 - [ ] PDF reader integration
 - [ ] EPUB reader improvements
-- [ ] Further mobile/touch interaction tuning
+- [x] Continuous/Webtoon zoom and desktop drag panning
+- [ ] Further live-device mobile/touch interaction tuning
 - [ ] Jellyfin wrapper-client compatibility matrix
 
 ## Phase 6 - Distribution

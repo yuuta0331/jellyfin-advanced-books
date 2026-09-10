@@ -65,7 +65,13 @@
     }
 
     function commitZoom(session, targetZoom) {
-        if (!session?.overlay?.isConnected || session.isContinuous()) return;
+        if (!session?.overlay?.isConnected) return;
+        const reader = session.overlay.__advancedBooksReaderSession;
+        if (reader && typeof reader.setZoom === 'function') {
+            reader.setZoom(targetZoom);
+            return;
+        }
+
         const toolbar = session.overlay.querySelector('.advancedBooksReaderToolbar');
         const reset = toolbar?.querySelector('button[title="Reset zoom"]');
         const plus = toolbar?.querySelector('button[title="Zoom in"]');
@@ -132,7 +138,7 @@
         }
 
         pointerDown(event) {
-            if (event.pointerType !== 'touch' || this.isContinuous()) return;
+            if (event.pointerType !== 'touch') return;
             this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
             if (this.pinching || this.suppressUntilRelease) {
@@ -152,7 +158,7 @@
         }
 
         tryBeginPinch() {
-            if (this.pinching || this.pointers.size < 2 || this.isContinuous()) return false;
+            if (this.pinching || this.pointers.size < 2) return false;
             const entries = Array.from(this.pointers.entries()).slice(0, 2);
             const first = entries[0][1];
             const second = entries[1][1];
@@ -221,7 +227,10 @@
 
             // This transform is only a live preview. On release the bridge restores the
             // reader-owned transform and commits the zoom through the reader's own controls.
-            this.pages.style.transform = `${this.originalTransform} translate(${dx}px, ${dy}px) scale(${previewRatio})`;
+            const baseTransform = this.originalTransform && this.originalTransform !== 'none'
+                ? this.originalTransform
+                : '';
+            this.pages.style.transform = `${baseTransform} translate(${dx}px, ${dy}px) scale(${previewRatio})`.trim();
 
             event.preventDefault();
             event.stopImmediatePropagation();
