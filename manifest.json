@@ -6,6 +6,15 @@
     "overview": "Komga-compatible book handling and an advanced comic reader for Jellyfin.",
     "owner": "yuuta0331",
     "category": "General",
-    "versions": []
+    "versions": [
+      {
+        "version": "0.8.0.0",
+        "changelog": "Add dedicated two-finger pinch-to-zoom for paged Advanced Reader modes. Pinch gestures render a smooth live preview, suppress accidental page-turn swipes, and commit the final zoom through the reader's existing controls so persisted per-user zoom stays synchronized.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.8.0.0/AdvancedBooks_0.8.0.0.zip",
+        "checksum": "3ae9c58fd76d34e9c04f97b12cd86a2a",
+        "timestamp": "2026-09-10T16:37:25Z"
+      }
+    ]
   }
 ]
