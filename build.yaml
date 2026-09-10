@@ -1,17 +1,18 @@
 ---
 name: "Advanced Books"
 guid: "843f3c69-88ee-4e82-84f3-330b84d64d88"
-version: "0.1.0.0"
+version: "0.2.0.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Komga-compatible book handling and an advanced comic reader for Jellyfin."
 description: >
-  Adds advanced book and comic features to Jellyfin 12. The first milestone provides
-  Komga-compatible One-Shot path handling. A richer comic reader is planned in later milestones.
+  Adds advanced book and comic features to Jellyfin 12. Includes Komga-compatible
+  One-Shot path handling and a safe CBZ/ZIP page API for the upcoming advanced reader.
 category: "General"
 owner: "yuuta0331"
 artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: >
-  Initial Jellyfin 12 foundation with configurable Komga-compatible One-Shot resolution.
+  Add authenticated per-book CBZ/ZIP page metadata and streaming APIs with natural
+  ordering and defensive archive validation.
