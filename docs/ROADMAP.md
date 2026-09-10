@@ -45,10 +45,11 @@ The roadmap is ordered to keep the media library safe while progressively replac
 
 ## Phase 4 - Continuous reader and progress
 
-- [ ] Vertical continuous mode
-- [ ] Webtoon mode
-- [ ] Lazy loading for continuous mode
-- [ ] Configurable continuous-mode prefetch
+- [x] Vertical continuous mode
+- [x] Webtoon mode
+- [x] IntersectionObserver-based lazy loading
+- [x] Bounded continuous-mode prefetch/cache
+- [x] Viewport-aware current-page tracking
 - [ ] Resume last position
 - [ ] Mark completed at end
 - [ ] Jellyfin reading-position synchronization
