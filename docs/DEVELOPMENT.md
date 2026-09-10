@@ -192,7 +192,7 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 5. verify Single/Double, RTL/LTR and all four fit modes;
 6. verify Vertical Continuous and Webtoon lazy-load pages as they approach the viewport;
 7. open **Pages** and confirm only thumbnails near the navigator viewport are requested;
-8. jump to a distant thumbnail and confirm the intended page is reached before the original reader layout is restored;
+8. jump to a distant thumbnail and confirm the live reader session reaches the intended page directly without temporarily changing layouts;
 9. close the page navigator during thumbnail loading and confirm outstanding requests are aborted;
 10. select Double Page, LTR, Fit Width and a non-100% zoom, close the reader, then reopen and confirm those controls are restored;
 11. change controls and immediately close while a preference PUT is still in flight; reopen and confirm the newest queued state wins;
