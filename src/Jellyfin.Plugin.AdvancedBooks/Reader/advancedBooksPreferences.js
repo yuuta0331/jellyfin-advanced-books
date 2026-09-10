@@ -39,7 +39,9 @@
                 Layout: preferences.layout,
                 Direction: preferences.direction,
                 Fit: preferences.fit,
-                Zoom: preferences.zoom
+                Zoom: preferences.zoom,
+                SidePadding: preferences.sidePadding,
+                PageGap: preferences.pageGap
             }),
             url: getPreferencesUrl(apiClient)
         });
@@ -50,11 +52,17 @@
         const direction = String(raw?.Direction ?? raw?.direction ?? 'rtl');
         const fit = String(raw?.Fit ?? raw?.fit ?? 'screen');
         const zoom = Number(raw?.Zoom ?? raw?.zoom ?? 1);
+        const sidePadding = Number(raw?.SidePadding ?? raw?.sidePadding ?? 0);
+        const pageGap = Number(raw?.PageGap ?? raw?.pageGap ?? 0);
+        const sidePaddingValues = [0, 2, 5, 10, 15, 20];
+        const pageGapValues = [0, 4, 8, 12, 16, 24, 32];
         return {
             layout: ['single', 'double', 'vertical', 'webtoon'].includes(layout) ? layout : 'single',
             direction: ['rtl', 'ltr'].includes(direction) ? direction : 'rtl',
             fit: ['screen', 'width', 'height', 'original'].includes(fit) ? fit : 'screen',
-            zoom: Number.isFinite(zoom) ? Math.min(4, Math.max(.5, Math.round(zoom * 20) / 20)) : 1
+            zoom: Number.isFinite(zoom) ? Math.min(4, Math.max(.5, Math.round(zoom * 20) / 20)) : 1,
+            sidePadding: sidePaddingValues.includes(sidePadding) ? sidePadding : 0,
+            pageGap: pageGapValues.includes(pageGap) ? pageGap : 0
         };
     }
 
@@ -107,6 +115,8 @@
             layout: overlay.querySelector('[data-ab-control="layout"]') ?? selects[0],
             direction: overlay.querySelector('[data-ab-control="direction"]') ?? selects[1],
             fit: overlay.querySelector('[data-ab-control="fit"]') ?? selects[2],
+            sidePadding: overlay.querySelector('[data-ab-control="sidePadding"]'),
+            pageGap: overlay.querySelector('[data-ab-control="pageGap"]'),
             zoomOut: toolbar.querySelector('button[title="Zoom out"]'),
             zoomReset: toolbar.querySelector('button[title="Reset zoom"]'),
             zoomIn: toolbar.querySelector('button[title="Zoom in"]'),
@@ -180,7 +190,9 @@
         try {
             setSelect(controls.layout, preferences.layout);
             setSelect(controls.direction, preferences.direction);
-            if (preferences.layout !== 'webtoon') setSelect(controls.fit, preferences.fit);
+            setSelect(controls.fit, preferences.fit);
+            setSelect(controls.sidePadding, String(preferences.sidePadding));
+            setSelect(controls.pageGap, String(preferences.pageGap));
             applyZoom(controls, preferences.zoom, session.overlay);
         } finally {
             session.suppressSave = false;
@@ -195,12 +207,14 @@
             layout: controls.layout.value,
             direction: controls.direction.value,
             fit: controls.fit.value,
-            zoom: Number.isFinite(zoomPercent) ? zoomPercent / 100 : 1
+            zoom: Number.isFinite(zoomPercent) ? zoomPercent / 100 : 1,
+            sidePadding: Number(controls.sidePadding?.value ?? 0),
+            pageGap: Number(controls.pageGap?.value ?? 0)
         });
     }
 
     function serialize(preferences) {
-        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}`;
+        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}`;
     }
 
     function capturePreferences(session) {
