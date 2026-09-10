@@ -52,6 +52,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Responsive desktop settings panel / mobile bottom sheet
 - [x] Continuous/Webtoon side padding and page-gap preferences
 - [x] Reader fullscreen toggle where browser APIs are available
+- [x] Intent-aware desktop chrome reveal / hover pinning
+- [x] Debounced thumbnail preview while page scrubbing
 
 ## Phase 4 - Continuous reader and progress
 
@@ -81,5 +83,6 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Reproducible release plugin package
 - [x] Repository manifest
 - [x] Release workflow
+- [x] CI cost controls (ready PR/manual CI, no duplicate main build)
 - [ ] Upgrade/migration tests
 - [ ] Stable installation documentation
