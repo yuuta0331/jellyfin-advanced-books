@@ -17,17 +17,25 @@ The repository is split into two assemblies.
 
 ### `Jellyfin.AdvancedBooks.Core`
 
-Host-independent logic that can be unit tested without a running Jellyfin server. The first component is
-`KomgaOneShotPathMatcher`, which models Komga's One-Shots directory matching behavior.
+Host-independent logic that can be unit tested without a running Jellyfin server. It contains:
+
+- `KomgaOneShotPathMatcher` for Komga-compatible One-Shot path semantics;
+- `ZipBookArchiveReader` for safe CBZ/ZIP image-page enumeration and streaming;
+- natural filename ordering; and
+- archive safety policy/validation.
 
 ### `Jellyfin.Plugin.AdvancedBooks`
 
 The Jellyfin server plugin. `PluginServiceRegistrator` registers `OneShotBookResolver` as an
-`IItemResolver`. The resolver uses `ResolverPriority.Plugin`, which is Jellyfin's highest resolver
-priority and is intended for plugins that must override default server resolvers.
+`IItemResolver` and the archive reader as a singleton service. The resolver uses
+`ResolverPriority.Plugin`, Jellyfin's highest resolver priority intended for plugin overrides.
 
-Only items in a Jellyfin Books library are considered. Normal book paths are left to Jellyfin's
-built-in resolver.
+Only items in a Jellyfin Books library are considered by the One-Shot resolver. Normal book paths are
+left to Jellyfin's built-in resolver.
+
+`AdvancedBooksController` exposes the reader API. It resolves media from a Jellyfin Book item ID,
+requires an authenticated Jellyfin user, and verifies `Book.IsVisible(user)` before the filesystem
+path can reach the archive reader.
 
 ## Komga One-Shot mapping
 
@@ -47,28 +55,54 @@ The matcher supports the two behaviors documented by Komga:
 
 This is a compatibility mapping, not yet a full emulation of Komga's dedicated `oneshot` entity flag.
 
-## Planned reader architecture
+## Server-side page service
 
-The advanced reader will be implemented separately from the library resolver.
+The first reader backend targets CBZ/ZIP because entries can be independently streamed without
+extracting the archive to disk.
 
-### Server-side page service
+Endpoints:
 
-A future API layer will expose pages by Jellyfin item ID rather than arbitrary filesystem paths. The
-service will:
+```text
+GET /AdvancedBooks/Books/{itemId}/Pages
+GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}
+```
 
-- validate that the item belongs to a readable Books library;
-- enumerate archive entries safely;
-- expose page metadata separately from page bytes;
-- stream individual pages on demand;
-- enforce archive-entry and decompression limits;
-- support bounded caching and prefetching.
+The metadata response intentionally excludes the server media path. It contains archive format, file
+size, last-modified time and ordered page metadata (index, archive entry name, uncompressed/compressed
+length and content type).
 
-CBZ/ZIP is the first target. CBR, PDF and EPUB will be added only after the archive pipeline is stable.
+Page ordering is natural and case-insensitive for text portions, so `page2.jpg` precedes
+`page10.jpg`. Non-image metadata such as `ComicInfo.xml` is ignored by the page list.
 
-### Web reader
+The first implementation re-opens and validates the archive for each page request. This is deliberate:
+it keeps resource ownership simple and bounded while the behavior is validated. A bounded metadata
+cache/prefetch layer can be added later without changing the external API.
 
-The reader will be an isolated web module so that Jellyfin Web integration can change without
-coupling the server-side page service to undocumented UI details.
+## Security requirements for page APIs
+
+Reader endpoints never accept a raw media path from the client. They resolve a Jellyfin item ID and
+verify the current user can see that Book. API-key-only requests with no Jellyfin user context are not
+allowed to use the reader endpoint.
+
+ZIP validation currently enforces:
+
+- maximum archive entry count;
+- maximum image-page count;
+- maximum uncompressed bytes per page;
+- maximum combined uncompressed image bytes;
+- maximum per-page compression ratio;
+- rejection of NUL, absolute and `..` traversal entry paths; and
+- an allow-list of browser-readable image extensions/content types.
+
+Pages are streamed from the ZIP entry. The whole CBZ is not downloaded into memory and files are not
+extracted to temporary directories. Streaming also stops at the validated uncompressed page length;
+a malformed entry that produces additional output cannot cause an unbounded decompression stream.
+
+## Web reader
+
+The custom reader remains isolated from library/scanner logic. This is important because Jellyfin does
+not currently expose a stable general-purpose Web UI plugin API; the Web integration layer therefore
+must remain replaceable and be tested against each supported Jellyfin Web release.
 
 Planned modes:
 
@@ -82,23 +116,7 @@ Planned modes:
 - keyboard, click/tap, wheel and swipe navigation;
 - reading-position synchronization through Jellyfin.
 
-Because Jellyfin currently has no stable general-purpose Web UI plugin API, the integration layer must
-be treated as replaceable and tested against each supported Jellyfin Web release.
-
-## Security requirements for page APIs
-
-Reader endpoints must never accept a raw media path from the client. They must resolve a Jellyfin item
-ID server-side and reject entries that escape the media archive or configured library.
-
-Archive handling must defend against:
-
-- path traversal / zip-slip;
-- decompression bombs;
-- excessive entry counts;
-- unsupported or misleading file extensions;
-- unbounded memory buffering.
-
 ## Compatibility target
 
-The initial target is Jellyfin Server 12.0.x / .NET 10. Compatibility with later Jellyfin 12 minors
+The current target is Jellyfin Server 12.0.x / .NET 10. Compatibility with later Jellyfin 12 minors
 will be validated in CI and release testing before being claimed.

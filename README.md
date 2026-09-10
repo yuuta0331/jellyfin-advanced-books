@@ -3,8 +3,8 @@
 Advanced book, comic, manga and magazine support for **Jellyfin 12**.
 
 > **Status: early development / not yet a stable release.**
-> The first implemented feature is Komga-compatible One-Shot path handling. The advanced reader is on
-> the roadmap and is not included yet.
+> Komga-compatible One-Shot handling and the server-side CBZ/ZIP page API are implemented.
+> The custom Web reader is still under development.
 
 ## What this project is for
 
@@ -22,6 +22,11 @@ The project is designed so that **Komga and Jellyfin can point at the same read-
 - `/_oneshots` segment-prefix matcher, matching Komga's stricter mode.
 - Highest-priority Jellyfin book resolver only for matching One-Shot paths.
 - Configurable One-Shot series mapping.
+- Authenticated CBZ/ZIP page metadata API.
+- Per-page image streaming without downloading/extracting the whole comic archive.
+- Natural page ordering (`page2` before `page10`).
+- Archive limits for entry count, page count, uncompressed size and compression ratio.
+- Rejection of unsafe archive entry paths.
 - No source-file moves, renames or rewrites.
 
 Example existing Komga layout:
@@ -41,6 +46,25 @@ Books/
 
 With One-Shot support enabled, files under matching directories are intercepted before Jellyfin's
 default Books resolver so they do not simply inherit `_oneshots` as their series name.
+
+## Reader API (development preview)
+
+The server-side API needed by the future reader is now available for CBZ/ZIP-backed Jellyfin Book
+items. Clients supply only a Jellyfin item ID; raw server filesystem paths are never accepted.
+
+```text
+GET /AdvancedBooks/Books/{itemId}/Pages
+GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}
+```
+
+The metadata endpoint returns archive format/size/last-modified information plus naturally ordered
+image-page metadata. The page endpoint streams one image directly from the archive.
+
+Both endpoints require an authenticated Jellyfin user, and the requested Book must be visible to that
+user. Unsupported formats return HTTP 415; invalid or safety-rejected archives return HTTP 422.
+
+The API currently recognizes JPEG, PNG, WebP, GIF, BMP and AVIF image entries. CBR/PDF/EPUB reader
+pipelines are intentionally deferred until the ZIP pipeline is proven stable.
 
 ## Planned advanced reader
 
@@ -66,8 +90,8 @@ See [the roadmap](docs/ROADMAP.md) for implementation order.
 - A Jellyfin **Books** library
 - Supported book formats handled by Jellyfin 12
 
-The initial resolver follows Jellyfin 12's built-in book extensions: AZW, AZW3, CB7, CBR, CBT, CBZ,
-EPUB, MOBI and PDF.
+The One-Shot resolver follows Jellyfin 12's built-in book extensions: AZW, AZW3, CB7, CBR, CBT, CBZ,
+EPUB, MOBI and PDF. The advanced page API currently targets CBZ/ZIP archives only.
 
 ## Installation
 
@@ -92,9 +116,13 @@ the filename or leave the series name empty.
 
 ## Safety
 
-The current resolver is read-only with respect to media files. Future page APIs will accept Jellyfin
-item IDs rather than arbitrary filesystem paths and will include archive traversal/decompression
-protections before they are exposed to the reader.
+The plugin is read-only with respect to media files. Reader APIs resolve a Jellyfin item ID on the
+server and verify the current user's visibility before reading the Book path. They do not accept a
+client-provided media path.
+
+ZIP-backed reader access enforces bounded entry/page counts, per-page and total uncompressed byte
+limits, a maximum compression ratio, and unsafe-entry-path rejection. Pages are streamed from the
+archive rather than extracted to disk or buffering the entire archive in memory.
 
 ## Documentation
 

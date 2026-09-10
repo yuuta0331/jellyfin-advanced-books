@@ -1,3 +1,4 @@
+using Jellyfin.AdvancedBooks.Core.Archives;
 using Jellyfin.Plugin.AdvancedBooks.Resolvers;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
@@ -15,5 +16,6 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
         serviceCollection.AddSingleton<IItemResolver, OneShotBookResolver>();
+        serviceCollection.AddSingleton<IZipBookArchiveReader, ZipBookArchiveReader>();
     }
 }

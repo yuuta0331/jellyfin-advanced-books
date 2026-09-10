@@ -23,13 +23,13 @@ parts of Jellyfin's standard book experience.
 
 ## Phase 2 - Page API
 
-- [ ] CBZ/ZIP entry enumeration
-- [ ] Natural page ordering
-- [ ] Page metadata endpoint
-- [ ] Individual page streaming endpoint
+- [x] CBZ/ZIP entry enumeration
+- [x] Natural page ordering
+- [x] Page metadata endpoint
+- [x] Individual page streaming endpoint
 - [ ] Cache and prefetch policy
-- [ ] Archive traversal and decompression-bomb protections
-- [ ] Reader API integration tests
+- [x] Archive traversal and decompression-bomb protections
+- [ ] Reader API integration tests against a running Jellyfin 12 server
 
 ## Phase 3 - Advanced paged reader
 
