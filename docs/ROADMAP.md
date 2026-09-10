@@ -72,8 +72,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 ## Phase 6 - Distribution
 
 - [x] Development plugin artifact in CI
-- [ ] Reproducible release plugin package
-- [ ] Repository manifest
-- [ ] Release workflow
+- [x] Reproducible release plugin package
+- [x] Repository manifest
+- [x] Release workflow
 - [ ] Upgrade/migration tests
 - [ ] Stable installation documentation
