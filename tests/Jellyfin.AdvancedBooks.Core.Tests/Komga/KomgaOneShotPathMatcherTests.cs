@@ -1,4 +1,5 @@
 using Jellyfin.AdvancedBooks.Core.Komga;
+using Xunit;
 
 namespace Jellyfin.AdvancedBooks.Core.Tests.Komga;
 
