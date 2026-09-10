@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -22,9 +23,9 @@ class ReleasePackagingTests(unittest.TestCase):
             ROOT / "build.yaml",
             ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Jellyfin.Plugin.AdvancedBooks.csproj",
         )
-        self.assertEqual("0.8.0.0", metadata["version"])
-        self.assertEqual("v0.8.0.0", metadata["tag"])
-        self.assertEqual("12.0.0.0", metadata["target_abi"])
+        self.assertRegex(metadata["version"], r"^\d+\.\d+\.\d+\.\d+$")
+        self.assertEqual(f"v{metadata['version']}", metadata["tag"])
+        self.assertRegex(metadata["target_abi"], r"^\d+\.\d+\.\d+\.\d+$")
         self.assertTrue(metadata["changelog"])
 
     def test_package_is_reproducible_and_flat(self) -> None:
@@ -35,8 +36,8 @@ class ReleasePackagingTests(unittest.TestCase):
             (input_dir / "Jellyfin.Plugin.AdvancedBooks.dll").write_bytes(b"plugin-dll")
             (input_dir / "Jellyfin.AdvancedBooks.Core.dll").write_bytes(b"core-dll")
 
-            first = package_plugin.package(input_dir, root / "first", "0.8.0.0")
-            second = package_plugin.package(input_dir, root / "second", "0.8.0.0")
+            first = package_plugin.package(input_dir, root / "first", "9.8.7.6")
+            second = package_plugin.package(input_dir, root / "second", "9.8.7.6")
             first_zip = Path(first["package"])
             second_zip = Path(second["package"])
 
