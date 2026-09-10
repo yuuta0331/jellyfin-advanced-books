@@ -1,0 +1,153 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: advanced-books-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Validate reader JavaScript syntax
+        run: |
+          for file in src/Jellyfin.Plugin.AdvancedBooks/Reader/*.js; do
+            node --check "$file"
+          done
+
+      - name: Validate release metadata
+        id: release_meta
+        run: >-
+          python scripts/validate_release.py
+          --github-output "$GITHUB_OUTPUT"
+          --changelog-output artifacts/changelog.txt
+
+      - name: Test release helpers
+        run: python -m unittest discover -s tests -p 'test_release_*.py' -v
+
+      - name: Restore
+        run: dotnet restore jellyfin-advanced-books.slnx
+
+      - name: Build
+        run: dotnet build jellyfin-advanced-books.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test jellyfin-advanced-books.slnx --configuration Release --no-build
+
+      - name: Package plugin
+        env:
+          VERSION: ${{ steps.release_meta.outputs.version }}
+        run: |
+          INPUT_DIR="src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0"
+          python scripts/package_plugin.py --input-dir "$INPUT_DIR" --output-dir artifacts/release --version "$VERSION"
+
+      - name: Build release notes
+        env:
+          VERSION: ${{ steps.release_meta.outputs.version }}
+          TARGET_ABI: ${{ steps.release_meta.outputs.target_abi }}
+        run: |
+          {
+            echo "## Advanced Books v${VERSION}"
+            echo
+            cat artifacts/changelog.txt
+            echo
+            echo "### Compatibility"
+            echo
+            echo "- Jellyfin Server target ABI: ${TARGET_ABI}"
+            echo "- .NET 10"
+            echo "- Current Advanced Reader preview targets CBZ/ZIP"
+            echo
+            echo "This is a development preview release. Test it on a backed-up or disposable Jellyfin instance before production use."
+          } > artifacts/release-notes.md
+
+      - name: Create GitHub prerelease when missing
+        id: github_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release_meta.outputs.version }}
+          TAG: ${{ steps.release_meta.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists; preserving its published assets."
+          else
+            gh release create "$TAG" \
+              "artifacts/release/AdvancedBooks_${VERSION}.zip#Advanced Books ${VERSION}" \
+              "artifacts/release/AdvancedBooks_${VERSION}.zip.md5#MD5 checksum" \
+              "artifacts/release/AdvancedBooks_${VERSION}.zip.sha256#SHA-256 checksum" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Advanced Books v${VERSION}" \
+              --notes-file artifacts/release-notes.md \
+              --prerelease
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          RELEASE_TIMESTAMP="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json publishedAt --jq .publishedAt)"
+          if [ -z "$RELEASE_TIMESTAMP" ] || [ "$RELEASE_TIMESTAMP" = "null" ]; then
+            echo "Unable to resolve published timestamp for $TAG" >&2
+            exit 1
+          fi
+          echo "timestamp=$RELEASE_TIMESTAMP" >> "$GITHUB_OUTPUT"
+
+      - name: Download published package for manifest checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release_meta.outputs.version }}
+          TAG: ${{ steps.release_meta.outputs.tag }}
+        run: |
+          mkdir -p artifacts/published
+          gh release download "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "AdvancedBooks_${VERSION}.zip" \
+            --dir artifacts/published
+
+      - name: Update Jellyfin repository manifest
+        env:
+          VERSION: ${{ steps.release_meta.outputs.version }}
+          TAG: ${{ steps.release_meta.outputs.tag }}
+          TARGET_ABI: ${{ steps.release_meta.outputs.target_abi }}
+          RELEASE_TIMESTAMP: ${{ steps.github_release.outputs.timestamp }}
+        run: |
+          SOURCE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/AdvancedBooks_${VERSION}.zip"
+          python scripts/update_manifest.py \
+            --manifest manifest.json \
+            --package "artifacts/published/AdvancedBooks_${VERSION}.zip" \
+            --version "$VERSION" \
+            --target-abi "$TARGET_ABI" \
+            --source-url "$SOURCE_URL" \
+            --timestamp "$RELEASE_TIMESTAMP" \
+            --changelog-file artifacts/changelog.txt
+
+      - name: Publish manifest update
+        env:
+          VERSION: ${{ steps.release_meta.outputs.version }}
+        run: |
+          if git diff --quiet -- manifest.json; then
+            echo "manifest.json already matches the published release."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "chore: publish v${VERSION} manifest"
+          git pull --rebase origin main
+          git push origin HEAD:main

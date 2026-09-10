@@ -4,6 +4,7 @@
 
 - .NET 10 SDK
 - Git
+- Python 3 for release/package validation helpers
 - Node.js for `node --check` when modifying reader scripts
 - a Jellyfin 12 test server for integration testing
 - the Jellyfin 12-compatible JavaScript Injector plugin when testing automatic Web reader integration
@@ -18,6 +19,7 @@ From the repository root:
 dotnet restore jellyfin-advanced-books.slnx
 dotnet build jellyfin-advanced-books.slnx -c Release
 dotnet test jellyfin-advanced-books.slnx -c Release
+python -m unittest discover -s tests -p 'test_release_*.py' -v
 for file in src/Jellyfin.Plugin.AdvancedBooks/Reader/*.js; do node --check "$file"; done
 ```
 
@@ -25,7 +27,42 @@ On PowerShell, run `node --check` once for each `.js` file instead of the shell 
 
 The Jellyfin assemblies are compile-time dependencies and are excluded from the plugin's runtime assets. Do not copy Jellyfin server assemblies into the plugin package.
 
-Every successful CI run also creates an `AdvancedBooks-dev` artifact containing `AdvancedBooks-dev.zip`. The ZIP contains an `AdvancedBooks` plugin directory with the two runtime DLLs and can be used for disposable/test-server installation.
+Every successful CI run creates an `AdvancedBooks-dev` artifact containing `AdvancedBooks_<version>.zip`, its MD5 checksum, its SHA-256 checksum and the release changelog. The plugin ZIP contains the two runtime DLLs directly at ZIP root so the same artifact layout can be used by Jellyfin's repository installer.
+
+CI creates the package twice from the same Release build and compares the resulting ZIP and checksum files byte-for-byte. `scripts/package_plugin.py` fixes archive timestamps, permissions, ordering, compression mode and compression level so packaging itself is deterministic.
+
+## Release packaging
+
+Release metadata is defined in `build.yaml` and must match the plugin project's `<Version>`. Validate it with:
+
+```bash
+python scripts/validate_release.py
+```
+
+To package a local Release build:
+
+```bash
+python scripts/package_plugin.py \
+  --input-dir src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0 \
+  --output-dir artifacts/release \
+  --version 0.8.0.0
+```
+
+The generated files are:
+
+```text
+AdvancedBooks_0.8.0.0.zip
+AdvancedBooks_0.8.0.0.zip.md5
+AdvancedBooks_0.8.0.0.zip.sha256
+```
+
+The MD5 value is intentional because Jellyfin 12 verifies plugin repository packages against the manifest checksum using MD5. SHA-256 is published alongside it for stronger manual integrity checking.
+
+`.github/workflows/release.yml` runs on `main` and manual dispatch. It validates/builds/tests the exact commit, creates the package, publishes a GitHub prerelease if that version tag does not already exist, downloads the published ZIP again, and generates the manifest entry from the bytes of that published asset. This avoids a manifest checksum referring to a local package that differs from the actual release asset.
+
+The workflow updates root `manifest.json` with version, target ABI, release URL, MD5 checksum, UTC timestamp and changelog. Re-running the workflow for an existing release preserves the published release assets and can reconstruct the manifest entry from the already-published ZIP.
+
+The standard Jellyfin Repository URL flow requires anonymous HTTPS access. A private GitHub repository can still produce releases for manual installation, but Jellyfin cannot automatically authenticate to a private raw manifest or private GitHub release asset.
 
 ## Project layout
 
@@ -41,8 +78,13 @@ src/
     Reader/                           reader, progress, preferences, navigator and gesture scripts
     Resolvers/                        Jellyfin library resolver integration
     Services/                         runtime integration + thumbnail generation
+scripts/
+  package_plugin.py                   deterministic plugin ZIP + checksums
+  update_manifest.py                  Jellyfin repository manifest updater
+  validate_release.py                 build/release metadata validation
 tests/
   Jellyfin.AdvancedBooks.Core.Tests/ unit tests
+  test_release_scripts.py             packaging/manifest helper tests
 docs/
   ARCHITECTURE.md
   DEVELOPMENT.md
@@ -55,9 +97,9 @@ docs/
 
 Use a disposable or backed-up Jellyfin 12 test instance.
 
-1. Build the solution in `Release`, or download the `AdvancedBooks-dev` artifact from a successful CI run.
-2. Create/unpack the plugin directory as `Advanced Books` (or use the included `AdvancedBooks` directory) under the Jellyfin plugins directory.
-3. Ensure both `Jellyfin.Plugin.AdvancedBooks.dll` and `Jellyfin.AdvancedBooks.Core.dll` are present.
+1. Build the solution in `Release`, or download the `AdvancedBooks-dev` artifact / GitHub development release.
+2. Create one Advanced Books plugin-version directory under the Jellyfin plugins directory and extract the two DLLs from `AdvancedBooks_<version>.zip` directly into it.
+3. Ensure both `Jellyfin.Plugin.AdvancedBooks.dll` and `Jellyfin.AdvancedBooks.Core.dll` are present in that directory.
 4. If testing the Web reader, install a Jellyfin 12-compatible JavaScript Injector build.
 5. Restart Jellyfin.
 6. Open Dashboard -> Plugins -> Advanced Books and configure the reader/One-Shot settings.

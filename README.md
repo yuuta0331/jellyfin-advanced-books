@@ -37,6 +37,8 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - Final-page completion marks the Jellyfin Book as played.
 - Resume positions use Jellyfin's built-in ComicsPlayer page/tick convention.
 - Optional automatic Jellyfin Web integration through a Jellyfin 12-compatible JavaScript Injector plugin.
+- Reproducible root-level plugin ZIP packaging with MD5 and SHA-256 checksums.
+- Jellyfin repository `manifest.json` generation for published releases.
 - No source-file moves, renames or rewrites.
 
 Example Komga-compatible layout:
@@ -108,7 +110,13 @@ The One-Shot resolver follows Jellyfin 12's built-in book extensions: AZW, AZW3,
 
 ## Installation
 
-There is no stable release package yet. Development builds should only be tested on a disposable or backed-up Jellyfin instance. Every successful CI run produces an `AdvancedBooks-dev` artifact containing the plugin DLLs. See [Development Guide](docs/DEVELOPMENT.md).
+There is no stable release yet. Development preview releases contain `Jellyfin.Plugin.AdvancedBooks.dll` and `Jellyfin.AdvancedBooks.Core.dll` directly at the root of `AdvancedBooks_<version>.zip`, together with `.md5` and `.sha256` checksum files. Extract the two DLLs into one Advanced Books plugin-version directory and restart Jellyfin. Test development releases on a disposable or backed-up Jellyfin instance first.
+
+Every successful CI run also publishes the same package shape as the `AdvancedBooks-dev` workflow artifact. The repository contains a Jellyfin-compatible `manifest.json`; release automation updates it from the bytes of the actually published GitHub Release asset so its MD5 checksum matches Jellyfin's installer verification.
+
+The standard Jellyfin **Repository URL** flow requires the manifest and release assets to be anonymously reachable over HTTPS. While this GitHub repository remains private, use the downloaded development package for manual installation; do not expect Jellyfin to authenticate to the private GitHub repository automatically.
+
+See [Development Guide](docs/DEVELOPMENT.md) for build and release details.
 
 ## Configuration
 
