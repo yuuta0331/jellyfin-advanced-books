@@ -135,8 +135,7 @@ public sealed class ReaderProgressController : ControllerBase
         }
 
         var ticks = ReaderProgressMath.ToPlaybackPositionTicks(request.PageIndex);
-        var complete = ReaderProgressMath.IsComplete(request.PageIndex, pageCount)
-            || request.Completed == true;
+        var complete = ReaderProgressMath.IsComplete(request.PageIndex, pageCount);
 
         var update = new UpdateUserItemDataDto
         {
