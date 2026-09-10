@@ -173,7 +173,7 @@
             this.boundPointerActivity = event => {
                 if (event.pointerType !== 'touch') this.showControls();
             };
-            this.boundFocusIn = () => this.showControls(false);
+            this.boundFocusIn = () => this.showControls();
         }
 
         async open() {
@@ -459,9 +459,6 @@
 
         hideControls() {
             if (!this.overlay?.isConnected || this.settingsOpen) return;
-            if (this.overlay.contains(document.activeElement)
-                && document.activeElement !== this.stage
-                && document.activeElement !== document.body) return;
             this.overlay.classList.add('ab-controls-hidden');
         }
 
@@ -649,6 +646,7 @@
             this.pagesElement.style.transform = 'none';
             this.pagesElement.replaceChildren();
             this.message.textContent = '';
+            this.applyTransform();
             this.continuousElements = new Array(this.pageCount);
             this.visibleRatios.clear();
 
@@ -846,10 +844,25 @@
         }
 
         setZoom(value) {
+            const anchor = this.isContinuous() && this.continuousElements[this.currentPage]
+                ? {
+                    element: this.continuousElements[this.currentPage],
+                    viewportOffset: this.continuousElements[this.currentPage].offsetTop - this.stage.scrollTop
+                }
+                : null;
+
             this.zoom = Math.min(4, Math.max(.5, Math.round(value * 20) / 20));
             if (this.zoom <= 1) { this.panX = 0; this.panY = 0; }
             this.applyTransform();
             this.syncControlState();
+
+            if (anchor?.element?.isConnected) {
+                requestAnimationFrame(() => {
+                    if (!this.closed && anchor.element.isConnected) {
+                        this.stage.scrollTop = Math.max(0, anchor.element.offsetTop - anchor.viewportOffset);
+                    }
+                });
+            }
         }
 
         resetPan() { this.panX = 0; this.panY = 0; }
@@ -885,7 +898,10 @@
                 return;
             }
             if (event.ctrlKey || event.altKey || event.metaKey) return;
-            if (event.target?.closest?.('input,select,button')) return;
+            if (event.target?.closest?.('input,select,button')) {
+                this.showControls();
+                return;
+            }
 
             this.showControls();
 
@@ -1003,8 +1019,6 @@
                 else leftSide ? this.previous() : this.next();
             }
         }
-    }
-
     }
 
     document.addEventListener('viewshow', scheduleAttach);
