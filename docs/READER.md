@@ -53,7 +53,7 @@ The following settings are persisted for the current authenticated Jellyfin user
 
 Preferences use a fixed Advanced Books display-preference namespace, so the same Jellyfin user receives the same reader controls in another Jellyfin Web browser/client. Different Jellyfin users remain isolated.
 
-Reading-position resume is intentionally completed first. The progress bridge then emits `advancedbooks:progress-ready`, after which the preference bridge restores layout, direction, fit and zoom. This prevents a saved layout from interrupting the temporary continuous-mode jump used for distant resume positions.
+Reading-position resume is intentionally completed first. The progress bridge then emits `advancedbooks:progress-ready`, after which the preference bridge restores layout, direction, fit and zoom. The current reader exposes a direct session jump API, so distant resume positions no longer need to flash through a temporary continuous layout.
 
 Preference changes are debounced. If another change occurs while a PUT is in flight, only the newest value is queued and written afterward. Reader close attempts to flush that queued final state; a failed save does not create an automatic retry loop.
 
@@ -73,7 +73,7 @@ The server accepts widths from 96 through 320 pixels and normalizes requests int
 
 Cache keys include archive size and modification time plus page identity and requested cache width, so changing a CBZ invalidates the old thumbnail version without modifying source media. Thumbnail generation is limited to two concurrent operations to reduce CPU and memory spikes when a large magazine navigator is opened.
 
-Direct page jumps reuse the continuous page-slot model to reach a distant page efficiently. The navigator waits until the reader page counter confirms the target before returning to the user's prior layout.
+Direct page jumps call the live reader session directly, so the thumbnail navigator can reach a distant page without temporarily switching the user's layout.
 
 ## Reading progress and resume
 
@@ -94,7 +94,7 @@ This is intentional. Jellyfin's standard ComicsPlayer restores its page with `st
 
 The browser progress bridge observes the Advanced Reader's page counter. After navigation settles for about 1.2 seconds it saves the furthest visible page, and it also attempts a final flush when the reader closes. In Double Page mode the second visible page is considered the reached page. Vertical/Webtoon modes use the viewport-tracked current page.
 
-When opening an unfinished book, the saved server-side position is restored before reader preferences are applied. The current integration temporarily uses the continuous page-slot model to jump directly to a distant saved page, then returns to the initial layout and signals the preferences bridge. This avoids issuing hundreds of sequential Next operations for a large magazine.
+When opening an unfinished book, the saved server-side position is restored before reader preferences are applied. The current integration jumps directly through the live reader session, then signals the preferences bridge. This avoids issuing hundreds of sequential Next operations or temporarily changing layouts for a large magazine.
 
 Reaching the final page marks the Jellyfin Book as played. Completion is server-authoritative: clients submit only a page index, and the server checks that it is the actual final page. Non-final progress writes intentionally leave the existing `Played` value unchanged; this means opening a previously completed book for a reread does not silently mark it unread.
 
@@ -137,7 +137,7 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 | Page Up / Page Down | Previous/next group | Previous/next page |
 | Space | Next group | Next page |
 | Home / End | First/last page | First/last page |
-| + / - / 0 | Zoom | Disabled |
+| + / - / 0 | Reader zoom | Reader zoom |
 | Left/right click or tap | Direction-aware navigation | Native scrolling |
 | Horizontal swipe | Direction-aware navigation | Native scrolling |
 | Two-finger pinch | 50%-400% reader zoom | 50%-400% reader zoom |
