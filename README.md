@@ -3,7 +3,7 @@
 Advanced book, comic, manga and magazine support for **Jellyfin 12**.
 
 > **Status: early development / not yet a stable release.**
-> Komga-compatible One-Shot handling, safe CBZ/ZIP per-page delivery, paged/continuous Advanced Reader modes, Jellyfin-backed reading progress, lazy thumbnail navigation, per-user reader preferences, and all-mode pinch zoom are implemented.
+> Komga-compatible One-Shot handling, safe CBZ/ZIP per-page delivery, paged/continuous Advanced Reader modes, Jellyfin-backed reading progress, book metadata, smart spreads, lazy thumbnail navigation, per-user reader preferences, and all-mode pinch zoom are implemented.
 
 ## What this project is for
 
@@ -18,7 +18,7 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - Per-page image streaming instead of whole-CBZ browser download/extraction.
 - Natural page ordering (`page2` before `page10`).
 - Archive entry/page/size/compression-ratio limits and traversal rejection.
-- **Single Page** and **Double Page** reader modes.
+- **Single Page** and **Double Page** reader modes, with Komga-style smart spreads that keep the first/last and detected landscape pages single.
 - **Vertical Continuous** and **Webtoon** reader modes.
 - RTL/LTR page navigation for paged modes.
 - Fit Screen / Width / Height / Original sizing with measured reader-viewport dimensions.
@@ -29,6 +29,8 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - **Live thumbnail preview while scrubbing** with pointer-anchored placement and faster authenticated loading.
 - Intent-aware desktop chrome reveal so minor mouse jitter does not reopen hidden controls.
 - Compact desktop controls and a mobile settings bottom sheet.
+- The reader header shows Jellyfin title, authors, series/issue and year metadata when available.
+- Persisted black/gray/white reader backgrounds, optional page-transition animation, optional touch gestures, and contextual keyboard/gesture help.
 - Continuous/Webtoon side padding and page-gap controls.
 - Reader fullscreen toggle on supported browsers/wrappers.
 - Keyboard, click/tap, swipe and wheel controls.
@@ -39,9 +41,9 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - Server-side thumbnail generation through Jellyfin's image processor.
 - Bounded thumbnail cache in the browser and plugin data directory.
 - **Per-user reading position stored in Jellyfin user data.**
-- **Automatic resume for unfinished books, including across Jellyfin Web clients.**
+- **Automatic resume from the saved page across Jellyfin Web clients, including books already marked played.**
 - **Per-user reader preferences stored in Jellyfin's display-preferences database.**
-- Reader layout, direction, fit mode, zoom, continuous side padding and page gap restore across Jellyfin Web clients for the same user.
+- Reader layout, direction, fit mode, zoom, continuous side padding/page gap, background, transition animation and touch-gesture choices restore across Jellyfin Web clients for the same user.
 - Final-page completion marks the Jellyfin Book as played.
 - Resume positions use Jellyfin's built-in ComicsPlayer page/tick convention.
 - Optional automatic Jellyfin Web integration through a Jellyfin 12-compatible JavaScript Injector plugin.
@@ -67,17 +69,17 @@ Books/
 
 The reader consumes individual pages through Advanced Books rather than downloading the complete CBZ into the browser.
 
-Available modes are Single Page, Double Page, Vertical Continuous and Webtoon. Continuous modes place lightweight placeholders for the document but fetch image bytes only near the reader viewport. Distant pages are evicted from the Blob cache and can be loaded again when revisited.
+Available modes are Single Page, Double Page, Vertical Continuous and Webtoon. Double Page uses smart spreads: the first and last page stay single, and landscape pages are detected from their decoded dimensions and automatically kept single. Continuous modes place lightweight placeholders for the document but fetch image bytes only near the reader viewport. Distant pages are evicted from the Blob cache and can be loaded again when revisited.
 
-Reader controls no longer consume permanent screen space. A compact top chrome and bottom navigation strip appear when the reader opens, then auto-hide while reading. On desktop, hidden chrome ignores minor pointer jitter and returns only after deliberate movement (with a lower threshold near the top/bottom edges); on touch devices a center tap/click toggles it. Hovering over visible chrome pauses auto-hide. The bottom strip includes Previous/Next controls plus a page scrubber that can jump directly across long manga volumes in every layout. While scrubbing, a small page thumbnail and page/range label follow the selected position. Loading state is rendered as a centered overlay inside the thumbnail frame, never beside or outside it. Reader settings live in a desktop popover or mobile bottom sheet.
+The top chrome displays the current Jellyfin book title plus available author/series/year context instead of a generic reader label. Reader controls no longer consume permanent screen space. A compact top chrome and bottom navigation strip appear when the reader opens, then auto-hide while reading. On desktop, hidden chrome ignores minor pointer jitter and returns only after deliberate movement (with a lower threshold near the top/bottom edges); on touch devices a center tap/click toggles it. Hovering over visible chrome pauses auto-hide. The bottom strip includes Previous/Next controls plus a page scrubber that can jump directly across long manga volumes in every layout. While scrubbing, a small page thumbnail and page/range label follow the selected position. Loading state is rendered as a centered overlay inside the thumbnail frame, never beside or outside it. Reader settings live in a desktop popover or mobile bottom sheet.
 
 All four layouts support 50%-400% reader zoom. Fit calculations use the actual Reader viewport rather than relying only on CSS dynamic-viewport units, improving Fit Height/Screen behavior in mobile WebViews. Vertical Continuous and Webtoon keep native one-finger vertical scrolling while also supporting the zoom controls, Ctrl+wheel, and two-finger pinch. The pinch bridge now takes exclusive control once the second touch arrives so the page itself does not drift while zooming. At greater than 100% zoom, continuous layouts can be panned with normal scrolling/touch and desktop drag panning. Continuous layouts also expose persisted side-padding and page-gap controls similar to dedicated comic readers.
 
 The **Pages** button opens a thumbnail navigator. Visible cards are evaluated directly from the grid scroll position and rechecked by a periodic watchdog, so a missed observer/scroll callback cannot leave a visible row permanently stuck on `Page N`. Lightweight 128px thumbnails are requested first; if a visible thumbnail request fails or stalls, the navigator can fall back to the authenticated full-page endpoint for that card only. Full-page fallback is limited to two concurrent requests and six retained fallback Blob URLs. Selecting a thumbnail jumps directly to that page.
 
-Reading position is saved to Jellyfin's normal per-user item data after navigation settles and is flushed when the reader closes. Unfinished books reopen at the saved page. Reaching the final page marks the Book as played. Non-final progress updates do not clear an existing played state, so starting a reread does not silently mark a completed book unread.
+Reading position is saved to Jellyfin's normal per-user item data after navigation settles and is flushed when the reader closes. Close-time saves keep the newest reached page queued even when an earlier PUT is still in flight. Books reopen at the saved page even when Jellyfin already marks the item played. Reaching the final page marks the Book as played. Non-final progress updates do not clear an existing played state, so starting a reread does not silently mark a completed book unread.
 
-Reader preferences are also stored per Jellyfin user. Single/Double/Vertical/Webtoon layout, RTL/LTR direction, fit mode, zoom, side padding and page gap are restored after reading-position resume completes so the saved page is established before the saved presentation mode is re-applied. Fit Screen is the safe default; legacy pre-v0.11 preference records that accidentally present Fit Height as the default are migrated to Fit Screen, while a Fit Height choice saved afterward remains explicit and persistent.
+Reader preferences are also stored per Jellyfin user. Single/Double/Vertical/Webtoon layout, RTL/LTR direction, fit mode, zoom, side padding/page gap, background, page-transition animation and touch-gesture state are restored after reading-position resume completes so the saved page is established before the saved presentation mode is re-applied. Fit Screen is the safe default; legacy pre-v0.11 preference records that accidentally present Fit Height as the default are migrated to Fit Screen, while a Fit Height choice saved afterward remains explicit and persistent.
 
 ### Required companion plugin for Jellyfin Web
 
