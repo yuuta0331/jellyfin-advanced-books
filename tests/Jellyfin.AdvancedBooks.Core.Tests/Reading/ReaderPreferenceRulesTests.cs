@@ -71,6 +71,32 @@ public sealed class ReaderPreferenceRulesTests
                 ReaderPreferenceRules.CurrentPreferenceSchemaVersion));
     }
 
+    [Fact]
+    public void SchemaV2HeightFit_RemainsExplicitChoiceAfterSchemaV3()
+    {
+        Assert.Equal("height", ReaderPreferenceRules.NormalizeStoredFit("height", 2));
+    }
+
+    [Theory]
+    [InlineData("black")]
+    [InlineData("gray")]
+    [InlineData("white")]
+    public void BackgroundValues_AcceptSupportedValues(string value)
+    {
+        Assert.True(ReaderPreferenceRules.IsValidBackground(value));
+        Assert.Equal(value, ReaderPreferenceRules.NormalizeBackground(value));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("sepia")]
+    public void BackgroundValues_FallBackForUnsupportedValues(string? value)
+    {
+        Assert.False(ReaderPreferenceRules.IsValidBackground(value));
+        Assert.Equal(ReaderPreferenceRules.DefaultBackground, ReaderPreferenceRules.NormalizeBackground(value));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(2)]
