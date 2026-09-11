@@ -1147,6 +1147,7 @@
         isDoublePair(start) {
             const last = this.pageCount - 1;
             return start > 0
+                && (start % 2) === 1
                 && start + 1 < last
                 && !this.isLandscapePage(start)
                 && !this.isLandscapePage(start + 1);
@@ -1481,12 +1482,10 @@
                     }
                 }, { once: true });
                 image.src = url;
-                // Claim before decode so concurrent loaders reuse this node.
                 slot.replaceChildren(image);
                 try {
                     await image.decode?.();
                 } catch {
-                    // A normal load event may still succeed in WebViews that reject decode().
                 }
                 if (!slot.isConnected || this.closed || !this.isContinuous()
                     || this.continuousElements[index] !== slot
