@@ -48,7 +48,7 @@ public sealed class AdvancedBooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<ArchiveBookInfo>> GetPages(Guid itemId)
+    public async Task<ActionResult<ReaderBookInfoDto>> GetPages(Guid itemId)
     {
         var access = await GetAccessibleBook(itemId).ConfigureAwait(false);
         if (!access.HasUser)
