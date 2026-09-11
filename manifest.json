@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.11.2.0",
+        "changelog": "Harden JavaScript Injector startup recovery. Validate all embedded reader assets before replacing existing registrations, keep the required Core transactional, and allow optional Progress/Preferences/Navigator/Gestures bridges to fail soft without removing the rest of the reader. Log the actual loaded Advanced Books assembly version, informational version, and DLL path at startup. CI and release workflows now validate the five reader resources from the built plugin DLL itself with strict UTF-8 and size checks, in addition to source JavaScript checks.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.11.2.0/AdvancedBooks_0.11.2.0.zip",
+        "checksum": "d850dab7415b6b0f263f53f774203f03",
+        "timestamp": "2026-09-11T03:02:05Z"
+      },
+      {
         "version": "0.11.1.0",
         "changelog": "Fix Page-grid thumbnails that could remain permanently unloaded after scrolling. Visible cards now use direct viewport scanning plus a watchdog, timeout recovery, 128px shared thumbnail caching, and a bounded two-request full-page fallback. Fix the scrub-preview loading layout so the spinner/error stays inside the thumbnail frame, replace the Advanced Reader launch glyph with a dedicated reader-mode icon, and improve mixed-size Vertical/Webtoon books with learned page aspect ratios, viewport-marker current-page tracking, explicit scroll anchoring, and preserved geometry across page eviction and viewport changes.",
         "targetAbi": "12.0.0.0",
