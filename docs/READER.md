@@ -7,7 +7,7 @@ The Advanced Reader is a client-side overlay backed by Advanced Books' authentic
 Four reading modes are available for CBZ/ZIP-backed Jellyfin Book items:
 
 - **Single page** - one page at a time;
-- **Double page** - two-page spreads with RTL/LTR ordering;
+- **Double page** - RTL/LTR smart spreads; first/last pages and detected landscape pages remain single;
 - **Vertical continuous** - independent comic pages stacked vertically;
 - **Webtoon** - edge-to-edge continuous vertical reading with zero gap by default and optional page-gap/side-padding tuning.
 
@@ -33,7 +33,7 @@ The reader UI is optimized to disappear while reading. A compact top chrome and 
 
 The bottom strip is available in Single, Double, Vertical Continuous and Webtoon modes. It contains Previous/Next controls, the current page/range, and a range scrubber for direct jumps across long books. Pressing or dragging the scrubber opens a compact thumbnail preview anchored to the actual pointer/finger position rather than an approximate track position. Loading is shown as a centered spinner inside the preview image frame; error text is contained in the same frame. Requests use a short debounce, stale requests are aborted, 128px previews are used for faster first display, and a small bounded browser cache avoids repeatedly generating the same preview. The Pages grid and scrub preview now both request 128px variants so they share the same server cache immediately; the server can still reuse a compatible larger cached variant when one already exists. A thin progress rail remains visible at the bottom edge even when the larger controls are hidden.
 
-Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit and zoom remain available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome.
+The top chrome shows Jellyfin book metadata: title plus available authors, series/issue context and production year. Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit, zoom, black/gray/white background, page-transition animation and touch gestures are available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome, and the contextual **?** help panel lists keyboard and gesture controls.
 
 ## Per-user reader preferences
 
@@ -51,7 +51,10 @@ The following settings are persisted for the current authenticated Jellyfin user
 - fit mode: Screen / Width / Height / Original;
 - reader zoom: 50%-400%;
 - continuous side padding: 0%, 2%, 5%, 10%, 15% or 20%; and
-- continuous page gap: 0, 4, 8, 12, 16, 24 or 32 pixels.
+- continuous page gap: 0, 4, 8, 12, 16, 24 or 32 pixels;
+- reader background: Black / Gray / White;
+- paged transition animation: On / Off; and
+- touch gestures: On / Off.
 
 Preferences use a fixed Advanced Books display-preference namespace, so the same Jellyfin user receives the same reader controls in another Jellyfin Web browser/client. Different Jellyfin users remain isolated.
 
@@ -94,9 +97,9 @@ playbackPositionTicks = zeroBasedPageIndex * 10,000
 
 This is intentional. Jellyfin's standard ComicsPlayer restores its page with `startPositionTicks / 10,000`, so the standard and Advanced readers can share the same resume position.
 
-The browser progress bridge observes the Advanced Reader's page counter. After navigation settles for about 1.2 seconds it saves the furthest visible page, and it also attempts a final flush when the reader closes. In Double Page mode the second visible page is considered the reached page. Vertical/Webtoon modes use the viewport-tracked current page.
+The browser progress bridge observes the Advanced Reader's page counter. After navigation settles for about 1.2 seconds it saves the furthest visible page. The reader also emits a close event before removing its DOM, allowing the bridge to capture the final reached page; if an earlier PUT is still in flight, only the newest position is queued and sent immediately afterward. In Double Page mode the furthest page in the current smart spread is considered reached. Vertical/Webtoon modes use the viewport-tracked current page.
 
-When opening an unfinished book, the saved server-side position is restored before reader preferences are applied. The current integration jumps directly through the live reader session, then signals the preferences bridge. This avoids issuing hundreds of sequential Next operations or temporarily changing layouts for a large magazine.
+When opening a book, the saved server-side position is restored before reader preferences are applied, even when Jellyfin already marks the Book played. The current integration jumps directly through the live reader session, then signals the preferences bridge. This avoids issuing hundreds of sequential Next operations or temporarily changing layouts for a large magazine.
 
 Reaching the final page marks the Jellyfin Book as played. Completion is server-authoritative: clients submit only a page index, and the server checks that it is the actual final page. Non-final progress writes intentionally leave the existing `Played` value unchanged; this means opening a previously completed book for a reread does not silently mark it unread.
 
@@ -133,7 +136,7 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 
 | Input | Paged modes | Continuous / Webtoon |
 | --- | --- | --- |
-| Escape | Close settings, then reader | Close settings, then reader |
+| Escape | Close settings/help, then reader | Close settings/help, then reader |
 | Arrow Left / Right | Direction-aware previous/next | Native/no reader action |
 | Arrow Up / Down | Native | Previous/next page |
 | Page Up / Page Down | Previous/next group | Previous/next page |
@@ -143,7 +146,7 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 | + / - / 0 | Reader zoom | Reader zoom |
 | Left/right click or tap | Direction-aware navigation | Native scrolling |
 | Horizontal swipe | Direction-aware navigation | Native scrolling |
-| Two-finger pinch | 50%-400% reader zoom | 50%-400% reader zoom |
+| Two-finger pinch | 50%-400% reader zoom when touch gestures are enabled | 50%-400% reader zoom when touch gestures are enabled |
 | Wheel | Previous/next in Fit Screen | Native vertical scroll |
 | Ctrl+wheel | Reader zoom | Reader zoom |
 | Drag at >100% | Pan | Desktop drag pan; native touch/scroll pan |

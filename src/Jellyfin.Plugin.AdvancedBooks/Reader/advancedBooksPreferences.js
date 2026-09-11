@@ -41,7 +41,10 @@
                 Fit: preferences.fit,
                 Zoom: preferences.zoom,
                 SidePadding: preferences.sidePadding,
-                PageGap: preferences.pageGap
+                PageGap: preferences.pageGap,
+                Background: preferences.background,
+                AnimateTransitions: preferences.animateTransitions,
+                TouchGestures: preferences.touchGestures
             }),
             url: getPreferencesUrl(apiClient)
         });
@@ -54,6 +57,9 @@
         const zoom = Number(raw?.Zoom ?? raw?.zoom ?? 1);
         const sidePadding = Number(raw?.SidePadding ?? raw?.sidePadding ?? 0);
         const pageGap = Number(raw?.PageGap ?? raw?.pageGap ?? 0);
+        const background = String(raw?.Background ?? raw?.background ?? 'black');
+        const animateTransitions = raw?.AnimateTransitions ?? raw?.animateTransitions ?? true;
+        const touchGestures = raw?.TouchGestures ?? raw?.touchGestures ?? true;
         const sidePaddingValues = [0, 2, 5, 10, 15, 20];
         const pageGapValues = [0, 4, 8, 12, 16, 24, 32];
         return {
@@ -62,7 +68,10 @@
             fit: ['screen', 'width', 'height', 'original'].includes(fit) ? fit : 'screen',
             zoom: Number.isFinite(zoom) ? Math.min(4, Math.max(.5, Math.round(zoom * 20) / 20)) : 1,
             sidePadding: sidePaddingValues.includes(sidePadding) ? sidePadding : 0,
-            pageGap: pageGapValues.includes(pageGap) ? pageGap : 0
+            pageGap: pageGapValues.includes(pageGap) ? pageGap : 0,
+            background: ['black', 'gray', 'white'].includes(background) ? background : 'black',
+            animateTransitions: animateTransitions !== false && String(animateTransitions).toLowerCase() !== 'false',
+            touchGestures: touchGestures !== false && String(touchGestures).toLowerCase() !== 'false'
         };
     }
 
@@ -117,10 +126,118 @@
             fit: overlay.querySelector('[data-ab-control="fit"]') ?? selects[2],
             sidePadding: overlay.querySelector('[data-ab-control="sidePadding"]'),
             pageGap: overlay.querySelector('[data-ab-control="pageGap"]'),
+            background: overlay.querySelector('[data-ab-control="background"]'),
+            transitions: overlay.querySelector('[data-ab-control="transitions"]'),
+            gestures: overlay.querySelector('[data-ab-control="gestures"]'),
             zoomOut: toolbar.querySelector('button[title="Zoom out"]'),
             zoomReset: toolbar.querySelector('button[title="Reset zoom"]'),
             zoomIn: toolbar.querySelector('button[title="Zoom in"]'),
             stage: overlay.querySelector('.advancedBooksReaderStage')
+        };
+    }
+
+    function ensureHelpStyles() {
+        if (document.getElementById('advancedBooksReaderHelpStyles')) return;
+        const style = document.createElement('style');
+        style.id = 'advancedBooksReaderHelpStyles';
+        style.textContent = `
+.advancedBooksReaderHelpPanel{position:absolute!important;z-index:9;top:calc(3.6rem + env(safe-area-inset-top,0px));right:.65rem;width:min(32rem,calc(100vw - 1.3rem));max-height:calc(100dvh - 5rem);overflow:auto;padding:1rem;border:1px solid rgba(255,255,255,.14);border-radius:.8rem;background:rgba(20,20,20,.97);box-shadow:0 14px 48px rgba(0,0,0,.55);box-sizing:border-box;backdrop-filter:blur(14px);color:#fff}
+.advancedBooksReaderHelpPanel[hidden]{display:none!important}
+.advancedBooksReaderHelpHeader{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem;font-size:1.05rem;font-weight:600}
+.advancedBooksReaderHelpGrid{display:grid;grid-template-columns:minmax(7rem,.8fr) minmax(10rem,1.4fr);gap:.45rem .9rem;font-size:.9rem;line-height:1.35}
+.advancedBooksReaderHelpKey{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.8}
+@media(max-width:700px){.advancedBooksReaderHelpPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(72dvh,38rem);border-radius:1rem 1rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}.advancedBooksReaderHelpGrid{grid-template-columns:1fr;gap:.18rem}.advancedBooksReaderHelpKey{margin-top:.5rem}}
+`;
+        document.head.appendChild(style);
+    }
+
+    function attachHelp(session) {
+        const top = session.overlay.querySelector('.advancedBooksReaderChromeTop');
+        const settingsButton = top?.querySelector('button[title="Reader settings"]');
+        if (!top || !settingsButton) return;
+
+        ensureHelpStyles();
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'advancedBooksReaderIconButton';
+        button.textContent = '?';
+        button.title = 'Reader help';
+        button.setAttribute('aria-label', 'Reader help');
+        button.setAttribute('aria-expanded', 'false');
+
+        const panel = document.createElement('div');
+        panel.className = 'advancedBooksReaderHelpPanel';
+        panel.hidden = true;
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', 'Reader help');
+
+        const header = document.createElement('div');
+        header.className = 'advancedBooksReaderHelpHeader';
+        const title = document.createElement('span');
+        title.textContent = 'Reader controls';
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'advancedBooksReaderIconButton';
+        close.textContent = '×';
+        close.title = 'Close help';
+        close.setAttribute('aria-label', 'Close reader help');
+        header.append(title, close);
+
+        const grid = document.createElement('div');
+        grid.className = 'advancedBooksReaderHelpGrid';
+        const shortcuts = [
+            ['← / →', 'Previous / next page in paged modes'],
+            ['Page Up / Down', 'Previous / next page or group'],
+            ['Space', 'Next page or group'],
+            ['Home / End', 'First / last page'],
+            ['+ / − / 0', 'Zoom in / out / reset'],
+            ['Ctrl + wheel', 'Zoom'],
+            ['F', 'Fullscreen'],
+            ['Esc', 'Close panel, then reader'],
+            ['Drag', 'Pan while zoomed'],
+            ['Two-finger pinch', 'Zoom when touch gestures are enabled']
+        ];
+        for (const [key, description] of shortcuts) {
+            const keyElement = document.createElement('div');
+            keyElement.className = 'advancedBooksReaderHelpKey';
+            keyElement.textContent = key;
+            const descriptionElement = document.createElement('div');
+            descriptionElement.textContent = description;
+            grid.append(keyElement, descriptionElement);
+        }
+        panel.append(header, grid);
+
+        const reader = session.overlay.__advancedBooksReaderSession;
+        const setOpen = open => {
+            if (open && settingsButton.getAttribute('aria-expanded') === 'true') settingsButton.click();
+            panel.hidden = !open;
+            button.setAttribute('aria-expanded', String(open));
+            if (open) {
+                reader?.showControls?.(false);
+                close.focus?.({ preventScroll: true });
+            } else {
+                reader?.showControls?.();
+            }
+        };
+        button.addEventListener('click', () => setOpen(panel.hidden));
+        close.addEventListener('click', () => {
+            setOpen(false);
+            button.focus?.({ preventScroll: true });
+        });
+        session.onSettingsClick = () => {
+            if (!panel.hidden) setOpen(false);
+        };
+        settingsButton.addEventListener('click', session.onSettingsClick, true);
+
+        top.insertBefore(button, settingsButton);
+        session.overlay.appendChild(panel);
+        session.helpButton = button;
+        session.helpPanel = panel;
+        session.overlay.__advancedBooksCloseHelp = () => {
+            if (panel.hidden) return false;
+            setOpen(false);
+            button.focus?.({ preventScroll: true });
+            return true;
         };
     }
 
@@ -193,6 +310,9 @@
             setSelect(controls.fit, preferences.fit);
             setSelect(controls.sidePadding, String(preferences.sidePadding));
             setSelect(controls.pageGap, String(preferences.pageGap));
+            setSelect(controls.background, preferences.background);
+            setSelect(controls.transitions, String(preferences.animateTransitions));
+            setSelect(controls.gestures, String(preferences.touchGestures));
             applyZoom(controls, preferences.zoom, session.overlay);
         } finally {
             session.suppressSave = false;
@@ -209,12 +329,15 @@
             fit: controls.fit.value,
             zoom: Number.isFinite(zoomPercent) ? zoomPercent / 100 : 1,
             sidePadding: Number(controls.sidePadding?.value ?? 0),
-            pageGap: Number(controls.pageGap?.value ?? 0)
+            pageGap: Number(controls.pageGap?.value ?? 0),
+            background: controls.background?.value ?? 'black',
+            animateTransitions: controls.transitions?.value !== 'false',
+            touchGestures: controls.gestures?.value !== 'false'
         });
     }
 
     function serialize(preferences) {
-        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}`;
+        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}|${preferences.background}|${preferences.animateTransitions}|${preferences.touchGestures}`;
     }
 
     function capturePreferences(session) {
@@ -278,6 +401,11 @@
         session.zoomObserver?.disconnect();
         session.removalObserver?.disconnect();
         session.controls.toolbar?.removeEventListener('change', session.onControlChange, true);
+        if (session.overlay?.__advancedBooksCloseHelp) delete session.overlay.__advancedBooksCloseHelp;
+        session.controls.toolbar?.parentElement?.querySelector('button[title="Reader settings"]')
+            ?.removeEventListener('click', session.onSettingsClick, true);
+        session.helpButton?.remove();
+        session.helpPanel?.remove();
         if (currentSession === session) currentSession = null;
     }
 
@@ -305,7 +433,10 @@
             cleaned: false,
             zoomObserver: null,
             removalObserver: null,
-            onControlChange: null
+            onControlChange: null,
+            onSettingsClick: null,
+            helpButton: null,
+            helpPanel: null
         };
         currentSession = session;
 
@@ -313,6 +444,7 @@
         applyPreferences(session, preferences);
         session.latestPreferences = readPreferences(session);
         session.lastSaved = serialize(session.latestPreferences);
+        attachHelp(session);
 
         session.onControlChange = () => scheduleSave(session);
         controls.toolbar.addEventListener('change', session.onControlChange, true);

@@ -24,6 +24,9 @@ public sealed class ReaderPreferencesController : ControllerBase
     private const string ZoomKey = "zoom";
     private const string SidePaddingKey = "sidePadding";
     private const string PageGapKey = "pageGap";
+    private const string BackgroundKey = "background";
+    private const string AnimateTransitionsKey = "animateTransitions";
+    private const string TouchGesturesKey = "touchGestures";
     private const string PreferenceSchemaVersionKey = "schemaVersion";
 
     // Stable pseudo-item namespace reserved for global Advanced Reader preferences.
@@ -66,6 +69,9 @@ public sealed class ReaderPreferencesController : ControllerBase
         stored.TryGetValue(ZoomKey, out var zoomText);
         stored.TryGetValue(SidePaddingKey, out var sidePaddingText);
         stored.TryGetValue(PageGapKey, out var pageGapText);
+        stored.TryGetValue(BackgroundKey, out var background);
+        stored.TryGetValue(AnimateTransitionsKey, out var animateTransitionsText);
+        stored.TryGetValue(TouchGesturesKey, out var touchGesturesText);
         stored.TryGetValue(PreferenceSchemaVersionKey, out var schemaVersionText);
 
         var schemaVersion = 1;
@@ -96,6 +102,20 @@ public sealed class ReaderPreferencesController : ControllerBase
             pageGap = ReaderPreferenceRules.NormalizePageGap(parsedPageGap);
         }
 
+        var animateTransitions = ReaderPreferenceRules.DefaultAnimateTransitions;
+        if (!string.IsNullOrWhiteSpace(animateTransitionsText)
+            && bool.TryParse(animateTransitionsText, out var parsedAnimateTransitions))
+        {
+            animateTransitions = parsedAnimateTransitions;
+        }
+
+        var touchGestures = ReaderPreferenceRules.DefaultTouchGestures;
+        if (!string.IsNullOrWhiteSpace(touchGesturesText)
+            && bool.TryParse(touchGesturesText, out var parsedTouchGestures))
+        {
+            touchGestures = parsedTouchGestures;
+        }
+
         var normalizedFit = ReaderPreferenceRules.NormalizeStoredFit(fit, schemaVersion);
 
         return Ok(new ReaderPreferencesDto(
@@ -104,7 +124,10 @@ public sealed class ReaderPreferencesController : ControllerBase
             normalizedFit,
             zoom,
             sidePadding,
-            pageGap));
+            pageGap,
+            ReaderPreferenceRules.NormalizeBackground(background),
+            animateTransitions,
+            touchGestures));
     }
 
     /// <summary>Replaces the current user's global Advanced Reader preferences.</summary>
@@ -154,6 +177,11 @@ public sealed class ReaderPreferencesController : ControllerBase
             return InvalidPreference("page gap", request.PageGap.ToString(CultureInfo.InvariantCulture));
         }
 
+        if (!ReaderPreferenceRules.IsValidBackground(request.Background))
+        {
+            return InvalidPreference("background", request.Background);
+        }
+
         var normalizedZoom = ReaderPreferenceRules.NormalizeZoom(request.Zoom);
         var values = new Dictionary<string, string?>
         {
@@ -163,6 +191,9 @@ public sealed class ReaderPreferencesController : ControllerBase
             [ZoomKey] = normalizedZoom.ToString("0.00", CultureInfo.InvariantCulture),
             [SidePaddingKey] = request.SidePadding.ToString(CultureInfo.InvariantCulture),
             [PageGapKey] = request.PageGap.ToString(CultureInfo.InvariantCulture),
+            [BackgroundKey] = request.Background,
+            [AnimateTransitionsKey] = request.AnimateTransitions.ToString(),
+            [TouchGesturesKey] = request.TouchGestures.ToString(),
             [PreferenceSchemaVersionKey] = ReaderPreferenceRules.CurrentPreferenceSchemaVersion.ToString(CultureInfo.InvariantCulture)
         };
 
@@ -178,7 +209,10 @@ public sealed class ReaderPreferencesController : ControllerBase
             request.Fit,
             normalizedZoom,
             request.SidePadding,
-            request.PageGap));
+            request.PageGap,
+            request.Background,
+            request.AnimateTransitions,
+            request.TouchGestures));
     }
 
     private async Task<User?> GetCurrentUser()

@@ -118,7 +118,7 @@ GET /AdvancedBooks/Books/{itemId}/Pages
 GET /AdvancedBooks/Books/{itemId}/Pages/0
 ```
 
-The first request should return JSON page metadata without a server filesystem path. The second should return the first image using its image content type. Verify a user that cannot see the library gets 404 for the item and an unauthenticated request is rejected by Jellyfin authentication.
+The first request should return JSON page metadata plus Jellyfin title/authors/series/issue/year context without a server filesystem path. The second should return the first image using its image content type. Verify a user that cannot see the library gets 404 for the item and an unauthenticated request is rejected by Jellyfin authentication.
 
 Also test a corrupt ZIP and a deliberately over-limit fixture; these should fail cleanly with HTTP 422 rather than exhausting server memory or extracting files.
 
@@ -155,7 +155,7 @@ A PUT body such as:
 
 should store `PlaybackPositionTicks = 40000`. A subsequent GET should return page index `4`. An index below zero or at/above the archive page count must return HTTP 400.
 
-Saving the final page must set the Jellyfin Book's played state. Saving an earlier page on a Book that is already played must not automatically clear that played state.
+Saving the final page must set the Jellyfin Book's played state. Saving an earlier page on a Book that is already played must not automatically clear that played state. In the Web reader, navigate to a middle page and close immediately while another progress PUT is still in flight; reopen and verify the newest reached page wins. Also mark a Book played, leave a non-zero stored position, and verify Advanced Reader restores that page instead of forcing page 1.
 
 ### Reader preferences API smoke test
 
@@ -166,18 +166,23 @@ GET /AdvancedBooks/Reader/Preferences
 PUT /AdvancedBooks/Reader/Preferences
 ```
 
-A new user should receive the safe defaults: Single Page, RTL, Fit Screen and 100% zoom. A representative PUT body is:
+A new user should receive the safe defaults: Single Page, RTL, Fit Screen, 100% zoom, black background, page transitions enabled and touch gestures enabled. A representative PUT body is:
 
 ```json
 {
   "Layout": "double",
   "Direction": "rtl",
   "Fit": "width",
-  "Zoom": 1.35
+  "Zoom": 1.35,
+  "SidePadding": 5,
+  "PageGap": 8,
+  "Background": "gray",
+  "AnimateTransitions": false,
+  "TouchGestures": true
 }
 ```
 
-A subsequent GET should return the same normalized values. Invalid layout/direction/fit values, zoom below 0.5, zoom above 4.0, NaN or infinity-equivalent input must not be persisted. Confirm two Jellyfin users can store different values, while two Web clients signed in as the same user receive the same settings.
+A subsequent GET should return the same normalized values. Invalid layout/direction/fit/background values, zoom below 0.5, zoom above 4.0, NaN or infinity-equivalent input must not be persisted. Confirm two Jellyfin users can store different values, while two Web clients signed in as the same user receive the same settings.
 
 The preferences endpoint must not accept an arbitrary user id. Storage belongs to the authenticated user and is backed by Jellyfin's display-preferences database.
 
