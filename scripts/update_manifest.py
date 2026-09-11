@@ -14,12 +14,13 @@ PLUGIN_METADATA = {
     "guid": PLUGIN_GUID,
     "name": "Advanced Books",
     "description": (
-        "Advanced book and comic features for Jellyfin 12, including Komga-compatible "
-        "One-Shots and an Advanced Reader."
+        "Advanced comic, manga, magazine and book features for Jellyfin 12, including "
+        "Komga-compatible One-Shots and a localized Advanced Reader."
     ),
-    "overview": "Komga-compatible book handling and an advanced comic reader for Jellyfin.",
+    "overview": "Advanced comic, manga, magazine and book reader for Jellyfin 12.",
     "owner": "yuuta0331",
-    "category": "General",
+    "category": "Books",
+    "imageUrl": "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.svg",
 }
 
 
