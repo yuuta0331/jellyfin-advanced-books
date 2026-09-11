@@ -90,7 +90,7 @@ The custom repository publishes the fields Jellyfin uses for catalog presentatio
 - **Owner:** yuuta0331
 - **Overview:** Advanced comic, manga, magazine and book reader for Jellyfin 12.
 - **Description:** Includes Komga-compatible One-Shots and a localized Advanced Reader.
-- **Icon:** `assets/advanced-books-icon.svg`
+- **Catalog icon:** `assets/advanced-books-icon.png` (the SVG source is kept alongside it)
 - **Target ABI:** Jellyfin 12
 
 The catalog icon is referenced through `imageUrl` in the repository manifest. Jellyfin fetches the image during installation/update, so an already installed version may keep its previous icon until the next plugin update.
