@@ -373,7 +373,7 @@
     }
     @media(prefers-reduced-motion:reduce){
         .advancedBooksReaderChrome,.advancedBooksReaderProgressRail::after{transition:none!important}
-        .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{animation:none}
+        .advancedBooksReaderPages img,.advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{animation:none!important}
     }
             `;
             document.head.appendChild(style);
