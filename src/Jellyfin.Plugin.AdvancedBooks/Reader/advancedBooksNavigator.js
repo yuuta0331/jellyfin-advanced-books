@@ -10,6 +10,7 @@
     const thumbnailRequestTimeoutMs = 6000;
     const thumbnailRetryLimit = 1;
     const fullPageFallbackCacheLimit = 6;
+    const fullPageFallbackConcurrency = 2;
     const gridOverscanPx = 440;
     const gridFarAbortPx = 1600;
     const gridScrollDebounceMs = 48;
@@ -137,9 +138,12 @@
             this.queue = [];
             this.queued = new Set();
             this.attempts = new Map();
-            this.fallbackPending = new Set();
+            this.fallbackPending = new Map();
+            this.fallbackQueue = [];
+            this.fallbackQueued = new Set();
             this.fallbackIndexes = new Set();
             this.fallbackOrder = [];
+            this.fallbackActive = 0;
             this.activeRequests = 0;
             this.requestSequence = 0;
             this.counterObserver = null;
@@ -232,7 +236,9 @@
             this.grid?.removeEventListener('scroll', this.boundGridScroll);
             this.queue = [];
             this.queued.clear();
-            this.fallbackPending.clear();
+            this.fallbackQueue = [];
+            this.fallbackQueued.clear();
+            for (const index of Array.from(this.fallbackPending.keys())) this.abortFullPageFallback(index);
             for (const index of Array.from(this.pending.keys())) this.abortRequest(index);
             this.panel?.remove();
             this.panel = null;
@@ -361,6 +367,7 @@
 
             if (cancelFar) this.abortFarRequests(windowInfo.visibleTop, windowInfo.visibleBottom);
             this.pumpThumbnailQueue();
+            this.pumpFullPageFallbackQueue();
         }
 
         abortFarRequests(visibleTop, visibleBottom) {
@@ -374,6 +381,19 @@
                 const bottom = top + card.offsetHeight;
                 if (bottom < visibleTop - gridFarAbortPx || top > visibleBottom + gridFarAbortPx) {
                     this.abortRequest(index);
+                }
+            }
+
+            for (const [index] of this.fallbackPending) {
+                const card = this.cards[index];
+                if (!card?.isConnected) {
+                    this.abortFullPageFallback(index);
+                    continue;
+                }
+                const top = card.offsetTop;
+                const bottom = top + card.offsetHeight;
+                if (bottom < visibleTop - gridFarAbortPx || top > visibleBottom + gridFarAbortPx) {
+                    this.abortFullPageFallback(index);
                 }
             }
         }
@@ -525,32 +545,70 @@
             if (!this.isVisible(index)
                 || generation !== this.panelGeneration
                 || this.cache.has(index)
-                || this.fallbackPending.has(index)) {
+                || this.fallbackPending.has(index)
+                || this.fallbackQueued.has(index)) {
                 return;
             }
 
-            this.fallbackPending.add(index);
-            this.setCardState(index, 'loading');
-            this.startFullPageFallback(index, generation)
-                .catch(() => {
-                    if (generation === this.panelGeneration && this.isVisible(index)) {
-                        this.setCardState(index, 'failed', 'Preview unavailable');
-                    }
-                })
-                .finally(() => {
-                    this.fallbackPending.delete(index);
-                });
+            this.fallbackQueue.push({ index, generation });
+            this.fallbackQueued.add(index);
+            this.pumpFullPageFallbackQueue();
         }
 
-        async startFullPageFallback(index, generation) {
+        pumpFullPageFallbackQueue() {
+            if (this.closed || !this.panel?.isConnected) return;
+            while (this.fallbackActive < fullPageFallbackConcurrency && this.fallbackQueue.length > 0) {
+                const next = this.fallbackQueue.shift();
+                if (!next) break;
+                this.fallbackQueued.delete(next.index);
+                if (next.generation !== this.panelGeneration || this.cache.has(next.index) || !this.isVisible(next.index)) {
+                    continue;
+                }
+
+                const controller = new AbortController();
+                const pending = { controller, generation: next.generation };
+                this.fallbackPending.set(next.index, pending);
+                this.fallbackActive++;
+                this.setCardState(next.index, 'loading');
+
+                this.startFullPageFallback(next.index, next.generation, controller.signal)
+                    .catch(error => {
+                        if (error?.name === 'AbortError') return;
+                        if (next.generation === this.panelGeneration && this.isVisible(next.index)) {
+                            this.setCardState(next.index, 'failed', 'Preview unavailable');
+                        }
+                    })
+                    .finally(() => {
+                        const current = this.fallbackPending.get(next.index);
+                        if (current === pending) {
+                            this.fallbackPending.delete(next.index);
+                            this.fallbackActive = Math.max(0, this.fallbackActive - 1);
+                        }
+                        this.pumpFullPageFallbackQueue();
+                    });
+            }
+        }
+
+        abortFullPageFallback(index) {
+            const pending = this.fallbackPending.get(index);
+            if (!pending) return;
+            this.fallbackPending.delete(index);
+            this.fallbackActive = Math.max(0, this.fallbackActive - 1);
+            pending.controller.abort();
+            const card = this.cards[index];
+            if (card?.dataset.thumbnailState === 'loading') this.setCardState(index, 'idle');
+            this.pumpFullPageFallbackQueue();
+        }
+
+        async startFullPageFallback(index, generation, signal) {
             if (!this.isVisible(index) || generation !== this.panelGeneration || this.cache.has(index)) return;
             const url = this.apiClient.getUrl(
                 `AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}`
             );
-            const response = await this.apiClient.fetch({ url, method: 'GET' }, true);
+            const response = await this.apiClient.fetch({ url, method: 'GET', signal }, true);
             if (!response || response.ok === false) throw new Error(`HTTP ${response?.status ?? 'error'}`);
             const blob = await response.blob();
-            if (this.closed || generation !== this.panelGeneration || !this.panel?.isConnected) return;
+            if (this.closed || signal.aborted || generation !== this.panelGeneration || !this.panel?.isConnected) return;
 
             const objectUrl = URL.createObjectURL(blob);
             const existing = this.cache.get(index);
@@ -690,7 +748,9 @@
             this.removalObserver?.disconnect();
             this.queue = [];
             this.queued.clear();
-            this.fallbackPending.clear();
+            this.fallbackQueue = [];
+            this.fallbackQueued.clear();
+            for (const index of Array.from(this.fallbackPending.keys())) this.abortFullPageFallback(index);
             for (const index of Array.from(this.pending.keys())) this.abortRequest(index);
             for (const objectUrl of this.cache.values()) URL.revokeObjectURL(objectUrl);
             this.cache.clear();
