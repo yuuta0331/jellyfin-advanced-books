@@ -93,7 +93,7 @@ def main() -> int:
 
     require("document.documentElement.lang" in reader, "Reader locale does not follow Jellyfin document language")
     require("navigator.language" in reader, "Reader locale has no browser fallback")
-    require("data-ab-action" in reader, "Localization bridge does not annotate stable reader actions")
+    require("dataset.abAction" in reader, "Localization bridge does not annotate stable reader actions")
     require('button[data-ab-action="settings"]' in preferences,
             "Preferences still depends only on localized Reader settings title")
     require('button[data-ab-action="zoom-reset"]' in preferences,
