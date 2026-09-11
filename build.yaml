@@ -1,25 +1,26 @@
 ---
 name: "Advanced Books"
 guid: "843f3c69-88ee-4e82-84f3-330b84d64d88"
-version: "0.11.2.0"
+version: "0.12.0.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Komga-compatible book handling and an advanced comic reader for Jellyfin."
 description: >
   Adds advanced book and comic features to Jellyfin 12, including Komga-compatible
-  One-Shots, safe per-page CBZ delivery, paged/continuous reading, resume, a lazy
-  thumbnail page navigator, per-user reader preferences, responsive auto-hiding
-  reader controls, all-mode page scrubbing, and touch zoom.
+  One-Shots, safe per-page CBZ delivery, paged/continuous reading, cross-client
+  progress, book metadata, smart spreads, reader appearance preferences, page
+  navigation, responsive controls, all-mode page scrubbing, and touch zoom.
 category: "General"
 owner: "yuuta0331"
 artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: >
-  Harden JavaScript Injector startup recovery. Validate all embedded reader assets
-  before replacing existing registrations, keep the required Core transactional,
-  and allow optional Progress/Preferences/Navigator/Gestures bridges to fail soft
-  without removing the rest of the reader. Log the actual loaded Advanced Books
-  assembly version, informational version, and DLL path at startup. CI and release
-  workflows now validate the five reader resources from the built plugin DLL
-  itself with strict UTF-8 and size checks, in addition to source JavaScript checks.
+  Show Jellyfin book title, authors, series and year in the Advanced Reader.
+  Fix progress resume for played books and close-time/in-flight save races so the
+  latest reached page is queued and synchronized reliably. Replace the desktop
+  scrubber resize cursor with a normal pointer. Add Komga-style smart double-page
+  spreads with first/last and landscape pages shown singly, persisted black/gray/
+  white backgrounds, optional page-transition animation, optional touch gestures,
+  and contextual keyboard/gesture help. Keep the Core JavaScript below the
+  JavaScript Injector size limit and extend preference schema migration/tests.
