@@ -100,6 +100,12 @@ def main() -> int:
             "Preferences still depends only on localized zoom title")
     require('button[data-ab-action="zoom-reset"]' in gestures,
             "Gestures still depends only on localized zoom title")
+    require("advancedBooksReaderTitle" in reader and "return;" in reader,
+            "Localization bridge no longer protects the user-provided title row")
+    require("advancedBooksNavigatorCard" in reader,
+            "Localization bridge no longer protects navigator page filenames")
+    require("value.split(' · ')" in reader,
+            "Metadata localization must translate only structured metadata segments")
 
     print("Validated Advanced Books localization: " + ", ".join(LOCALES))
     return 0
