@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.13.0.0",
+        "changelog": "Fix a critical Continuous/Webtoon rendering race that could append duplicate page images to the same slot and display them side by side. Enforce a strict one-image-per-page DOM invariant with generation guards so stale asynchronous loads cannot resurrect evicted images. Make double-page spreads stable by determining page orientation before rendering instead of displaying a guessed spread and correcting it afterward. Ignore __MACOSX and AppleDouble image-like entries in CBZ/ZIP archives, disable browser caching for full-page responses, and verify the served page index in the Web reader. Add configurable reader metadata visibility for title, authors, series, issue and year, plus automatic overflow scrolling that can be enabled or disabled per Jellyfin user.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.13.0.0/AdvancedBooks_0.13.0.0.zip",
+        "checksum": "0c6b5b8a9393d2e19b77877031962da8",
+        "timestamp": "2026-09-11T04:32:56Z"
+      },
+      {
         "version": "0.12.0.0",
         "changelog": "Show Jellyfin book title, authors, series and year in the Advanced Reader. Fix progress resume for played books and close-time/in-flight save races so the latest reached page is queued and synchronized reliably. Replace the desktop scrubber resize cursor with a normal pointer. Add Komga-style smart double-page spreads with first/last and landscape pages shown singly, persisted black/gray/ white backgrounds, optional page-transition animation, optional touch gestures, and contextual keyboard/gesture help. Keep the Core JavaScript below the JavaScript Injector size limit and extend preference schema migration/tests.",
         "targetAbi": "12.0.0.0",
