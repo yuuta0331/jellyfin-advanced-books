@@ -43,6 +43,11 @@
         const pages = raw?.Pages ?? raw?.pages ?? [];
         const authors = raw?.Authors ?? raw?.authors ?? [];
         const cleanText = value => typeof value === 'string' ? value.trim() : '';
+        const optionalNumber = value => {
+            if (value === null || value === undefined || value === '') return null;
+            const number = Number(value);
+            return Number.isFinite(number) ? number : null;
+        };
         return {
             format: raw?.Format ?? raw?.format ?? 'CBZ',
             archiveSize: Number(raw?.ArchiveSize ?? raw?.archiveSize ?? 0),
@@ -51,8 +56,8 @@
             title: cleanText(raw?.Title ?? raw?.title),
             originalTitle: cleanText(raw?.OriginalTitle ?? raw?.originalTitle),
             seriesName: cleanText(raw?.SeriesName ?? raw?.seriesName),
-            indexNumber: Number(raw?.IndexNumber ?? raw?.indexNumber),
-            productionYear: Number(raw?.ProductionYear ?? raw?.productionYear),
+            indexNumber: optionalNumber(raw?.IndexNumber ?? raw?.indexNumber),
+            productionYear: optionalNumber(raw?.ProductionYear ?? raw?.productionYear),
             authors: Array.isArray(authors)
                 ? authors.map(cleanText).filter(Boolean)
                 : []
