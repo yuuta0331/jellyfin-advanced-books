@@ -1149,6 +1149,8 @@
             return start > 0
                 && (start % 2) === 1
                 && start + 1 < last
+                && this.pageAspectRatios.has(start)
+                && this.pageAspectRatios.has(start + 1)
                 && !this.isLandscapePage(start)
                 && !this.isLandscapePage(start + 1);
         }
