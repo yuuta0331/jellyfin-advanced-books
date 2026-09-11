@@ -44,7 +44,14 @@
                 PageGap: preferences.pageGap,
                 Background: preferences.background,
                 AnimateTransitions: preferences.animateTransitions,
-                TouchGestures: preferences.touchGestures
+                TouchGestures: preferences.touchGestures,
+                ShowMetadata: preferences.showMetadata,
+                ShowMetadataTitle: preferences.showMetadataTitle,
+                ShowMetadataAuthors: preferences.showMetadataAuthors,
+                ShowMetadataSeries: preferences.showMetadataSeries,
+                ShowMetadataIssue: preferences.showMetadataIssue,
+                ShowMetadataYear: preferences.showMetadataYear,
+                AutoScrollMetadata: preferences.autoScrollMetadata
             }),
             url: getPreferencesUrl(apiClient)
         });
@@ -60,6 +67,10 @@
         const background = String(raw?.Background ?? raw?.background ?? 'black');
         const animateTransitions = raw?.AnimateTransitions ?? raw?.animateTransitions ?? true;
         const touchGestures = raw?.TouchGestures ?? raw?.touchGestures ?? true;
+        const boolValue = (upper, lower, fallback = true) => {
+            const value = raw?.[upper] ?? raw?.[lower] ?? fallback;
+            return value !== false && String(value).toLowerCase() !== 'false';
+        };
         const sidePaddingValues = [0, 2, 5, 10, 15, 20];
         const pageGapValues = [0, 4, 8, 12, 16, 24, 32];
         return {
@@ -71,7 +82,14 @@
             pageGap: pageGapValues.includes(pageGap) ? pageGap : 0,
             background: ['black', 'gray', 'white'].includes(background) ? background : 'black',
             animateTransitions: animateTransitions !== false && String(animateTransitions).toLowerCase() !== 'false',
-            touchGestures: touchGestures !== false && String(touchGestures).toLowerCase() !== 'false'
+            touchGestures: touchGestures !== false && String(touchGestures).toLowerCase() !== 'false',
+            showMetadata: boolValue('ShowMetadata', 'showMetadata'),
+            showMetadataTitle: boolValue('ShowMetadataTitle', 'showMetadataTitle'),
+            showMetadataAuthors: boolValue('ShowMetadataAuthors', 'showMetadataAuthors'),
+            showMetadataSeries: boolValue('ShowMetadataSeries', 'showMetadataSeries'),
+            showMetadataIssue: boolValue('ShowMetadataIssue', 'showMetadataIssue'),
+            showMetadataYear: boolValue('ShowMetadataYear', 'showMetadataYear'),
+            autoScrollMetadata: boolValue('AutoScrollMetadata', 'autoScrollMetadata')
         };
     }
 
@@ -129,6 +147,13 @@
             background: overlay.querySelector('[data-ab-control="background"]'),
             transitions: overlay.querySelector('[data-ab-control="transitions"]'),
             gestures: overlay.querySelector('[data-ab-control="gestures"]'),
+            showMetadata: overlay.querySelector('[data-ab-control="showMetadata"]'),
+            showMetadataTitle: overlay.querySelector('[data-ab-control="showMetadataTitle"]'),
+            showMetadataAuthors: overlay.querySelector('[data-ab-control="showMetadataAuthors"]'),
+            showMetadataSeries: overlay.querySelector('[data-ab-control="showMetadataSeries"]'),
+            showMetadataIssue: overlay.querySelector('[data-ab-control="showMetadataIssue"]'),
+            showMetadataYear: overlay.querySelector('[data-ab-control="showMetadataYear"]'),
+            autoScrollMetadata: overlay.querySelector('[data-ab-control="autoScrollMetadata"]'),
             zoomOut: toolbar.querySelector('button[title="Zoom out"]'),
             zoomReset: toolbar.querySelector('button[title="Reset zoom"]'),
             zoomIn: toolbar.querySelector('button[title="Zoom in"]'),
@@ -146,9 +171,120 @@
 .advancedBooksReaderHelpHeader{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem;font-size:1.05rem;font-weight:600}
 .advancedBooksReaderHelpGrid{display:grid;grid-template-columns:minmax(7rem,.8fr) minmax(10rem,1.4fr);gap:.45rem .9rem;font-size:.9rem;line-height:1.35}
 .advancedBooksReaderHelpKey{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.8}
+.advancedBooksReaderSettingsSectionTitle{font-weight:600;padding-top:.2rem;border-top:1px solid rgba(255,255,255,.12)}
+.advancedBooksReaderMetadata{overflow:hidden}
+.advancedBooksReaderMetadataLine{min-width:0;overflow:hidden;white-space:nowrap}
+.advancedBooksReaderMetadataText{display:inline-block;min-width:max-content;white-space:nowrap;will-change:transform}
+.advancedBooksReaderMetadataLine.ab-metadata-marquee .advancedBooksReaderMetadataText{animation:advancedBooksMetadataMarquee var(--ab-metadata-duration,8s) ease-in-out 1s infinite alternate}
+@keyframes advancedBooksMetadataMarquee{from{transform:translateX(0)}to{transform:translateX(var(--ab-metadata-shift,0px))}}
+@media(prefers-reduced-motion:reduce){.advancedBooksReaderMetadataLine.ab-metadata-marquee .advancedBooksReaderMetadataText{animation:none!important}}
 @media(max-width:700px){.advancedBooksReaderHelpPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(72dvh,38rem);border-radius:1rem 1rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}.advancedBooksReaderHelpGrid{grid-template-columns:1fr;gap:.18rem}.advancedBooksReaderHelpKey{margin-top:.5rem}}
 `;
         document.head.appendChild(style);
+    }
+
+    function ensureMetadataControls(overlay) {
+        const toolbar = overlay.querySelector('.advancedBooksReaderToolbar');
+        if (!toolbar || toolbar.querySelector('[data-ab-control="showMetadata"]')) return;
+
+        const makeSelect = (control, showLabel = 'Show', hideLabel = 'Hide') => {
+            const select = document.createElement('select');
+            select.dataset.abControl = control;
+            for (const [value, label] of [['true', showLabel], ['false', hideLabel]]) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = label;
+                select.appendChild(option);
+            }
+            return select;
+        };
+        const makeRow = (labelText, control) => {
+            const row = document.createElement('div');
+            row.className = 'advancedBooksReaderSettingRow';
+            const label = document.createElement('label');
+            label.textContent = labelText;
+            control.id = `advancedBooksReader-${control.dataset.abControl}`;
+            label.htmlFor = control.id;
+            row.append(label, control);
+            return row;
+        };
+
+        const title = document.createElement('div');
+        title.className = 'advancedBooksReaderSettingsSectionTitle';
+        title.textContent = 'Metadata';
+        const fragment = document.createDocumentFragment();
+        fragment.append(
+            title,
+            makeRow('Metadata header', makeSelect('showMetadata')),
+            makeRow('Title', makeSelect('showMetadataTitle')),
+            makeRow('Authors', makeSelect('showMetadataAuthors')),
+            makeRow('Series', makeSelect('showMetadataSeries')),
+            makeRow('Issue / number', makeSelect('showMetadataIssue')),
+            makeRow('Year', makeSelect('showMetadataYear')),
+            makeRow('Auto-scroll', makeSelect('autoScrollMetadata', 'On', 'Off'))
+        );
+        const hint = toolbar.querySelector('.advancedBooksReaderSettingsHint');
+        toolbar.insertBefore(fragment, hint);
+    }
+
+    function refreshMetadataMarquee(session, enabled) {
+        const host = session.metadataHost;
+        if (!host?.isConnected) return;
+        for (const line of host.querySelectorAll('.advancedBooksReaderMetadataLine')) {
+            line.classList.remove('ab-metadata-marquee');
+            line.style.removeProperty('--ab-metadata-shift');
+            line.style.removeProperty('--ab-metadata-duration');
+            if (!enabled) continue;
+            const text = line.querySelector('.advancedBooksReaderMetadataText');
+            const distance = Math.ceil((text?.scrollWidth ?? 0) - line.clientWidth);
+            if (distance <= 4) continue;
+            line.style.setProperty('--ab-metadata-shift', `-${distance}px`);
+            line.style.setProperty('--ab-metadata-duration', `${Math.min(22, Math.max(7, 4 + distance / 32)).toFixed(1)}s`);
+            line.classList.add('ab-metadata-marquee');
+        }
+    }
+
+    function renderMetadata(session, preferences) {
+        const reader = session.overlay.__advancedBooksReaderSession;
+        const host = session.metadataHost;
+        if (!reader || !host) return;
+
+        const details = [];
+        if (preferences.showMetadataAuthors && reader.bookAuthors?.length) {
+            details.push(`Authors: ${reader.bookAuthors.join(', ')}`);
+        }
+        if (preferences.showMetadataSeries && reader.seriesName) {
+            details.push(`Series: ${reader.seriesName}`);
+        }
+        if (preferences.showMetadataIssue && reader.indexNumber !== null && reader.indexNumber !== undefined) {
+            details.push(`Issue: #${reader.indexNumber}`);
+        }
+        if (preferences.showMetadataYear && reader.productionYear !== null && reader.productionYear !== undefined) {
+            details.push(`Year: ${reader.productionYear}`);
+        }
+
+        const lines = [];
+        if (preferences.showMetadataTitle && reader.bookTitle) lines.push(['advancedBooksReaderTitle', reader.bookTitle]);
+        if (details.length) lines.push(['advancedBooksReaderSubtitle', details.join(' · ')]);
+        host.hidden = !preferences.showMetadata || lines.length === 0;
+        if (host.hidden) {
+            host.replaceChildren();
+            return;
+        }
+
+        const nodes = lines.map(([className, value]) => {
+            const line = document.createElement('div');
+            line.className = `advancedBooksReaderMetadataLine ${className}`;
+            line.title = value;
+            const text = document.createElement('span');
+            text.className = 'advancedBooksReaderMetadataText';
+            text.textContent = value;
+            line.appendChild(text);
+            return line;
+        });
+        host.replaceChildren(...nodes);
+        host.setAttribute('aria-label', lines.map(([, value]) => value).join('. '));
+        requestAnimationFrame(() => refreshMetadataMarquee(session, preferences.autoScrollMetadata));
     }
 
     function attachHelp(session) {
@@ -313,7 +449,15 @@
             setSelect(controls.background, preferences.background);
             setSelect(controls.transitions, String(preferences.animateTransitions));
             setSelect(controls.gestures, String(preferences.touchGestures));
+            setSelect(controls.showMetadata, String(preferences.showMetadata));
+            setSelect(controls.showMetadataTitle, String(preferences.showMetadataTitle));
+            setSelect(controls.showMetadataAuthors, String(preferences.showMetadataAuthors));
+            setSelect(controls.showMetadataSeries, String(preferences.showMetadataSeries));
+            setSelect(controls.showMetadataIssue, String(preferences.showMetadataIssue));
+            setSelect(controls.showMetadataYear, String(preferences.showMetadataYear));
+            setSelect(controls.autoScrollMetadata, String(preferences.autoScrollMetadata));
             applyZoom(controls, preferences.zoom, session.overlay);
+            renderMetadata(session, preferences);
         } finally {
             session.suppressSave = false;
         }
@@ -332,12 +476,19 @@
             pageGap: Number(controls.pageGap?.value ?? 0),
             background: controls.background?.value ?? 'black',
             animateTransitions: controls.transitions?.value !== 'false',
-            touchGestures: controls.gestures?.value !== 'false'
+            touchGestures: controls.gestures?.value !== 'false',
+            showMetadata: controls.showMetadata?.value !== 'false',
+            showMetadataTitle: controls.showMetadataTitle?.value !== 'false',
+            showMetadataAuthors: controls.showMetadataAuthors?.value !== 'false',
+            showMetadataSeries: controls.showMetadataSeries?.value !== 'false',
+            showMetadataIssue: controls.showMetadataIssue?.value !== 'false',
+            showMetadataYear: controls.showMetadataYear?.value !== 'false',
+            autoScrollMetadata: controls.autoScrollMetadata?.value !== 'false'
         });
     }
 
     function serialize(preferences) {
-        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}|${preferences.background}|${preferences.animateTransitions}|${preferences.touchGestures}`;
+        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}|${preferences.background}|${preferences.animateTransitions}|${preferences.touchGestures}|${preferences.showMetadata}|${preferences.showMetadataTitle}|${preferences.showMetadataAuthors}|${preferences.showMetadataSeries}|${preferences.showMetadataIssue}|${preferences.showMetadataYear}|${preferences.autoScrollMetadata}`;
     }
 
     function capturePreferences(session) {
@@ -399,6 +550,7 @@
         }
         session.cleaned = true;
         session.zoomObserver?.disconnect();
+        session.metadataResizeObserver?.disconnect();
         session.removalObserver?.disconnect();
         session.controls.toolbar?.removeEventListener('change', session.onControlChange, true);
         if (session.overlay?.__advancedBooksCloseHelp) delete session.overlay.__advancedBooksCloseHelp;
@@ -417,6 +569,8 @@
         await waitForProgressReady(overlay);
         if (!overlay.isConnected || token !== sessionToken) return;
 
+        ensureHelpStyles();
+        ensureMetadataControls(overlay);
         const controls = getControls(overlay);
         if (!controls) return;
 
@@ -432,6 +586,8 @@
             queuedPreferences: null,
             cleaned: false,
             zoomObserver: null,
+            metadataResizeObserver: null,
+            metadataHost: overlay.querySelector('[data-ab-metadata-host="true"]'),
             removalObserver: null,
             onControlChange: null,
             onSettingsClick: null,
@@ -446,8 +602,19 @@
         session.lastSaved = serialize(session.latestPreferences);
         attachHelp(session);
 
-        session.onControlChange = () => scheduleSave(session);
+        session.onControlChange = () => {
+            const current = readPreferences(session);
+            renderMetadata(session, current);
+            scheduleSave(session);
+        };
         controls.toolbar.addEventListener('change', session.onControlChange, true);
+
+        if (typeof ResizeObserver === 'function' && session.metadataHost) {
+            session.metadataResizeObserver = new ResizeObserver(() => {
+                refreshMetadataMarquee(session, readPreferences(session).autoScrollMetadata);
+            });
+            session.metadataResizeObserver.observe(session.metadataHost);
+        }
 
         if (controls.zoomReset) {
             session.zoomObserver = new MutationObserver(() => scheduleSave(session));
