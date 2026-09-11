@@ -203,6 +203,8 @@
             this.viewportResizeObserver = null;
             this.viewportWidth = 0;
             this.viewportHeight = 0;
+            this.continuousScrollFrame = 0;
+            this.boundContinuousScroll = () => this.scheduleContinuousCurrentPageUpdate();
         }
 
         async open() {
@@ -899,6 +901,7 @@
             this.stage.addEventListener('pointerup', this.boundPointerUp);
             this.stage.addEventListener('pointercancel', this.boundPointerUp);
             this.stage.addEventListener('click', this.boundStageClick);
+            this.stage.addEventListener('scroll', this.boundContinuousScroll, { passive: true });
             this.overlay.addEventListener('pointermove', this.boundPointerActivity, { passive: true });
             this.overlay.addEventListener('focusin', this.boundFocusIn);
             this.topChrome?.addEventListener('pointerenter', this.boundChromeEnter);
@@ -922,6 +925,9 @@
             this.stage?.removeEventListener('pointerup', this.boundPointerUp);
             this.stage?.removeEventListener('pointercancel', this.boundPointerUp);
             this.stage?.removeEventListener('click', this.boundStageClick);
+            this.stage?.removeEventListener('scroll', this.boundContinuousScroll);
+            if (this.continuousScrollFrame) cancelAnimationFrame(this.continuousScrollFrame);
+            this.continuousScrollFrame = 0;
             this.overlay?.removeEventListener('pointermove', this.boundPointerActivity);
             this.overlay?.removeEventListener('focusin', this.boundFocusIn);
             this.topChrome?.removeEventListener('pointerenter', this.boundChromeEnter);
@@ -1098,7 +1104,9 @@
         rememberPageAspectRatio(index, width, height) {
             if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
             const ratio = Math.max(0.2, Math.min(12, height / width));
+            const previous = this.pageAspectRatios.get(index);
             this.pageAspectRatios.set(index, ratio);
+            if (previous !== undefined && Math.abs(previous - ratio) < 0.001) return;
             this.recentAspectRatios.push(ratio);
             if (this.recentAspectRatios.length > 12) this.recentAspectRatios.shift();
         }
@@ -1199,6 +1207,7 @@
                     if (!this.closed && this.isContinuous()) {
                         this.stage.scrollTop = Math.max(0, target.offsetTop - 4);
                         this.prefetchContinuousNear(this.currentPage, 1);
+                        this.scheduleContinuousCurrentPageUpdate();
                     }
                 });
             }
@@ -1213,24 +1222,47 @@
             this.continuousElements = [];
         }
 
+        scheduleContinuousCurrentPageUpdate() {
+            if (!this.isContinuous() || this.continuousScrollFrame) return;
+            this.continuousScrollFrame = requestAnimationFrame(() => {
+                this.continuousScrollFrame = 0;
+                this.updateContinuousCurrentPage();
+            });
+        }
+
+        viewportMarkerPage() {
+            if (!this.isContinuous() || !this.stage?.isConnected) return null;
+            const stageRect = this.stage.getBoundingClientRect();
+            const markerX = Math.max(stageRect.left + 1, Math.min(stageRect.right - 1, stageRect.left + (stageRect.width * 0.5)));
+            const markerY = Math.max(stageRect.top + 1, Math.min(stageRect.bottom - 1, stageRect.top + (stageRect.height * 0.35)));
+            const element = document.elementFromPoint(markerX, markerY);
+            const slot = element?.closest?.('.advancedBooksReaderPageSlot');
+            const index = Number(slot?.dataset.pageIndex);
+            return Number.isInteger(index) && index >= 0 && index < this.pageCount ? index : null;
+        }
+
         updateContinuousCurrentPage() {
-            if (!this.isContinuous() || this.visibleRatios.size === 0) return;
-            let bestIndex = this.currentPage;
-            let bestRatio = -1;
-            for (const [index, ratio] of this.visibleRatios) {
-                if (ratio > bestRatio || (ratio === bestRatio && Math.abs(index - this.currentPage) < Math.abs(bestIndex - this.currentPage))) {
-                    bestIndex = index;
-                    bestRatio = ratio;
+            if (!this.isContinuous()) return;
+
+            let bestIndex = this.viewportMarkerPage();
+            if (bestIndex === null && this.visibleRatios.size > 0) {
+                bestIndex = this.currentPage;
+                let bestRatio = -1;
+                for (const [index, ratio] of this.visibleRatios) {
+                    if (ratio > bestRatio || (ratio === bestRatio && Math.abs(index - this.currentPage) < Math.abs(bestIndex - this.currentPage))) {
+                        bestIndex = index;
+                        bestRatio = ratio;
+                    }
                 }
             }
-            if (bestIndex !== this.currentPage) {
-                const direction = Math.sign(bestIndex - this.currentPage) || 1;
-                this.currentPage = bestIndex;
-                this.updateControls();
-                this.trimCache();
-                this.trimPendingContinuous();
-                this.prefetchContinuousNear(bestIndex, direction);
-            }
+
+            if (!Number.isInteger(bestIndex) || bestIndex === this.currentPage) return;
+            const direction = Math.sign(bestIndex - this.currentPage) || 1;
+            this.currentPage = bestIndex;
+            this.updateControls();
+            this.trimCache();
+            this.trimPendingContinuous();
+            this.prefetchContinuousNear(bestIndex, direction);
         }
 
         prefetchContinuousNear(center, direction) {
