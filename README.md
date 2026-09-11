@@ -104,7 +104,7 @@ See [Advanced Reader](docs/READER.md) for controls and implementation details.
 ```text
 GET /AdvancedBooks/Books/{itemId}/Pages
 GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}
-GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}/Thumbnail?width=180
+GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}/Thumbnail?width=128
 GET /AdvancedBooks/Books/{itemId}/Progress
 PUT /AdvancedBooks/Books/{itemId}/Progress
 GET /AdvancedBooks/Reader/Preferences
