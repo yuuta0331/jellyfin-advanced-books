@@ -12,64 +12,63 @@
     <div data-role="content">
       <div class="content-primary">
         <form id="AdvancedBooksConfigForm">
-          <h2>Advanced Reader</h2>
+          <h2 data-i18n="readerHeading">Advanced Reader</h2>
 
           <div class="checkboxContainer checkboxContainer-withDescription">
             <label class="emby-checkbox-label">
               <input id="EnableAdvancedReader" type="checkbox" is="emby-checkbox">
-              <span>Enable Advanced Reader integration</span>
+              <span data-i18n="enableReader">Enable Advanced Reader integration</span>
             </label>
-            <div class="fieldDescription">
+            <div class="fieldDescription" data-i18n="enableReaderDescription">
               When the Jellyfin 12-compatible JavaScript Injector plugin is installed, Advanced Books registers its reader automatically and adds an Advanced Reader button to supported CBZ/ZIP book detail pages. Restart Jellyfin after changing this setting.
             </div>
           </div>
 
-          <h2>Komga compatibility</h2>
+          <h2 data-i18n="komgaHeading">Komga compatibility</h2>
 
           <div class="checkboxContainer checkboxContainer-withDescription">
             <label class="emby-checkbox-label">
               <input id="EnableKomgaOneShots" type="checkbox" is="emby-checkbox">
-              <span>Enable Komga-compatible One-Shots</span>
+              <span data-i18n="enableOneShots">Enable Komga-compatible One-Shots</span>
             </label>
-            <div class="fieldDescription">
+            <div class="fieldDescription" data-i18n="enableOneShotsDescription">
               Books under a matching directory are resolved as independent One-Shots before Jellyfin's default book resolver.
             </div>
           </div>
 
           <div class="inputContainer">
-            <label class="inputLabel inputLabelUnfocused" for="OneShotDirectory">One-Shots directory matcher</label>
+            <label class="inputLabel inputLabelUnfocused" for="OneShotDirectory" data-i18n="oneShotDirectory">One-Shots directory matcher</label>
             <input id="OneShotDirectory" type="text" is="emby-input">
-            <div class="fieldDescription">
-              Default: _oneshots. Like Komga, a plain value matches anywhere in the directory path.
-              Prefix with / (for example /_oneshots) to require a directory segment that starts with the value.
+            <div class="fieldDescription" data-i18n="oneShotDirectoryDescription">
+              Default: _oneshots. Like Komga, a plain value matches anywhere in the directory path. Prefix with / (for example /_oneshots) to require a directory segment that starts with the value.
             </div>
           </div>
 
           <div class="checkboxContainer checkboxContainer-withDescription">
             <label class="emby-checkbox-label">
               <input id="OneShotMatchCaseSensitive" type="checkbox" is="emby-checkbox">
-              <span>Case-sensitive path matching</span>
+              <span data-i18n="caseSensitive">Case-sensitive path matching</span>
             </label>
           </div>
 
           <div class="selectContainer">
-            <label class="selectLabel" for="OneShotSeriesMode">One-Shot series mapping</label>
+            <label class="selectLabel" for="OneShotSeriesMode" data-i18n="seriesMode">One-Shot series mapping</label>
             <select is="emby-select" id="OneShotSeriesMode" class="emby-select-withcolor emby-select">
-              <option value="BookTitle">Book title (recommended, closest to Komga)</option>
-              <option value="ParsedSeries">Series parsed from filename</option>
-              <option value="None">No series name</option>
+              <option value="BookTitle" data-i18n="seriesBookTitle">Book title (recommended, closest to Komga)</option>
+              <option value="ParsedSeries" data-i18n="seriesParsed">Series parsed from filename</option>
+              <option value="None" data-i18n="seriesNone">No series name</option>
             </select>
-            <div class="fieldDescription">
+            <div class="fieldDescription" data-i18n="seriesModeDescription">
               Komga models a One-Shot as a one-book series. "Book title" approximates that model in Jellyfin.
             </div>
           </div>
 
-          <div class="fieldDescription">
+          <div class="fieldDescription" data-i18n="restartRescan">
             Restart Jellyfin and rescan the affected Books library after changing resolver settings.
           </div>
 
           <button is="emby-button" type="submit" class="raised button-submit block emby-button">
-            <span>Save</span>
+            <span data-i18n="save">Save</span>
           </button>
         </form>
       </div>
@@ -77,11 +76,146 @@
 
     <script type="text/javascript">
       var AdvancedBooksConfig = {
-        pluginUniqueId: '843f3c69-88ee-4e82-84f3-330b84d64d88'
+        pluginUniqueId: '843f3c69-88ee-4e82-84f3-330b84d64d88',
+        strings: {
+          en: {
+            readerHeading: 'Advanced Reader',
+            enableReader: 'Enable Advanced Reader integration',
+            enableReaderDescription: 'When the Jellyfin 12-compatible JavaScript Injector plugin is installed, Advanced Books registers its reader automatically and adds an Advanced Reader button to supported CBZ/ZIP book detail pages. Restart Jellyfin after changing this setting.',
+            komgaHeading: 'Komga compatibility',
+            enableOneShots: 'Enable Komga-compatible One-Shots',
+            enableOneShotsDescription: 'Books under a matching directory are resolved as independent One-Shots before Jellyfin\'s default book resolver.',
+            oneShotDirectory: 'One-Shots directory matcher',
+            oneShotDirectoryDescription: 'Default: _oneshots. Like Komga, a plain value matches anywhere in the directory path. Prefix with / (for example /_oneshots) to require a directory segment that starts with the value.',
+            caseSensitive: 'Case-sensitive path matching',
+            seriesMode: 'One-Shot series mapping',
+            seriesBookTitle: 'Book title (recommended, closest to Komga)',
+            seriesParsed: 'Series parsed from filename',
+            seriesNone: 'No series name',
+            seriesModeDescription: 'Komga models a One-Shot as a one-book series. "Book title" approximates that model in Jellyfin.',
+            restartRescan: 'Restart Jellyfin and rescan the affected Books library after changing resolver settings.',
+            save: 'Save'
+          },
+          ja: {
+            readerHeading: '高度なリーダー',
+            enableReader: '高度なリーダー連携を有効にする',
+            enableReaderDescription: 'Jellyfin 12対応のJavaScript Injectorプラグインがインストールされている場合、Advanced Booksはリーダーを自動登録し、対応するCBZ/ZIPの本の詳細画面に高度なリーダーボタンを追加します。この設定を変更した後はJellyfinを再起動してください。',
+            komgaHeading: 'Komga互換',
+            enableOneShots: 'Komga互換One-Shotを有効にする',
+            enableOneShotsDescription: '一致するディレクトリ内の本を、Jellyfin標準の本リゾルバーより先に独立したOne-Shotとして認識します。',
+            oneShotDirectory: 'One-Shotディレクトリの一致条件',
+            oneShotDirectoryDescription: '既定値: _oneshots。Komgaと同様に、通常の値はディレクトリパス内の任意位置に一致します。/_oneshotsのように/で始めると、その値で始まるディレクトリ区切りに限定できます。',
+            caseSensitive: 'パスの大文字・小文字を区別する',
+            seriesMode: 'One-Shotのシリーズ割り当て',
+            seriesBookTitle: '本のタイトル（推奨、Komgaに最も近い）',
+            seriesParsed: 'ファイル名から解析したシリーズ',
+            seriesNone: 'シリーズ名なし',
+            seriesModeDescription: 'KomgaではOne-Shotを1冊だけのシリーズとして扱います。「本のタイトル」はJellyfin上でそのモデルに近い動作を再現します。',
+            restartRescan: 'リゾルバー設定を変更した後はJellyfinを再起動し、対象のBooksライブラリを再スキャンしてください。',
+            save: '保存'
+          },
+          de: {
+            readerHeading: 'Erweiterter Reader',
+            enableReader: 'Advanced-Reader-Integration aktivieren',
+            enableReaderDescription: 'Wenn das mit Jellyfin 12 kompatible JavaScript-Injector-Plugin installiert ist, registriert Advanced Books den Reader automatisch und fügt unterstützten CBZ/ZIP-Buchseiten eine Schaltfläche für den erweiterten Reader hinzu. Starten Sie Jellyfin nach einer Änderung neu.',
+            komgaHeading: 'Komga-Kompatibilität',
+            enableOneShots: 'Komga-kompatible One-Shots aktivieren',
+            enableOneShotsDescription: 'Bücher in einem passenden Verzeichnis werden vor dem Standard-Resolver von Jellyfin als eigenständige One-Shots erkannt.',
+            oneShotDirectory: 'One-Shot-Verzeichnisfilter',
+            oneShotDirectoryDescription: 'Standard: _oneshots. Wie bei Komga stimmt ein einfacher Wert an beliebiger Stelle im Verzeichnispfad überein. Mit / am Anfang (z. B. /_oneshots) muss ein Verzeichnisabschnitt mit dem Wert beginnen.',
+            caseSensitive: 'Groß-/Kleinschreibung im Pfad beachten',
+            seriesMode: 'Serienzuordnung für One-Shots',
+            seriesBookTitle: 'Buchtitel (empfohlen, Komga am ähnlichsten)',
+            seriesParsed: 'Aus Dateiname erkannte Serie',
+            seriesNone: 'Kein Serienname',
+            seriesModeDescription: 'Komga modelliert einen One-Shot als Serie mit genau einem Buch. „Buchtitel“ bildet dieses Modell in Jellyfin am ehesten nach.',
+            restartRescan: 'Starten Sie Jellyfin neu und scannen Sie die betroffene Bücherbibliothek nach Änderungen an den Resolver-Einstellungen erneut.',
+            save: 'Speichern'
+          },
+          fr: {
+            readerHeading: 'Lecteur avancé',
+            enableReader: 'Activer l’intégration du lecteur avancé',
+            enableReaderDescription: 'Lorsque le plugin JavaScript Injector compatible avec Jellyfin 12 est installé, Advanced Books enregistre automatiquement son lecteur et ajoute un bouton Lecteur avancé aux pages de détail CBZ/ZIP prises en charge. Redémarrez Jellyfin après toute modification.',
+            komgaHeading: 'Compatibilité Komga',
+            enableOneShots: 'Activer les One-Shots compatibles Komga',
+            enableOneShotsDescription: 'Les livres d’un dossier correspondant sont résolus comme One-Shots indépendants avant le résolveur de livres par défaut de Jellyfin.',
+            oneShotDirectory: 'Filtre de dossier One-Shots',
+            oneShotDirectoryDescription: 'Valeur par défaut : _oneshots. Comme Komga, une valeur simple correspond n’importe où dans le chemin. Préfixez-la par / (par ex. /_oneshots) pour exiger un segment de dossier commençant par cette valeur.',
+            caseSensitive: 'Respecter la casse du chemin',
+            seriesMode: 'Association de série des One-Shots',
+            seriesBookTitle: 'Titre du livre (recommandé, le plus proche de Komga)',
+            seriesParsed: 'Série analysée depuis le nom de fichier',
+            seriesNone: 'Aucun nom de série',
+            seriesModeDescription: 'Komga modélise un One-Shot comme une série d’un seul livre. « Titre du livre » reproduit au mieux ce modèle dans Jellyfin.',
+            restartRescan: 'Redémarrez Jellyfin et relancez l’analyse de la bibliothèque Livres concernée après modification des paramètres du résolveur.',
+            save: 'Enregistrer'
+          },
+          es: {
+            readerHeading: 'Lector avanzado',
+            enableReader: 'Activar integración del lector avanzado',
+            enableReaderDescription: 'Cuando está instalado el plugin JavaScript Injector compatible con Jellyfin 12, Advanced Books registra su lector automáticamente y añade un botón de Lector avanzado a las páginas de detalle CBZ/ZIP compatibles. Reinicie Jellyfin después de cambiar esta opción.',
+            komgaHeading: 'Compatibilidad con Komga',
+            enableOneShots: 'Activar One-Shots compatibles con Komga',
+            enableOneShotsDescription: 'Los libros de un directorio coincidente se resuelven como One-Shots independientes antes que el resolvedor de libros predeterminado de Jellyfin.',
+            oneShotDirectory: 'Coincidencia de directorio One-Shots',
+            oneShotDirectoryDescription: 'Predeterminado: _oneshots. Como en Komga, un valor simple coincide en cualquier parte de la ruta. Añada / al principio (por ejemplo /_oneshots) para exigir un segmento de directorio que empiece por ese valor.',
+            caseSensitive: 'Distinguir mayúsculas y minúsculas en la ruta',
+            seriesMode: 'Asignación de serie para One-Shots',
+            seriesBookTitle: 'Título del libro (recomendado, lo más parecido a Komga)',
+            seriesParsed: 'Serie analizada desde el nombre de archivo',
+            seriesNone: 'Sin nombre de serie',
+            seriesModeDescription: 'Komga modela un One-Shot como una serie de un solo libro. «Título del libro» aproxima ese modelo en Jellyfin.',
+            restartRescan: 'Reinicie Jellyfin y vuelva a escanear la biblioteca de Libros afectada después de cambiar los ajustes del resolvedor.',
+            save: 'Guardar'
+          },
+          'zh-CN': {
+            readerHeading: '高级阅读器',
+            enableReader: '启用高级阅读器集成',
+            enableReaderDescription: '安装兼容 Jellyfin 12 的 JavaScript Injector 插件后，Advanced Books 会自动注册阅读器，并在支持的 CBZ/ZIP 图书详情页添加“高级阅读器”按钮。更改此设置后请重启 Jellyfin。',
+            komgaHeading: 'Komga 兼容',
+            enableOneShots: '启用 Komga 兼容 One-Shot',
+            enableOneShotsDescription: '匹配目录中的图书会在 Jellyfin 默认图书解析器之前被识别为独立的 One-Shot。',
+            oneShotDirectory: 'One-Shot 目录匹配',
+            oneShotDirectoryDescription: '默认值：_oneshots。与 Komga 类似，普通值可匹配目录路径中的任意位置。以前缀 / 开头（例如 /_oneshots）可要求目录段以该值开头。',
+            caseSensitive: '路径匹配区分大小写',
+            seriesMode: 'One-Shot 系列映射',
+            seriesBookTitle: '图书标题（推荐，最接近 Komga）',
+            seriesParsed: '从文件名解析系列',
+            seriesNone: '无系列名称',
+            seriesModeDescription: 'Komga 将 One-Shot 建模为仅含一本书的系列。“图书标题”是在 Jellyfin 中最接近该模型的方式。',
+            restartRescan: '更改解析器设置后，请重启 Jellyfin 并重新扫描受影响的图书库。',
+            save: '保存'
+          }
+        }
+      };
+
+      AdvancedBooksConfig.normalizeLocale = function (value) {
+        var locale = String(value || '').replace('_', '-').toLowerCase();
+        if (locale.indexOf('ja') === 0) return 'ja';
+        if (locale.indexOf('de') === 0) return 'de';
+        if (locale.indexOf('fr') === 0) return 'fr';
+        if (locale.indexOf('es') === 0) return 'es';
+        if (locale.indexOf('zh') === 0) return 'zh-CN';
+        return 'en';
+      };
+
+      AdvancedBooksConfig.localize = function () {
+        var locale = AdvancedBooksConfig.normalizeLocale(
+          document.documentElement.lang
+          || (navigator.languages && navigator.languages[0])
+          || navigator.language
+          || 'en'
+        );
+        var strings = AdvancedBooksConfig.strings[locale] || AdvancedBooksConfig.strings.en;
+        document.querySelectorAll('#AdvancedBooksConfigPage [data-i18n]').forEach(function (element) {
+          var value = strings[element.getAttribute('data-i18n')];
+          if (value) element.textContent = value;
+        });
       };
 
       document.querySelector('#AdvancedBooksConfigPage')
         .addEventListener('pageshow', function () {
+          AdvancedBooksConfig.localize();
           Dashboard.showLoadingMsg();
           ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
             document.querySelector('#EnableAdvancedReader').checked = config.EnableAdvancedReader !== false;
@@ -112,6 +246,8 @@
           event.preventDefault();
           return false;
         });
+
+      AdvancedBooksConfig.localize();
     </script>
   </div>
 </body>
