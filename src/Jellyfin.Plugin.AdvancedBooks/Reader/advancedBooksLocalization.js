@@ -551,8 +551,11 @@
         }
         for (const element of elements) {
             annotateAction(element);
-            translateAttribute(element, 'title');
-            translateAttribute(element, 'aria-label');
+            const metadataValue = element.closest?.('.advancedBooksReaderMetadata');
+            if (!metadataValue) {
+                translateAttribute(element, 'title');
+                translateAttribute(element, 'aria-label');
+            }
             translateLeaf(element);
         }
     }
