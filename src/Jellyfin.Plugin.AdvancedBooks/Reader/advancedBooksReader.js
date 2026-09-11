@@ -1452,6 +1452,12 @@
                 image.draggable = false;
                 image.decoding = 'async';
                 image.dataset.pageIndex = String(index);
+                image.addEventListener('load', () => {
+                    if (slot.isConnected && this.continuousElements[index] === slot && slot.querySelector('img') === image) {
+                        this.stabilizeContinuousSlot(index, slot, image);
+                        this.applyContinuousImageSizing(image);
+                    }
+                }, { once: true });
                 image.src = url;
                 try {
                     await image.decode?.();
