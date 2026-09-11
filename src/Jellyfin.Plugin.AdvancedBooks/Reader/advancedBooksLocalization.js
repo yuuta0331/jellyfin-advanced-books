@@ -61,6 +61,11 @@
             'Preview unavailable': 'プレビューを表示できません',
             'Failed to load': '読み込みに失敗しました',
             'Loading page…': 'ページを読み込み中…',
+            'Loading preview…': 'プレビューを読み込み中…',
+            'Advanced Books Reader': 'Advanced Books リーダー',
+            'Unknown error': '不明なエラー',
+            'Unable to load page': 'ページを読み込めません',
+            'Vertical and Webtoon keep native one-finger scrolling. Use Side padding and Page gap to tune continuous layouts; reader zoom remains available in every mode.': '縦スクロールとウェブトゥーンでは1本指の標準スクロールを維持します。左右余白とページ間隔で連続表示を調整でき、ズームはすべてのモードで利用できます。',
             'Reader closed': 'リーダーは閉じられました',
             'Comic page viewport': 'コミックページ表示領域',
             'Reader help': 'リーダーヘルプ',
@@ -145,6 +150,11 @@
             'Preview unavailable': 'Vorschau nicht verfügbar',
             'Failed to load': 'Laden fehlgeschlagen',
             'Loading page…': 'Seite wird geladen…',
+            'Loading preview…': 'Vorschau wird geladen…',
+            'Advanced Books Reader': 'Advanced Books Reader',
+            'Unknown error': 'Unbekannter Fehler',
+            'Unable to load page': 'Seite konnte nicht geladen werden',
+            'Vertical and Webtoon keep native one-finger scrolling. Use Side padding and Page gap to tune continuous layouts; reader zoom remains available in every mode.': 'Vertikal und Webtoon behalten das native Scrollen mit einem Finger bei. Seitenrand und Seitenabstand passen fortlaufende Layouts an; Zoom ist in jedem Modus verfügbar.',
             'Reader closed': 'Reader geschlossen',
             'Comic page viewport': 'Comic-Seitenansicht',
             'Reader help': 'Reader-Hilfe',
@@ -229,6 +239,11 @@
             'Preview unavailable': 'Aperçu indisponible',
             'Failed to load': 'Échec du chargement',
             'Loading page…': 'Chargement de la page…',
+            'Loading preview…': 'Chargement de l’aperçu…',
+            'Advanced Books Reader': 'Lecteur Advanced Books',
+            'Unknown error': 'Erreur inconnue',
+            'Unable to load page': 'Impossible de charger la page',
+            'Vertical and Webtoon keep native one-finger scrolling. Use Side padding and Page gap to tune continuous layouts; reader zoom remains available in every mode.': 'Les modes vertical et Webtoon conservent le défilement natif à un doigt. Utilisez la marge latérale et l’espacement des pages pour régler les modes continus ; le zoom reste disponible partout.',
             'Reader closed': 'Lecteur fermé',
             'Comic page viewport': 'Zone d’affichage de la page',
             'Reader help': 'Aide du lecteur',
@@ -313,6 +328,11 @@
             'Preview unavailable': 'Vista previa no disponible',
             'Failed to load': 'Error al cargar',
             'Loading page…': 'Cargando página…',
+            'Loading preview…': 'Cargando vista previa…',
+            'Advanced Books Reader': 'Lector Advanced Books',
+            'Unknown error': 'Error desconocido',
+            'Unable to load page': 'No se pudo cargar la página',
+            'Vertical and Webtoon keep native one-finger scrolling. Use Side padding and Page gap to tune continuous layouts; reader zoom remains available in every mode.': 'Vertical y Webtoon mantienen el desplazamiento nativo con un dedo. Use el margen lateral y el espacio entre páginas para ajustar los modos continuos; el zoom sigue disponible en todos los modos.',
             'Reader closed': 'Lector cerrado',
             'Comic page viewport': 'Área de página del cómic',
             'Reader help': 'Ayuda del lector',
@@ -397,6 +417,11 @@
             'Preview unavailable': '无法预览',
             'Failed to load': '加载失败',
             'Loading page…': '正在加载页面…',
+            'Loading preview…': '正在加载预览…',
+            'Advanced Books Reader': 'Advanced Books 阅读器',
+            'Unknown error': '未知错误',
+            'Unable to load page': '无法加载页面',
+            'Vertical and Webtoon keep native one-finger scrolling. Use Side padding and Page gap to tune continuous layouts; reader zoom remains available in every mode.': '纵向连续和条漫模式保留原生单指滚动。可使用两侧留白和页面间距调整连续布局；所有模式均可使用缩放。',
             'Reader closed': '阅读器已关闭',
             'Comic page viewport': '漫画页面显示区域',
             'Reader help': '阅读器帮助',
@@ -500,6 +525,21 @@
             return templates[locale] || value;
         }
 
+        match = /^(\d+) pages$/.exec(value);
+        if (match) {
+            const templates = {
+                ja: `${match[1]} ページ`,
+                de: `${match[1]} Seiten`,
+                fr: `${match[1]} pages`,
+                es: `${match[1]} páginas`,
+                'zh-CN': `${match[1]} 页`
+            };
+            return templates[locale] || value;
+        }
+
+        match = /^Unable to load page: (.*)$/.exec(value);
+        if (match) return `${t('Unable to load page')}: ${t(match[1])}`;
+
         const pageSuffix = /^(.*) — page (\d+)$/.exec(value);
         if (pageSuffix) {
             const translatedPrefix = t(pageSuffix[1]);
@@ -551,8 +591,9 @@
         }
         for (const element of elements) {
             annotateAction(element);
-            const metadataValue = element.closest?.('.advancedBooksReaderMetadata');
-            if (!metadataValue) {
+            const userValue = element.closest?.('.advancedBooksReaderMetadata')
+                || element.classList.contains('advancedBooksNavigatorCard');
+            if (!userValue) {
                 translateAttribute(element, 'title');
                 translateAttribute(element, 'aria-label');
             }
