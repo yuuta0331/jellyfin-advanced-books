@@ -1559,9 +1559,12 @@
             const url = this.apiClient.getUrl(`AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}?v=${version}`);
             const response = await this.apiClient.fetch({ url, method: 'GET', signal, cache: 'no-store' }, true);
             if (!response || response.ok === false) throw new Error(`HTTP ${response?.status ?? 'error'}`);
-            const servedIndex = Number(response.headers?.get?.('X-AdvancedBooks-Page-Index'));
-            if (Number.isInteger(servedIndex) && servedIndex !== index) {
-                throw new Error(`Page identity mismatch: requested ${index}, received ${servedIndex}`);
+            const servedIndexText = response.headers?.get?.('X-AdvancedBooks-Page-Index');
+            if (servedIndexText !== null && servedIndexText !== undefined) {
+                const servedIndex = Number(servedIndexText);
+                if (Number.isInteger(servedIndex) && servedIndex !== index) {
+                    throw new Error(`Page identity mismatch: requested ${index}, received ${servedIndex}`);
+                }
             }
             const blob = await response.blob();
             const objectUrl = URL.createObjectURL(blob);
