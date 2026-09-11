@@ -4,11 +4,11 @@
     if (window.__jellyfinAdvancedBooksNavigatorLoaded) return;
     window.__jellyfinAdvancedBooksNavigatorLoaded = true;
 
-    const thumbnailWidth = 180;
+    const thumbnailWidth = 128;
     const thumbnailCacheLimit = 48;
     const thumbnailRequestConcurrency = 3;
-    const thumbnailRequestTimeoutMs = 9000;
-    const thumbnailRetryLimit = 2;
+    const thumbnailRequestTimeoutMs = 6000;
+    const thumbnailRetryLimit = 1;
     const gridOverscanPx = 440;
     const gridFarAbortPx = 1600;
     const gridScrollDebounceMs = 48;
@@ -519,6 +519,7 @@
 
         async startFullPageFallback(index, generation) {
             if (!this.isVisible(index) || generation !== this.panelGeneration || this.cache.has(index)) return;
+            this.setCardState(index, 'loading');
             const url = this.apiClient.getUrl(
                 `AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}`
             );
