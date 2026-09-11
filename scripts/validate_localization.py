@@ -32,6 +32,8 @@ REQUIRED_READER_KEYS = (
     "Issue / number",
     "Year",
     "Auto-scroll",
+    "Loading preview…",
+    "Vertical and Webtoon keep native one-finger scrolling. Use Side padding and Page gap to tune continuous layouts; reader zoom remains available in every mode.",
 )
 REQUIRED_CONFIG_KEYS = (
     "readerHeading",
