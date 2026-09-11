@@ -15,7 +15,8 @@ def main() -> int:
         "stale-load generation guard": "abLoadGeneration",
         "page identity response verification": "X-AdvancedBooks-Page-Index",
         "pre-render spread orientation probe": "ensurePageAspectRatio",
-        "final-page single-spread guard": "start + 1 >= last",
+        "canonical odd-page double grouping": "(start % 2) === 1",
+        "final-page single-spread guard": "start + 1 < last",
         "continuous image ownership guard": "slot.querySelector('img') !== image",
         "defensive duplicate-image CSS guard": ".advancedBooksReaderPageSlot>img~img{display:none!important}",
     }
