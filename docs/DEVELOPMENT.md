@@ -127,12 +127,12 @@ Also test a corrupt ZIP and a deliberately over-limit fixture; these should fail
 For the same authenticated Book, verify:
 
 ```text
-GET /AdvancedBooks/Books/{itemId}/Pages/0/Thumbnail?width=180
+GET /AdvancedBooks/Books/{itemId}/Pages/0/Thumbnail?width=128
 ```
 
 The response should be a small WebP/JPEG/PNG image, should include `X-AdvancedBooks-Thumbnail-Width`, and should not expose a filesystem path. Requests below 96 or above 320 must return HTTP 400.
 
-Check width normalization as well: representative requests in the allowed range should map downward to one of 96, 128, 180, 240 or 320 pixels. Repeating the same page/width should reuse the plugin cache rather than recreate the thumbnail. After a 180px grid thumbnail exists, request 128px for the same page and confirm the compatible larger cached thumbnail can be reused without another image-processing pass.
+Check width normalization as well: representative requests in the allowed range should map downward to one of 96, 128, 180, 240 or 320 pixels. Repeating the same page/width should reuse the plugin cache rather than recreate the thumbnail. Also create any larger normalized variant (for example 180px), then request 128px for the same page and confirm the compatible larger cached thumbnail can be reused without another image-processing pass.
 
 After generation, verify the plugin's `reader-thumbnail-work` directory contains no retained full-resolution page from the completed request. The temporary image-processor result must also be removed after the plugin-owned thumbnail is copied.
 
