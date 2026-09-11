@@ -54,6 +54,14 @@ public sealed class ZipBookArchiveReaderTests : IDisposable
     }
 
     [Fact]
+    public void RejectsTraversalEvenWhenEntryLooksLikeIgnoredMacMetadata()
+    {
+        var path = CreateArchive("bad-metadata.cbz", ("../__MACOSX/._page1.jpg", [1]));
+
+        Assert.Throws<ArchiveSafetyException>(() => new ZipBookArchiveReader().GetBookInfo(path));
+    }
+
+    [Fact]
     public async Task OpensAndCopiesOnePageWithoutExtractingArchive()
     {
         var path = CreateArchive(
