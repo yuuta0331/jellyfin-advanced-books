@@ -23,7 +23,8 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
         new(
             "jellyfin-advanced-books-reader-core",
             "Advanced Books Reader - Core",
-            "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksReader.js"),
+            "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksReader.js",
+            Required: true),
         new(
             "jellyfin-advanced-books-reader-progress",
             "Advanced Books Reader - Progress",
@@ -90,6 +91,58 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
 
     private void TryRegister(Plugin plugin)
     {
+        var pluginAssembly = typeof(Plugin).Assembly;
+        var assemblyVersion = pluginAssembly.GetName().Version?.ToString() ?? "0.0.0.0";
+        var informationalVersion = pluginAssembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion
+            ?? assemblyVersion;
+        var assemblyLocation = string.IsNullOrWhiteSpace(pluginAssembly.Location)
+            ? "(dynamic/unknown)"
+            : pluginAssembly.Location;
+
+        _logger.LogInformation(
+            "Starting Advanced Books reader registration from assembly {AssemblyVersion} ({InformationalVersion}) at {AssemblyLocation}.",
+            assemblyVersion,
+            informationalVersion,
+            assemblyLocation);
+
+        // Validate every embedded asset before touching currently registered scripts. A damaged
+        // required Core should never delete a previously working registration. Optional bridges
+        // fail soft so one bad resource cannot make the complete reader disappear.
+        var preparedScripts = new List<PreparedScript>(ReaderScripts.Length);
+        foreach (var registration in ReaderScripts)
+        {
+            try
+            {
+                var script = LoadAndValidateEmbeddedScript(registration);
+                preparedScripts.Add(new PreparedScript(registration, script));
+            }
+            catch (Exception exception)
+            {
+                if (registration.Required)
+                {
+                    _logger.LogWarning(
+                        exception,
+                        "Required Advanced Books reader resource {ResourceName} is invalid. Existing JavaScript Injector registrations were left untouched. Reinstall the plugin package before retrying.",
+                        registration.ResourceName);
+                    return;
+                }
+
+                _logger.LogWarning(
+                    exception,
+                    "Skipping optional Advanced Books reader script {ScriptId} because embedded resource {ResourceName} is invalid. The remaining reader features will still be registered; reinstall the plugin package to restore this feature.",
+                    registration.Id,
+                    registration.ResourceName);
+            }
+        }
+
+        if (!preparedScripts.Any(script => script.Registration.Required))
+        {
+            _logger.LogWarning("No valid required Advanced Books reader script was available for registration.");
+            return;
+        }
+
         var injectorAssembly = FindInjectorAssembly();
         if (injectorAssembly is null)
         {
@@ -98,56 +151,62 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             return;
         }
 
-        try
+        var interfaceType = injectorAssembly.GetType(InjectorInterfaceTypeName, throwOnError: false);
+        var registerMethod = interfaceType?
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .FirstOrDefault(method =>
+                string.Equals(method.Name, "RegisterScript", StringComparison.Ordinal)
+                && method.GetParameters().Length == 1);
+
+        if (interfaceType is null || registerMethod is null)
         {
-            var interfaceType = injectorAssembly.GetType(InjectorInterfaceTypeName, throwOnError: false);
-            var registerMethod = interfaceType?
-                .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .FirstOrDefault(method =>
-                    string.Equals(method.Name, "RegisterScript", StringComparison.Ordinal)
-                    && method.GetParameters().Length == 1);
+            _logger.LogWarning("JavaScript Injector does not expose the expected RegisterScript interface.");
+            return;
+        }
 
-            if (interfaceType is null || registerMethod is null)
+        var payloadType = registerMethod.GetParameters()[0].ParameterType;
+        var parseMethod = payloadType.GetMethod(
+            "Parse",
+            BindingFlags.Public | BindingFlags.Static,
+            binder: null,
+            types: [typeof(string)],
+            modifiers: null);
+
+        if (parseMethod is null)
+        {
+            _logger.LogWarning("Could not construct a JavaScript Injector registration payload.");
+            return;
+        }
+
+        // Register in place. JavaScript Injector updates entries with the same ID, so deleting all
+        // current registrations first only creates an unnecessary failure window. Keep the current
+        // Core alive until a validated replacement has been accepted.
+        TryUnregisterLegacyScript(interfaceType);
+
+        var registeredIds = new List<string>(preparedScripts.Count);
+        var skippedIds = new List<string>(ReaderScripts.Length - preparedScripts.Count);
+        var invalidOptionalIds = ReaderScripts
+            .Where(registration =>
+                !registration.Required
+                && preparedScripts.All(prepared => prepared.Registration.Id != registration.Id))
+            .Select(registration => registration.Id)
+            .ToArray();
+
+        foreach (var prepared in preparedScripts)
+        {
+            var registration = prepared.Registration;
+            try
             {
-                _logger.LogWarning("JavaScript Injector does not expose the expected RegisterScript interface.");
-                return;
-            }
-
-            var payloadType = registerMethod.GetParameters()[0].ParameterType;
-            var parseMethod = payloadType.GetMethod(
-                "Parse",
-                BindingFlags.Public | BindingFlags.Static,
-                binder: null,
-                types: [typeof(string)],
-                modifiers: null);
-
-            if (parseMethod is null)
-            {
-                _logger.LogWarning("Could not construct a JavaScript Injector registration payload.");
-                return;
-            }
-
-            // Remove the old single, very large registration first. Splitting the reader into
-            // independent registrations keeps each payload comfortably bounded and prevents one
-            // damaged script entry from invalidating the complete reader bundle.
-            TryUnregister(interfaceType, plugin.Id.ToString());
-
-            var version = typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "0.0.0";
-            var registeredIds = new List<string>(ReaderScripts.Length);
-
-            foreach (var registration in ReaderScripts)
-            {
-                var script = LoadAndValidateEmbeddedScript(registration);
                 var payloadJson = JsonSerializer.Serialize(new Dictionary<string, object?>
                 {
                     ["id"] = registration.Id,
                     ["name"] = registration.Name,
-                    ["script"] = script,
+                    ["script"] = prepared.Script,
                     ["enabled"] = true,
                     ["requiresAuthentication"] = true,
                     ["pluginId"] = plugin.Id.ToString(),
                     ["pluginName"] = plugin.Name,
-                    ["pluginVersion"] = version
+                    ["pluginVersion"] = assemblyVersion
                 });
 
                 var payload = parseMethod.Invoke(null, [payloadJson]);
@@ -168,21 +227,39 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
                 _logger.LogDebug(
                     "Registered Advanced Books reader script {ScriptId}: {Utf8Bytes} UTF-8 bytes, SHA-256 {Sha256}.",
                     registration.Id,
-                    StrictUtf8.GetByteCount(script),
-                    ComputeSha256Prefix(script));
+                    StrictUtf8.GetByteCount(prepared.Script),
+                    ComputeSha256Prefix(prepared.Script));
             }
+            catch (Exception exception)
+            {
+                if (registration.Required)
+                {
+                    _logger.LogWarning(
+                        exception,
+                        "Required Advanced Books reader script {ScriptId} could not be registered. Existing JavaScript Injector registrations were left in place where possible.",
+                        registration.Id);
+                    return;
+                }
 
-            _logger.LogInformation(
-                "Registered {Count} Advanced Books reader scripts with JavaScript Injector as independent bounded entries.",
-                registeredIds.Count);
+                TryUnregisterScript(interfaceType, registration.Id);
+                skippedIds.Add(registration.Id);
+                _logger.LogWarning(
+                    exception,
+                    "Optional Advanced Books reader script {ScriptId} could not be registered. The remaining reader features stay available.",
+                    registration.Id);
+            }
         }
-        catch (Exception exception)
+
+        foreach (var scriptId in invalidOptionalIds)
         {
-            // A partial reader is worse than no reader: dependent bridges could attach to a
-            // mismatched core script. Roll back every plugin-owned registration on failure.
-            TryUnregister(plugin.Id.ToString());
-            _logger.LogWarning(exception, "Failed to register the Advanced Books reader with JavaScript Injector.");
+            TryUnregisterScript(interfaceType, scriptId);
+            skippedIds.Add(scriptId);
         }
+
+        _logger.LogInformation(
+            "Registered {RegisteredCount} Advanced Books reader scripts with JavaScript Injector; skipped {SkippedCount} optional scripts.",
+            registeredIds.Count,
+            skippedIds.Distinct(StringComparer.Ordinal).Count());
     }
 
     private void TryUnregister(string pluginId)
@@ -213,14 +290,10 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
                 types: [typeof(string)],
                 modifiers: null);
 
-            // The legacy entry is removed by its exact ID because older installs may have
-            // persisted ownership metadata inconsistently. New split entries use plugin ownership
-            // when the newer bulk API is available.
-            unregisterMethod?.Invoke(null, [LegacyCombinedScriptId]);
-
             if (unregisterAllMethod is not null)
             {
                 unregisterAllMethod.Invoke(null, [pluginId]);
+                unregisterMethod?.Invoke(null, [LegacyCombinedScriptId]);
                 return;
             }
 
@@ -237,6 +310,33 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
         catch (Exception exception)
         {
             _logger.LogDebug(exception, "Failed to unregister Advanced Books reader scripts.");
+        }
+    }
+
+    private void TryUnregisterLegacyScript(Type interfaceType)
+    {
+        TryUnregisterScript(interfaceType, LegacyCombinedScriptId);
+    }
+
+    private void TryUnregisterScript(Type interfaceType, string scriptId)
+    {
+        try
+        {
+            var unregisterMethod = interfaceType.GetMethod(
+                "UnregisterScript",
+                BindingFlags.Public | BindingFlags.Static,
+                binder: null,
+                types: [typeof(string)],
+                modifiers: null);
+
+            unregisterMethod?.Invoke(null, [scriptId]);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogDebug(
+                exception,
+                "Failed to unregister Advanced Books reader script {ScriptId}.",
+                scriptId);
         }
     }
 
@@ -298,5 +398,13 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
         return Convert.ToHexString(hash)[..16].ToLowerInvariant();
     }
 
-    private sealed record ScriptRegistration(string Id, string Name, string ResourceName);
+    private sealed record ScriptRegistration(
+        string Id,
+        string Name,
+        string ResourceName,
+        bool Required = false);
+
+    private sealed record PreparedScript(
+        ScriptRegistration Registration,
+        string Script);
 }

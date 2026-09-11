@@ -140,6 +140,14 @@ There is no stable release yet. Development preview releases contain `Jellyfin.P
 
 Every successful CI run also publishes the same package shape as the `AdvancedBooks-dev` workflow artifact. The repository contains a Jellyfin-compatible `manifest.json`; release automation updates it from the bytes of the actually published GitHub Release asset so its MD5 checksum matches Jellyfin's installer verification.
 
+### Manual upgrade safety
+
+When installing a development ZIP manually, **stop Jellyfin first and do not keep copying new DLLs into an old version-named Advanced Books directory**. Old Jellyfin plugin metadata can otherwise report an older version while a newer DLL is present, and multiple Advanced Books directories with the same plugin GUID can make troubleshooting ambiguous.
+
+For a manual upgrade, keep exactly one active Advanced Books version directory under the Jellyfin plugins directory. Move old Advanced Books version directories outside the active plugins directory as a backup, create a fresh directory for the new version, extract the two DLLs there, then start Jellyfin. Advanced Books 0.11.2.0 and later logs the actual loaded assembly version, informational version and DLL path before JavaScript Injector registration.
+
+If JavaScript Injector reports an invalid embedded reader resource, treat that as an installation/package-integrity problem and reinstall from a verified ZIP. Optional reader bridges now fail soft, so a damaged optional gesture/progress/preferences/navigator resource no longer unregisters the valid Core reader.
+
 The standard Jellyfin **Repository URL** flow requires the manifest and release assets to be anonymously reachable over HTTPS. While this GitHub repository remains private, use the downloaded development package for manual installation; do not expect Jellyfin to authenticate to the private GitHub repository automatically.
 
 See [Development Guide](docs/DEVELOPMENT.md) for build and release details.

@@ -47,15 +47,15 @@ To package a local Release build:
 python scripts/package_plugin.py \
   --input-dir src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0 \
   --output-dir artifacts/release \
-  --version 0.11.1.0
+  --version 0.11.2.0
 ```
 
 The generated files are:
 
 ```text
-AdvancedBooks_0.11.1.0.zip
-AdvancedBooks_0.11.1.0.zip.md5
-AdvancedBooks_0.11.1.0.zip.sha256
+AdvancedBooks_0.11.2.0.zip
+AdvancedBooks_0.11.2.0.zip.md5
+AdvancedBooks_0.11.2.0.zip.sha256
 ```
 
 The MD5 value is intentional because Jellyfin 12 verifies plugin repository packages against the manifest checksum using MD5. SHA-256 is published alongside it for stronger manual integrity checking.
@@ -180,6 +180,30 @@ A new user should receive the safe defaults: Single Page, RTL, Fit Screen and 10
 A subsequent GET should return the same normalized values. Invalid layout/direction/fit values, zoom below 0.5, zoom above 4.0, NaN or infinity-equivalent input must not be persisted. Confirm two Jellyfin users can store different values, while two Web clients signed in as the same user receive the same settings.
 
 The preferences endpoint must not accept an arbitrary user id. Storage belongs to the authenticated user and is backed by Jellyfin's display-preferences database.
+
+### Built embedded-resource verification
+
+CI and release validation must inspect the **built plugin DLL**, not only the JavaScript source files. The `EmbeddedReaderResourceVerifier` reads managed manifest resources directly from the PE/CLI resource directory and verifies:
+
+- plugin AssemblyVersion matches the release version;
+- all five reader resources are present;
+- every reader resource is strict UTF-8;
+- no unexpected control characters are present; and
+- each resource remains within the 96 KiB JavaScript Injector defensive limit.
+
+Run it locally after a Release build with:
+
+```bash
+dotnet run \
+  --project tools/EmbeddedReaderResourceVerifier/EmbeddedReaderResourceVerifier.csproj \
+  --configuration Release \
+  --no-build \
+  -- \
+  src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll \
+  0.11.2.0
+```
+
+A source file passing `node --check` is not sufficient evidence if the bytes embedded into the final DLL differ.
 
 ### Web reader smoke test
 
