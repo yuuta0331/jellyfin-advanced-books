@@ -15,10 +15,19 @@ public static class ReaderPreferenceRules
     public const string DefaultFit = "screen";
 
     /// <summary>Current persisted reader-preference schema version.</summary>
-    public const int CurrentPreferenceSchemaVersion = 2;
+    public const int CurrentPreferenceSchemaVersion = 3;
 
     /// <summary>Default reader zoom.</summary>
     public const double DefaultZoom = 1d;
+
+    /// <summary>Default reader background.</summary>
+    public const string DefaultBackground = "black";
+
+    /// <summary>Whether page transitions are enabled by default.</summary>
+    public const bool DefaultAnimateTransitions = true;
+
+    /// <summary>Whether touch gestures are enabled by default.</summary>
+    public const bool DefaultTouchGestures = true;
 
     /// <summary>Default continuous-reader side padding percentage.</summary>
     public const int DefaultSidePadding = 0;
@@ -47,6 +56,10 @@ public static class ReaderPreferenceRules
     /// <summary>Returns whether a zoom value is finite and inside the reader's supported range.</summary>
     public static bool IsValidZoom(double value)
         => double.IsFinite(value) && value >= MinimumZoom && value <= MaximumZoom;
+
+    /// <summary>Returns whether a reader background is supported.</summary>
+    public static bool IsValidBackground(string? value)
+        => value is "black" or "gray" or "white";
 
     /// <summary>Returns whether a continuous-reader side padding value is supported.</summary>
     public static bool IsValidSidePadding(int value)
@@ -80,6 +93,10 @@ public static class ReaderPreferenceRules
             ? DefaultFit
             : normalized;
     }
+
+    /// <summary>Normalizes a reader background, falling back when stale or unknown.</summary>
+    public static string NormalizeBackground(string? value)
+        => IsValidBackground(value) ? value! : DefaultBackground;
 
     /// <summary>Normalizes side padding, falling back when stale or unknown.</summary>
     public static int NormalizeSidePadding(int value)
