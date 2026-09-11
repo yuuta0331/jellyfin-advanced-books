@@ -80,6 +80,9 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Continuous/Webtoon zoom and desktop drag panning
 - [x] Pinch isolation from page pan/scroll
 - [x] Viewport-priority page-grid thumbnail scheduling
+- [x] Page-grid watchdog/retry and bounded full-page fallback
+- [x] Mixed-size viewport-marker current-page tracking
+- [x] Contained scrub-preview loading/error overlay
 - [ ] Further live-device mobile/touch interaction tuning
 - [ ] Jellyfin wrapper-client compatibility matrix
 

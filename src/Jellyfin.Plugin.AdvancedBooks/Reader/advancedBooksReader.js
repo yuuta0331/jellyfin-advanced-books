@@ -86,9 +86,9 @@
         const content = document.createElement('div');
         content.className = 'detailButton-content';
         const icon = document.createElement('span');
-        icon.className = 'material-icons detailButton-icon menu_book';
+        icon.className = 'material-icons detailButton-icon';
         icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = 'menu_book';
+        icon.textContent = 'chrome_reader_mode';
 
         content.appendChild(icon);
         button.appendChild(content);
@@ -165,6 +165,8 @@
             this.pending = new Map();
             this.continuousElements = [];
             this.visibleRatios = new Map();
+            this.pageAspectRatios = new Map();
+            this.recentAspectRatios = [];
             this.loadObserver = null;
             this.visibilityObserver = null;
             this.previousBodyOverflow = document.body.style.overflow;
@@ -201,6 +203,8 @@
             this.viewportResizeObserver = null;
             this.viewportWidth = 0;
             this.viewportHeight = 0;
+            this.continuousScrollFrame = 0;
+            this.boundContinuousScroll = () => this.scheduleContinuousCurrentPageUpdate();
         }
 
         async open() {
@@ -253,7 +257,7 @@
             style.textContent = `
                 .advancedBooksReaderButton .detailButton-content{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
                 .advancedBooksReaderOverlay{position:fixed;inset:0;z-index:2147483000;background:#080808;color:#fff;font-family:inherit;overflow:hidden;--ab-accent:var(--theme-primary-color,#00a4dc);--ab-progress:0%;--ab-stage-width:100vw;--ab-stage-height:100dvh}
-                .advancedBooksReaderStage{position:absolute;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:#080808;touch-action:pan-y;user-select:none;overscroll-behavior:contain;scrollbar-width:none}
+                .advancedBooksReaderStage{position:absolute;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:#080808;touch-action:pan-y;user-select:none;overscroll-behavior:contain;overflow-anchor:none;scrollbar-width:none}
                 .advancedBooksReaderStage::-webkit-scrollbar{display:none}
                 .advancedBooksReaderPages{min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;transform-origin:center center;will-change:transform;box-sizing:border-box;padding:.4rem}
                 .advancedBooksReaderPages img{display:block;object-fit:contain;flex:0 1 auto;box-shadow:0 0 20px rgba(0,0,0,.35)}
@@ -266,7 +270,7 @@
                 .advancedBooksReaderStage.ab-continuous{display:block;align-items:initial;justify-content:initial;touch-action:pan-y}
                 .advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none;will-change:auto;padding:.5rem min(var(--ab-side-padding,0vw),12rem);gap:var(--ab-page-gap,0px);margin-inline:auto;box-sizing:border-box}
                 .advancedBooksReaderPages.ab-layout-webtoon{padding-block:0}
-                .advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box}
+                .advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box;overflow-anchor:none}
                 .advancedBooksReaderPages.ab-layout-webtoon .advancedBooksReaderPageSlot{min-height:30vh}
                 .advancedBooksReaderPagePlaceholder{display:flex;align-items:center;justify-content:center;width:100%;min-height:inherit;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums}
                 .advancedBooksReaderPages.ab-continuous.ab-fit-screen img{max-width:100%;max-height:var(--ab-stage-height);width:auto;height:auto}
@@ -292,9 +296,15 @@
                 .advancedBooksReaderPageSliderValue{min-width:5.2rem;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
                 .advancedBooksReaderSliderPreview{position:absolute;z-index:10;bottom:calc(100% - .1rem);left:50%;transform:translate(-50%,-.35rem);width:min(8.5rem,28vw);padding:.35rem;border:1px solid rgba(255,255,255,.18);border-radius:.6rem;background:rgba(15,15,15,.96);box-shadow:0 10px 32px rgba(0,0,0,.55);pointer-events:none;box-sizing:border-box;backdrop-filter:blur(12px)}
                 .advancedBooksReaderSliderPreview[hidden]{display:none!important}
-                .advancedBooksReaderSliderPreviewImageWrap{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:.35rem;background:#070707}
-                .advancedBooksReaderSliderPreview img{display:block;width:100%;height:100%;object-fit:contain}
-                .advancedBooksReaderSliderPreviewStatus{padding:.75rem .35rem;text-align:center;font-size:.82rem;opacity:.66}
+                .advancedBooksReaderSliderPreviewImageWrap{position:relative;width:100%;aspect-ratio:2/3;display:block;overflow:hidden;border-radius:.35rem;background:#070707}
+                .advancedBooksReaderSliderPreview img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain}
+                .advancedBooksReaderSliderPreview img[hidden]{display:none!important}
+                .advancedBooksReaderSliderPreviewStatus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:.55rem;text-align:center;font-size:.76rem;line-height:1.25;opacity:.72;box-sizing:border-box;overflow:hidden;word-break:break-word}
+                .advancedBooksReaderSliderPreviewStatus[hidden]{display:none!important}
+                .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{content:"";inline-size:1rem;block-size:1rem;border:2px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.8);border-radius:50%;animation:advancedBooksReaderSpin .7s linear infinite}
+                .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden]){font-size:0}
+                .advancedBooksReaderSliderPreviewStatus[data-state="error"]:not([hidden]){font-size:.72rem}
+                @keyframes advancedBooksReaderSpin{to{transform:rotate(360deg)}}
                 .advancedBooksReaderSliderPreviewLabel{padding:.35rem .2rem 0;text-align:center;font-size:.85rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
                 .advancedBooksReaderProgressRail{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:5;pointer-events:none;background:rgba(255,255,255,.16)}
                 .advancedBooksReaderProgressRail::after{content:"";display:block;width:var(--ab-progress);height:100%;background:var(--ab-accent);transition:width .12s linear}
@@ -327,6 +337,7 @@
                 }
                 @media(prefers-reduced-motion:reduce){
                     .advancedBooksReaderChrome,.advancedBooksReaderProgressRail::after{transition:none!important}
+                    .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{animation:none}
                 }
             `;
             document.head.appendChild(style);
@@ -588,6 +599,7 @@
             this.sliderPreviewImage.draggable = false;
             this.sliderPreviewStatus = document.createElement('div');
             this.sliderPreviewStatus.className = 'advancedBooksReaderSliderPreviewStatus';
+            this.sliderPreviewStatus.dataset.state = 'loading';
             this.sliderPreviewStatus.textContent = 'Loading preview…';
             sliderPreviewImageWrap.append(this.sliderPreviewImage, this.sliderPreviewStatus);
 
@@ -657,11 +669,24 @@
             const width = Math.max(1, Math.round(this.stage.clientWidth || window.visualViewport?.width || window.innerWidth));
             const height = Math.max(1, Math.round(this.stage.clientHeight || window.visualViewport?.height || window.innerHeight));
             if (width === this.viewportWidth && height === this.viewportHeight) return;
+
+            const anchor = this.isContinuous() ? this.continuousElements[this.currentPage] : null;
+            const anchorOffset = anchor?.isConnected ? anchor.offsetTop - this.stage.scrollTop : null;
+
             this.viewportWidth = width;
             this.viewportHeight = height;
             this.overlay.style.setProperty('--ab-stage-width', `${width}px`);
             this.overlay.style.setProperty('--ab-stage-height', `${height}px`);
-            if (this.isContinuous()) this.refreshContinuousImageSizing();
+            if (this.isContinuous()) {
+                this.refreshContinuousImageSizing();
+                if (anchorOffset !== null && anchor?.isConnected) {
+                    requestAnimationFrame(() => {
+                        if (!this.closed && anchor.isConnected) {
+                            this.stage.scrollTop = Math.max(0, anchor.offsetTop - anchorOffset);
+                        }
+                    });
+                }
+            }
         }
 
         beginExternalPinch() {
@@ -761,6 +786,8 @@
             }
 
             this.sliderPreviewImage.hidden = true;
+            this.sliderPreviewImage.removeAttribute('src');
+            this.sliderPreviewStatus.dataset.state = 'loading';
             this.sliderPreviewStatus.hidden = false;
             this.sliderPreviewStatus.textContent = 'Loading preview…';
             this.sliderPreviewTimer = window.setTimeout(
@@ -793,6 +820,7 @@
                 if (error?.name === 'AbortError') return;
                 if (sequence === this.sliderPreviewSequence && !this.sliderPreview?.hidden) {
                     this.sliderPreviewImage.hidden = true;
+                    this.sliderPreviewStatus.dataset.state = 'error';
                     this.sliderPreviewStatus.hidden = false;
                     this.sliderPreviewStatus.textContent = 'Preview unavailable';
                 }
@@ -806,6 +834,7 @@
             this.sliderPreviewImage.src = objectUrl;
             this.sliderPreviewImage.alt = `Preview of page ${index + 1}`;
             this.sliderPreviewImage.hidden = false;
+            this.sliderPreviewStatus.dataset.state = 'idle';
             this.sliderPreviewStatus.hidden = true;
         }
 
@@ -890,6 +919,7 @@
             this.stage.addEventListener('pointerup', this.boundPointerUp);
             this.stage.addEventListener('pointercancel', this.boundPointerUp);
             this.stage.addEventListener('click', this.boundStageClick);
+            this.stage.addEventListener('scroll', this.boundContinuousScroll, { passive: true });
             this.overlay.addEventListener('pointermove', this.boundPointerActivity, { passive: true });
             this.overlay.addEventListener('focusin', this.boundFocusIn);
             this.topChrome?.addEventListener('pointerenter', this.boundChromeEnter);
@@ -913,6 +943,9 @@
             this.stage?.removeEventListener('pointerup', this.boundPointerUp);
             this.stage?.removeEventListener('pointercancel', this.boundPointerUp);
             this.stage?.removeEventListener('click', this.boundStageClick);
+            this.stage?.removeEventListener('scroll', this.boundContinuousScroll);
+            if (this.continuousScrollFrame) cancelAnimationFrame(this.continuousScrollFrame);
+            this.continuousScrollFrame = 0;
             this.overlay?.removeEventListener('pointermove', this.boundPointerActivity);
             this.overlay?.removeEventListener('focusin', this.boundFocusIn);
             this.topChrome?.removeEventListener('pointerenter', this.boundChromeEnter);
@@ -1086,6 +1119,52 @@
             }
         }
 
+        rememberPageAspectRatio(index, width, height) {
+            if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
+            const ratio = Math.max(0.2, Math.min(12, height / width));
+            const previous = this.pageAspectRatios.get(index);
+            this.pageAspectRatios.set(index, ratio);
+            if (previous !== undefined && Math.abs(previous - ratio) < 0.001) return;
+            this.recentAspectRatios.push(ratio);
+            if (this.recentAspectRatios.length > 12) this.recentAspectRatios.shift();
+        }
+
+        estimatedPageAspectRatio(index) {
+            const exact = this.pageAspectRatios.get(index);
+            if (exact) return exact;
+
+            for (let distance = 1; distance <= 4; distance++) {
+                const before = this.pageAspectRatios.get(index - distance);
+                if (before) return before;
+                const after = this.pageAspectRatios.get(index + distance);
+                if (after) return after;
+            }
+
+            if (this.recentAspectRatios.length) {
+                const sorted = [...this.recentAspectRatios].sort((a, b) => a - b);
+                return sorted[Math.floor(sorted.length / 2)];
+            }
+
+            return this.layout === 'webtoon' ? 2.2 : 1.42;
+        }
+
+        estimateContinuousSlotHeight(index, slot) {
+            const ratio = this.estimatedPageAspectRatio(index);
+            const stageHeight = Math.max(1, this.stage?.clientHeight || this.viewportHeight || window.innerHeight);
+            const slotWidth = Math.max(1, slot?.clientWidth || this.pagesElement?.clientWidth || this.viewportWidth || window.innerWidth);
+
+            if (this.fit === 'height') return stageHeight * this.zoom;
+            if (this.fit === 'original') return slotWidth * ratio * this.zoom;
+            if (this.fit === 'screen') return Math.min(stageHeight, slotWidth * ratio);
+            return slotWidth * ratio;
+        }
+
+        applyEstimatedContinuousSlot(index, slot) {
+            if (!slot?.isConnected) return;
+            const expectedHeight = this.estimateContinuousSlotHeight(index, slot);
+            slot.style.minHeight = `${Math.max(1, Math.round(expectedHeight))}px`;
+        }
+
         async renderContinuous(sequence) {
             this.teardownContinuous();
             this.resetPan();
@@ -1110,6 +1189,9 @@
             }
             this.pagesElement.appendChild(fragment);
             if (sequence !== this.renderSequence || this.closed) return;
+            for (let index = 0; index < this.continuousElements.length; index++) {
+                this.applyEstimatedContinuousSlot(index, this.continuousElements[index]);
+            }
 
             this.loadObserver = new IntersectionObserver(entries => {
                 for (const entry of entries) {
@@ -1143,6 +1225,7 @@
                     if (!this.closed && this.isContinuous()) {
                         this.stage.scrollTop = Math.max(0, target.offsetTop - 4);
                         this.prefetchContinuousNear(this.currentPage, 1);
+                        this.scheduleContinuousCurrentPageUpdate();
                     }
                 });
             }
@@ -1157,24 +1240,47 @@
             this.continuousElements = [];
         }
 
+        scheduleContinuousCurrentPageUpdate() {
+            if (!this.isContinuous() || this.continuousScrollFrame) return;
+            this.continuousScrollFrame = requestAnimationFrame(() => {
+                this.continuousScrollFrame = 0;
+                this.updateContinuousCurrentPage();
+            });
+        }
+
+        viewportMarkerPage() {
+            if (!this.isContinuous() || !this.stage?.isConnected) return null;
+            const stageRect = this.stage.getBoundingClientRect();
+            const markerX = Math.max(stageRect.left + 1, Math.min(stageRect.right - 1, stageRect.left + (stageRect.width * 0.5)));
+            const markerY = Math.max(stageRect.top + 1, Math.min(stageRect.bottom - 1, stageRect.top + (stageRect.height * 0.35)));
+            const element = document.elementFromPoint(markerX, markerY);
+            const slot = element?.closest?.('.advancedBooksReaderPageSlot');
+            const index = Number(slot?.dataset.pageIndex);
+            return Number.isInteger(index) && index >= 0 && index < this.pageCount ? index : null;
+        }
+
         updateContinuousCurrentPage() {
-            if (!this.isContinuous() || this.visibleRatios.size === 0) return;
-            let bestIndex = this.currentPage;
-            let bestRatio = -1;
-            for (const [index, ratio] of this.visibleRatios) {
-                if (ratio > bestRatio || (ratio === bestRatio && Math.abs(index - this.currentPage) < Math.abs(bestIndex - this.currentPage))) {
-                    bestIndex = index;
-                    bestRatio = ratio;
+            if (!this.isContinuous()) return;
+
+            let bestIndex = this.viewportMarkerPage();
+            if (bestIndex === null && this.visibleRatios.size > 0) {
+                bestIndex = this.currentPage;
+                let bestRatio = -1;
+                for (const [index, ratio] of this.visibleRatios) {
+                    if (ratio > bestRatio || (ratio === bestRatio && Math.abs(index - this.currentPage) < Math.abs(bestIndex - this.currentPage))) {
+                        bestIndex = index;
+                        bestRatio = ratio;
+                    }
                 }
             }
-            if (bestIndex !== this.currentPage) {
-                const direction = Math.sign(bestIndex - this.currentPage) || 1;
-                this.currentPage = bestIndex;
-                this.updateControls();
-                this.trimCache();
-                this.trimPendingContinuous();
-                this.prefetchContinuousNear(bestIndex, direction);
-            }
+
+            if (!Number.isInteger(bestIndex) || bestIndex === this.currentPage) return;
+            const direction = Math.sign(bestIndex - this.currentPage) || 1;
+            this.currentPage = bestIndex;
+            this.updateControls();
+            this.trimCache();
+            this.trimPendingContinuous();
+            this.prefetchContinuousNear(bestIndex, direction);
         }
 
         prefetchContinuousNear(center, direction) {
@@ -1241,6 +1347,7 @@
         stabilizeContinuousSlot(index, slot, image) {
             if (!slot || !image || image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
 
+            this.rememberPageAspectRatio(index, image.naturalWidth, image.naturalHeight);
             const anchor = this.continuousElements[this.currentPage];
             const beforeAnchorTop = index < this.currentPage && anchor?.isConnected ? anchor.offsetTop : null;
             const aspectHeight = image.naturalHeight / image.naturalWidth;
@@ -1292,11 +1399,15 @@
 
         refreshContinuousImageSizing() {
             if (!this.isContinuous()) return;
-            for (const image of this.pagesElement.querySelectorAll('img')) {
-                const index = Number(image.dataset.pageIndex);
-                const slot = Number.isInteger(index) ? this.continuousElements[index] : null;
-                if (slot) this.stabilizeContinuousSlot(index, slot, image);
-                this.applyContinuousImageSizing(image);
+            for (let index = 0; index < this.continuousElements.length; index++) {
+                const slot = this.continuousElements[index];
+                const image = slot?.querySelector('img');
+                if (image) {
+                    this.stabilizeContinuousSlot(index, slot, image);
+                    this.applyContinuousImageSizing(image);
+                } else if (slot) {
+                    this.applyEstimatedContinuousSlot(index, slot);
+                }
             }
         }
 
@@ -1368,7 +1479,10 @@
             const objectUrl = this.cache.get(index);
             if (!objectUrl) return;
             const slot = this.continuousElements[index];
-            if (slot?.isConnected) this.ensurePlaceholder(slot, index);
+            if (slot?.isConnected) {
+                this.ensurePlaceholder(slot, index);
+                this.applyEstimatedContinuousSlot(index, slot);
+            }
             URL.revokeObjectURL(objectUrl);
             this.cache.delete(index);
         }
