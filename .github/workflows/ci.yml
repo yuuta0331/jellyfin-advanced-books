@@ -50,6 +50,9 @@ jobs:
       - name: Validate reader render invariants
         run: python scripts/validate_reader_render.py
 
+      - name: Validate localization coverage
+        run: python scripts/validate_localization.py
+
       - name: Validate release metadata
         id: release_meta
         run: >-
