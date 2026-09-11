@@ -14,7 +14,14 @@ public sealed record ReaderPreferencesDto(
     int PageGap,
     string Background,
     bool AnimateTransitions,
-    bool TouchGestures);
+    bool TouchGestures,
+    bool ShowMetadata,
+    bool ShowMetadataTitle,
+    bool ShowMetadataAuthors,
+    bool ShowMetadataSeries,
+    bool ShowMetadataIssue,
+    bool ShowMetadataYear,
+    bool AutoScrollMetadata);
 
 /// <summary>
 /// Replaces the current user's Advanced Reader preferences.
@@ -47,4 +54,25 @@ public sealed class UpdateReaderPreferencesRequest
 
     /// <summary>Gets or sets whether touch gestures are enabled.</summary>
     public bool TouchGestures { get; set; } = ReaderPreferenceRules.DefaultTouchGestures;
+
+    /// <summary>Gets or sets whether reader metadata is shown.</summary>
+    public bool ShowMetadata { get; set; } = ReaderPreferenceRules.DefaultShowMetadata;
+
+    /// <summary>Gets or sets whether the title is shown in reader metadata.</summary>
+    public bool ShowMetadataTitle { get; set; } = ReaderPreferenceRules.DefaultShowMetadataTitle;
+
+    /// <summary>Gets or sets whether authors are shown in reader metadata.</summary>
+    public bool ShowMetadataAuthors { get; set; } = ReaderPreferenceRules.DefaultShowMetadataAuthors;
+
+    /// <summary>Gets or sets whether series is shown in reader metadata.</summary>
+    public bool ShowMetadataSeries { get; set; } = ReaderPreferenceRules.DefaultShowMetadataSeries;
+
+    /// <summary>Gets or sets whether issue/index is shown in reader metadata.</summary>
+    public bool ShowMetadataIssue { get; set; } = ReaderPreferenceRules.DefaultShowMetadataIssue;
+
+    /// <summary>Gets or sets whether year is shown in reader metadata.</summary>
+    public bool ShowMetadataYear { get; set; } = ReaderPreferenceRules.DefaultShowMetadataYear;
+
+    /// <summary>Gets or sets whether overflowing reader metadata scrolls automatically.</summary>
+    public bool AutoScrollMetadata { get; set; } = ReaderPreferenceRules.DefaultAutoScrollMetadata;
 }
