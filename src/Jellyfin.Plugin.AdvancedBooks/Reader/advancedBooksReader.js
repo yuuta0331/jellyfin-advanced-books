@@ -405,9 +405,26 @@
             closeButton.title = 'Close (Esc)';
             closeButton.setAttribute('aria-label', 'Close reader');
 
+            const metadataHeader = document.createElement('div');
+            metadataHeader.className = 'advancedBooksReaderMetadata';
             const title = document.createElement('div');
             title.className = 'advancedBooksReaderTitle';
-            title.textContent = 'Advanced Reader';
+            title.textContent = this.bookTitle;
+            title.title = this.bookTitle;
+            const subtitle = document.createElement('div');
+            subtitle.className = 'advancedBooksReaderSubtitle';
+            const subtitleParts = [];
+            if (this.bookAuthors.length) subtitleParts.push(this.bookAuthors.join(', '));
+            if (this.seriesName && this.seriesName !== this.bookTitle) {
+                const seriesLabel = this.indexNumber !== null
+                    ? `${this.seriesName} #${this.indexNumber}`
+                    : this.seriesName;
+                subtitleParts.push(seriesLabel);
+            }
+            if (this.productionYear !== null) subtitleParts.push(String(this.productionYear));
+            subtitle.textContent = subtitleParts.join(' · ') || this.metadata.format;
+            subtitle.title = subtitle.textContent;
+            metadataHeader.append(title, subtitle);
 
             this.counter = document.createElement('div');
             this.counter.className = 'advancedBooksReaderCounter';
@@ -426,13 +443,19 @@
             this.fullscreenButton.setAttribute('aria-label', 'Enter fullscreen');
             this.fullscreenButton.hidden = typeof this.overlay.requestFullscreen !== 'function';
 
+            this.helpButton = this.makeButton('?', () => this.toggleHelp());
+            this.helpButton.className = 'advancedBooksReaderIconButton';
+            this.helpButton.title = 'Reader help';
+            this.helpButton.setAttribute('aria-label', 'Reader help');
+            this.helpButton.setAttribute('aria-expanded', 'false');
+
             this.settingsButton = this.makeButton('⚙', () => this.toggleSettings());
             this.settingsButton.className = 'advancedBooksReaderIconButton';
             this.settingsButton.title = 'Reader settings';
             this.settingsButton.setAttribute('aria-label', 'Reader settings');
             this.settingsButton.setAttribute('aria-expanded', 'false');
 
-            top.append(closeButton, title, this.counter, topSpacer, this.fullscreenButton, this.pagesHost, this.settingsButton);
+            top.append(closeButton, metadataHeader, this.counter, topSpacer, this.fullscreenButton, this.pagesHost, this.helpButton, this.settingsButton);
 
             this.toolbar = document.createElement('div');
             this.toolbar.className = 'advancedBooksReaderToolbar advancedBooksReaderSettingsPanel';
@@ -512,6 +535,37 @@
             this.pageGapSelect.dataset.abControl = 'pageGap';
             this.pageGapSelect.setAttribute('aria-label', 'Continuous page gap');
 
+            this.backgroundSelect = this.makeSelect([
+                ['black', 'Black'],
+                ['gray', 'Gray'],
+                ['white', 'White']
+            ], this.background, value => {
+                this.background = value;
+                this.syncControlState();
+            });
+            this.backgroundSelect.dataset.abControl = 'background';
+            this.backgroundSelect.setAttribute('aria-label', 'Reader background');
+
+            this.transitionSelect = this.makeSelect([
+                ['true', 'On'],
+                ['false', 'Off']
+            ], String(this.animateTransitions), value => {
+                this.animateTransitions = value === 'true';
+                this.syncControlState();
+            });
+            this.transitionSelect.dataset.abControl = 'transitions';
+            this.transitionSelect.setAttribute('aria-label', 'Page transition animation');
+
+            this.gestureSelect = this.makeSelect([
+                ['true', 'On'],
+                ['false', 'Off']
+            ], String(this.touchGestures), value => {
+                this.touchGestures = value === 'true';
+                this.syncControlState();
+            });
+            this.gestureSelect.dataset.abControl = 'gestures';
+            this.gestureSelect.setAttribute('aria-label', 'Touch gestures');
+
             this.zoomOutButton = this.makeButton('−', () => this.setZoom(this.zoom - .25));
             this.zoomOutButton.title = 'Zoom out';
             this.zoomResetButton = this.makeButton('100%', () => this.setZoom(1));
@@ -551,10 +605,52 @@
                 this.directionRow,
                 row('Fit', this.fitSelect),
                 row('Zoom', zoomRow),
+                row('Background', this.backgroundSelect),
+                row('Page transitions', this.transitionSelect),
+                row('Touch gestures', this.gestureSelect),
                 this.sidePaddingRow,
                 this.pageGapRow,
                 hint
             );
+
+            this.helpPanel = document.createElement('div');
+            this.helpPanel.className = 'advancedBooksReaderHelpPanel';
+            this.helpPanel.hidden = true;
+            this.helpPanel.setAttribute('role', 'dialog');
+            this.helpPanel.setAttribute('aria-label', 'Reader help');
+            const helpHeader = document.createElement('div');
+            helpHeader.className = 'advancedBooksReaderHelpHeader';
+            const helpTitle = document.createElement('span');
+            helpTitle.textContent = 'Reader controls';
+            const helpClose = this.makeButton('×', () => this.toggleHelp(false));
+            helpClose.className = 'advancedBooksReaderIconButton';
+            helpClose.title = 'Close help';
+            helpClose.setAttribute('aria-label', 'Close reader help');
+            helpHeader.append(helpTitle, helpClose);
+
+            const helpGrid = document.createElement('div');
+            helpGrid.className = 'advancedBooksReaderHelpGrid';
+            const shortcuts = [
+                ['← / →', 'Previous / next page in paged modes'],
+                ['Page Up / Down', 'Previous / next page or group'],
+                ['Space', 'Next page or group'],
+                ['Home / End', 'First / last page'],
+                ['+ / − / 0', 'Zoom in / out / reset'],
+                ['Ctrl + wheel', 'Zoom'],
+                ['F', 'Fullscreen'],
+                ['Esc', 'Close panel, then reader'],
+                ['Drag', 'Pan while zoomed'],
+                ['Two-finger pinch', 'Zoom when touch gestures are enabled']
+            ];
+            for (const [key, description] of shortcuts) {
+                const keyElement = document.createElement('div');
+                keyElement.className = 'advancedBooksReaderHelpKey';
+                keyElement.textContent = key;
+                const descriptionElement = document.createElement('div');
+                descriptionElement.textContent = description;
+                helpGrid.append(keyElement, descriptionElement);
+            }
+            this.helpPanel.append(helpHeader, helpGrid);
 
             const bottom = document.createElement('div');
             bottom.className = 'advancedBooksReaderChrome advancedBooksReaderChromeBottom';
@@ -649,7 +745,7 @@
             const rail = document.createElement('div');
             rail.className = 'advancedBooksReaderProgressRail';
 
-            this.overlay.append(this.stage, top, bottom, rail, this.toolbar);
+            this.overlay.append(this.stage, top, bottom, rail, this.toolbar, this.helpPanel);
             document.body.appendChild(this.overlay);
             this.syncControlState();
         }
@@ -660,13 +756,13 @@
             this.hiddenPointerAnchor = null;
             if (this.lastPointerPosition) this.visiblePointerAnchor = { ...this.lastPointerPosition };
             window.clearTimeout(this.controlsTimer);
-            if (autoHide && !this.settingsOpen) {
+            if (autoHide && !this.settingsOpen && !this.helpOpen) {
                 this.controlsTimer = window.setTimeout(() => this.hideControls(), 2800);
             }
         }
 
         hideControls() {
-            if (!this.overlay?.isConnected || this.settingsOpen || this.sliderScrubbing) return;
+            if (!this.overlay?.isConnected || this.settingsOpen || this.helpOpen || this.sliderScrubbing) return;
             this.overlay.classList.add('ab-controls-hidden');
             this.hiddenPointerAnchor = this.lastPointerPosition ? { ...this.lastPointerPosition } : null;
             this.visiblePointerAnchor = null;
@@ -675,6 +771,10 @@
         toggleControls() {
             if (this.settingsOpen) {
                 this.toggleSettings(false);
+                return;
+            }
+            if (this.helpOpen) {
+                this.toggleHelp(false);
                 return;
             }
             if (this.overlay.classList.contains('ab-controls-hidden')) this.showControls();
@@ -686,6 +786,7 @@
 
         toggleSettings(force) {
             const next = typeof force === 'boolean' ? force : !this.settingsOpen;
+            if (next && this.helpOpen) this.toggleHelp(false, false);
             this.settingsOpen = next;
             if (next) this.hideSliderPreview(true);
             this.toolbar.hidden = !next;
@@ -697,6 +798,22 @@
             } else {
                 this.showControls();
                 this.settingsButton?.focus?.({ preventScroll: true });
+            }
+        }
+
+        toggleHelp(force, restoreFocus = true) {
+            const next = typeof force === 'boolean' ? force : !this.helpOpen;
+            if (next && this.settingsOpen) this.toggleSettings(false);
+            this.helpOpen = next;
+            if (next) this.hideSliderPreview(true);
+            if (this.helpPanel) this.helpPanel.hidden = !next;
+            this.helpButton?.setAttribute('aria-expanded', String(next));
+            if (next) {
+                this.showControls(false);
+                this.helpPanel?.querySelector('button')?.focus?.({ preventScroll: true });
+            } else {
+                this.showControls();
+                if (restoreFocus) this.helpButton?.focus?.({ preventScroll: true });
             }
         }
 
