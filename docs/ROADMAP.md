@@ -37,6 +37,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Single-page mode
 - [x] Double-page mode
 - [x] Smart spreads: first/last and landscape pages remain single
+- [x] Resolve page orientation before committing a Double Page spread
 - [x] LTR / RTL
 - [x] Fit width / height / screen / original
 - [x] Basic zoom and drag-to-pan
@@ -58,6 +59,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Pointer-anchored low-latency scrub preview
 - [x] Measured viewport Fit sizing and square mobile reader controls
 - [x] Jellyfin title/author/series/year metadata in reader chrome
+- [x] Per-field metadata visibility and overflow auto-scroll preferences
 - [x] Black/gray/white reader backgrounds
 - [x] Optional page-transition animation and touch gestures
 - [x] Contextual keyboard/gesture help
@@ -87,6 +89,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Viewport-priority page-grid thumbnail scheduling
 - [x] Page-grid watchdog/retry and bounded full-page fallback
 - [x] Mixed-size viewport-marker current-page tracking
+- [x] One-image-per-slot Continuous/Webtoon render invariant with stale-load generation guards
+- [x] Ignore `__MACOSX` / AppleDouble image-like archive metadata entries
 - [x] Contained scrub-preview loading/error overlay
 - [ ] Further live-device mobile/touch interaction tuning
 - [ ] Jellyfin wrapper-client compatibility matrix
