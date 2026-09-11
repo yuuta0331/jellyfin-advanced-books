@@ -16,7 +16,7 @@
     }
 
     function currentZoom(overlay) {
-        const reset = overlay.querySelector('.advancedBooksReaderToolbar button[title="Reset zoom"]');
+        const reset = overlay.querySelector('.advancedBooksReaderToolbar button[data-ab-action="zoom-reset"],button[title="Reset zoom"]');
         const text = reset?.textContent?.trim() ?? '100%';
         const percent = Number.parseInt(text.replace('%', ''), 10);
         return Number.isFinite(percent) ? clampZoom(percent / 100) : 1;
@@ -73,9 +73,9 @@
         }
 
         const toolbar = session.overlay.querySelector('.advancedBooksReaderToolbar');
-        const reset = toolbar?.querySelector('button[title="Reset zoom"]');
-        const plus = toolbar?.querySelector('button[title="Zoom in"]');
-        const minus = toolbar?.querySelector('button[title="Zoom out"]');
+        const reset = toolbar?.querySelector('button[data-ab-action="zoom-reset"],button[title="Reset zoom"]');
+        const plus = toolbar?.querySelector('button[data-ab-action="zoom-in"],button[title="Zoom in"]');
+        const minus = toolbar?.querySelector('button[data-ab-action="zoom-out"],button[title="Zoom out"]');
         if (!toolbar || !reset) return;
 
         reset.click();
