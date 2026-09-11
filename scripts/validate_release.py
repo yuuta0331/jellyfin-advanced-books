@@ -53,6 +53,8 @@ def load_metadata(build_yaml: Path, csproj: Path) -> dict[str, str]:
     build_version = read_yaml_scalar(build_yaml, "version")
     target_abi = read_yaml_scalar(build_yaml, "targetAbi")
     guid = read_yaml_scalar(build_yaml, "guid")
+    image_url = read_yaml_scalar(build_yaml, "imageUrl")
+    category = read_yaml_scalar(build_yaml, "category")
     changelog = read_yaml_folded_block(build_yaml, "changelog")
 
     root = ET.parse(csproj).getroot()
@@ -72,12 +74,20 @@ def load_metadata(build_yaml: Path, csproj: Path) -> dict[str, str]:
         raise ValueError(f"Release version must normalize to four components: {build_version!r}")
     if not FOUR_PART_VERSION.fullmatch(target_abi):
         raise ValueError(f"targetAbi must have four numeric components: {target_abi!r}")
+    if not image_url.startswith("https://"):
+        raise ValueError("imageUrl must use HTTPS")
+    if not re.search(r"\.(?:png|jpe?g|webp|svg)$", image_url, re.IGNORECASE):
+        raise ValueError("imageUrl must end in a supported image filename")
+    if category != "Books":
+        raise ValueError(f"Advanced Books catalog category must be 'Books', got {category!r}")
 
     return {
         "version": normalized_build_version,
         "tag": f"v{normalized_build_version}",
         "target_abi": target_abi,
         "guid": guid,
+        "image_url": image_url,
+        "category": category,
         "changelog": changelog,
     }
 

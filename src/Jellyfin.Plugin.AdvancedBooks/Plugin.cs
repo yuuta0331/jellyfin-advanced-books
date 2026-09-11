@@ -32,6 +32,10 @@ public sealed class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public override string Name => "Advanced Books";
 
     /// <inheritdoc />
+    public override string Description
+        => "Advanced comic, manga, magazine and book reading features for Jellyfin 12.";
+
+    /// <inheritdoc />
     public override Guid Id => PluginId;
 
     /// <summary>

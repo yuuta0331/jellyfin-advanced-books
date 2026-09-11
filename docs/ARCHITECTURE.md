@@ -148,6 +148,10 @@ The reader never puts an authenticated page endpoint directly into an `<img src>
 
 Paged and continuous modes use bounded Blob caches. Double Page resolves the orientation of the current/next page before committing a spread, avoiding an initial guessed spread followed by a layout correction. Continuous mode additionally uses `IntersectionObserver` for lazy loading and current-page tracking. A Continuous/Webtoon slot may contain exactly one placeholder or one page image: all successful loads use replacement semantics, and a slot generation value invalidates stale asynchronous completions after eviction/reset. This is the primary defense against duplicate images caused by overlapping initial load, observer and prefetch paths.
 
+### Localization bridge
+
+`advancedBooksLocalization.js` detects the Jellyfin document locale with a browser-language fallback and translates only Advanced Books-owned UI. Translation dictionaries currently cover English, Japanese, German, French, Spanish and Simplified Chinese. User-provided title/author/series text is not passed through the static UI-label translator; only Advanced Books metadata prefixes are localized. The bridge also annotates translated controls with stable `data-ab-action` identifiers so internal integrations never depend on localized tooltip text.
+
 ### Progress bridge
 
 `advancedBooksProgress.js` is intentionally separate from the core reader module. It observes the reader's public DOM state, debounces progress writes, captures the final position from the reader's pre-removal close event, queues the newest position behind an in-flight PUT, restores any non-zero saved position even for already-played books, and signals when resume handling is complete.
@@ -174,7 +178,7 @@ Selecting a thumbnail reuses the continuous page-slot model to reach a distant p
 
 Jellyfin does not currently expose a stable general-purpose server-plugin API for replacing arbitrary Web UI components. Web integration is therefore kept replaceable.
 
-For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. Core, Progress, Preferences, Navigator and Gestures are registered as five independent entries; Core is required while optional bridges fail soft, and each embedded resource is validated before registration.
+For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. Localization, Core, Progress, Preferences, Navigator and Gestures are registered as six independent entries; Core is required while optional bridges fail soft, and each embedded resource is validated before registration.
 
 Full-page responses use `Cache-Control: private, no-store` and include `X-AdvancedBooks-Page-Index`; the browser includes an archive-version query key and verifies the returned index before caching the page Blob. If Jellyfin changes its item-detail route, `.mainDetailButtons` container, reader DOM or legacy `window.ApiClient`, only the Web adapter/bridges should require changes; archive and storage code remain independent.
 

@@ -2,10 +2,10 @@
   {
     "guid": "843f3c69-88ee-4e82-84f3-330b84d64d88",
     "name": "Advanced Books",
-    "description": "Advanced book and comic features for Jellyfin 12, including Komga-compatible One-Shots and an Advanced Reader.",
-    "overview": "Komga-compatible book handling and an advanced comic reader for Jellyfin.",
+    "description": "Advanced comic, manga, magazine and book features for Jellyfin 12, including Komga-compatible One-Shots and a localized Advanced Reader.",
+    "overview": "Advanced comic, manga, magazine and book reader for Jellyfin 12.",
     "owner": "yuuta0331",
-    "category": "General",
+    "category": "Books",
     "versions": [
       {
         "version": "0.13.0.0",
@@ -79,6 +79,7 @@
         "checksum": "3ae9c58fd76d34e9c04f97b12cd86a2a",
         "timestamp": "2026-09-10T16:37:25Z"
       }
-    ]
+    ],
+    "imageUrl": "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.png"
   }
 ]

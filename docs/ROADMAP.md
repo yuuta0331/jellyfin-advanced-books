@@ -10,6 +10,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] End-user README and developer documentation
 - [x] Initial Komga-style `_oneshots` resolver
 - [x] Plugin configuration page
+- [x] English/Japanese/German/French/Spanish/Simplified Chinese configuration localization
 
 ## Phase 1 - Komga library compatibility
 
@@ -63,6 +64,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Black/gray/white reader backgrounds
 - [x] Optional page-transition animation and touch gestures
 - [x] Contextual keyboard/gesture help
+- [x] Six-language Advanced Reader localization with automatic locale detection
 
 ## Phase 4 - Continuous reader and progress
 
@@ -100,7 +102,11 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Development plugin artifact in CI
 - [x] Reproducible release plugin package
 - [x] Repository manifest
+- [x] Repository-owned Catalog icon/banner and `imageUrl` metadata
+- [x] Books-category Catalog metadata
+- [x] Repository-first installation and update documentation
 - [x] Release workflow
+- [x] Localization/catalog validation in CI and Release
 - [x] CI cost controls (ready PR/manual CI, no duplicate main build)
 - [ ] Upgrade/migration tests
-- [ ] Stable installation documentation
+- [ ] Official Jellyfin repository submission/review

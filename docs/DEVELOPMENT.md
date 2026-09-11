@@ -47,15 +47,15 @@ To package a local Release build:
 python scripts/package_plugin.py \
   --input-dir src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0 \
   --output-dir artifacts/release \
-  --version 0.11.2.0
+  --version 0.14.0.0
 ```
 
 The generated files are:
 
 ```text
-AdvancedBooks_0.11.2.0.zip
-AdvancedBooks_0.11.2.0.zip.md5
-AdvancedBooks_0.11.2.0.zip.sha256
+AdvancedBooks_0.14.0.0.zip
+AdvancedBooks_0.14.0.0.zip.md5
+AdvancedBooks_0.14.0.0.zip.sha256
 ```
 
 The MD5 value is intentional because Jellyfin 12 verifies plugin repository packages against the manifest checksum using MD5. SHA-256 is published alongside it for stronger manual integrity checking.
@@ -64,7 +64,7 @@ The MD5 value is intentional because Jellyfin 12 verifies plugin repository pack
 
 The workflow updates root `manifest.json` with version, target ABI, release URL, MD5 checksum, UTC timestamp and changelog. Re-running the workflow for an existing release preserves the published release assets and can reconstruct the manifest entry from the already-published ZIP.
 
-The standard Jellyfin Repository URL flow requires anonymous HTTPS access. A private GitHub repository can still produce releases for manual installation, but Jellyfin cannot automatically authenticate to a private raw manifest or private GitHub release asset.
+The public repository manifest is intended for Jellyfin's standard Repository URL flow. Release automation regenerates the newest manifest entry from the actually published ZIP, so the installer checksum and source URL remain synchronized.
 
 ## Project layout
 
@@ -77,19 +77,21 @@ src/
   Jellyfin.Plugin.AdvancedBooks/
     Api/                              page/progress/preferences/thumbnail endpoints
     Configuration/                    server/plugin settings
-    Reader/                           reader, progress, preferences, navigator and gesture scripts
+    Reader/                           localization, reader, progress, preferences, navigator and gesture scripts
     Resolvers/                        Jellyfin library resolver integration
     Services/                         runtime integration + thumbnail generation
 scripts/
   package_plugin.py                   deterministic plugin ZIP + checksums
   update_manifest.py                  Jellyfin repository manifest updater
-  validate_release.py                 build/release metadata validation
+  validate_release.py                 build/release/catalog metadata validation
+  validate_localization.py            six-language reader/config coverage validation
 tests/
   Jellyfin.AdvancedBooks.Core.Tests/ unit tests
   test_release_scripts.py             packaging/manifest helper tests
 docs/
   ARCHITECTURE.md
   DEVELOPMENT.md
+  INSTALLATION.md
   PINCH_ZOOM.md
   READER.md
   ROADMAP.md
@@ -193,12 +195,22 @@ A subsequent GET should return the same normalized values. Invalid layout/direct
 
 The preferences endpoint must not accept an arbitrary user id. Storage belongs to the authenticated user and is backed by Jellyfin's display-preferences database.
 
+### Localization validation
+
+Run:
+
+```bash
+python scripts/validate_localization.py
+```
+
+The validation requires all six supported locales in both the reader localization bridge and the plugin configuration page, checks representative Reader/metadata keys, and verifies that Preferences/Gestures use stable localized-control action identifiers rather than relying only on English tooltips.
+
 ### Built embedded-resource verification
 
 CI and release validation must inspect the **built plugin DLL**, not only the JavaScript source files. The `EmbeddedReaderResourceVerifier` reads managed manifest resources directly from the PE/CLI resource directory and verifies:
 
 - plugin AssemblyVersion matches the release version;
-- all five reader resources are present;
+- all six reader resources (Localization, Core, Progress, Preferences, Navigator and Gestures) are present;
 - every reader resource is strict UTF-8;
 - no unexpected control characters are present; and
 - each resource remains within the 96 KiB JavaScript Injector defensive limit.
@@ -212,7 +224,7 @@ dotnet run \
   --no-build \
   -- \
   src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll \
-  0.11.2.0
+  0.14.0.0
 ```
 
 A source file passing `node --check` is not sufficient evidence if the bytes embedded into the final DLL differ.

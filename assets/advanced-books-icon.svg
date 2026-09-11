@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Advanced Books</title>
+  <desc id="desc">An open book with layered comic pages and a reader sparkle.</desc>
+  <defs>
+    <linearGradient id="bg" x1="72" y1="48" x2="440" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C5CFC"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="page" x1="144" y1="144" x2="368" y2="384" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E8EEFF"/>
+    </linearGradient>
+  </defs>
+  <rect x="28" y="28" width="456" height="456" rx="112" fill="url(#bg)"/>
+  <path d="M116 151c42-17 85-11 140 22v230c-49-30-95-37-140-22V151Z" fill="url(#page)"/>
+  <path d="M396 151c-42-17-85-11-140 22v230c49-30 95-37 140-22V151Z" fill="url(#page)"/>
+  <path d="M256 173v230" stroke="#B9C7F9" stroke-width="12" stroke-linecap="round"/>
+  <path d="M148 207c31-6 56-2 79 8M148 250c31-6 56-2 79 8M148 293c31-6 56-2 79 8" stroke="#8EA4ED" stroke-width="12" stroke-linecap="round" opacity=".85"/>
+  <path d="M285 215c23-10 49-14 79-8M285 258c23-10 49-14 79-8M285 301c23-10 49-14 79-8" stroke="#8EA4ED" stroke-width="12" stroke-linecap="round" opacity=".85"/>
+  <path d="M383 100l10 26 26 10-26 10-10 26-10-26-26-10 26-10 10-26Z" fill="#FFF"/>
+  <circle cx="111" cy="399" r="18" fill="#A7F3D0"/>
+</svg>

@@ -25,6 +25,9 @@ class ReleasePackagingTests(unittest.TestCase):
         self.assertRegex(metadata["version"], r"^\d+\.\d+\.\d+\.\d+$")
         self.assertEqual(f"v{metadata['version']}", metadata["tag"])
         self.assertRegex(metadata["target_abi"], r"^\d+\.\d+\.\d+\.\d+$")
+        self.assertEqual("Books", metadata["category"])
+        self.assertTrue(metadata["image_url"].startswith("https://"))
+        self.assertTrue(metadata["image_url"].endswith(".png"))
         self.assertTrue(metadata["changelog"])
 
     def test_package_is_reproducible_and_flat(self) -> None:
@@ -98,6 +101,8 @@ class ReleasePackagingTests(unittest.TestCase):
             self.assertEqual(expected_md5, release["checksum"])
 
             data = json.loads(manifest.read_text(encoding="utf-8"))
+            self.assertEqual("Books", data[0]["category"])
+            self.assertEqual(update_manifest.PLUGIN_METADATA["imageUrl"], data[0]["imageUrl"])
             versions = data[0]["versions"]
             self.assertEqual(["0.8.0.0", "0.7.0.0"], [entry["version"] for entry in versions])
 

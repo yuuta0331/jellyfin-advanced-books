@@ -7,6 +7,7 @@ const int maximumUtf8Bytes = 96 * 1024;
 
 var expectedResources = new HashSet<string>(StringComparer.Ordinal)
 {
+    "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksLocalization.js",
     "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksReader.js",
     "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksProgress.js",
     "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksPreferences.js",

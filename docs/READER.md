@@ -35,6 +35,12 @@ The bottom strip is available in Single, Double, Vertical Continuous and Webtoon
 
 The top chrome shows Jellyfin book metadata: title plus available authors, series, issue/index and production year. The metadata header can be disabled entirely or configured field-by-field. When enabled text is wider than the available header space, optional auto-scroll pans that line horizontally between both ends so the entire value becomes visible. Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit, zoom, black/gray/white background, page-transition animation and touch gestures are available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome, and the contextual **?** help panel lists keyboard and gesture controls.
 
+## Localization
+
+The Advanced Reader follows Jellyfin Web's document language, with the browser language as a fallback. Advanced Books 0.14.0.0 supports English, Japanese, German, French, Spanish and Simplified Chinese. Unsupported locales fall back to English.
+
+Localization is isolated in `Reader/advancedBooksLocalization.js` so the already size-constrained Core reader does not grow with translation tables. The bridge translates Advanced Books-owned controls, labels, tooltips and accessibility labels while preserving user-provided book metadata. Stable `data-ab-action` identifiers keep Preferences and Gestures functional even after visible titles are translated.
+
 ## Per-user reader preferences
 
 Advanced Books stores global reader controls in Jellyfin's normal display-preferences database rather than a plugin-owned JSON file.
@@ -121,7 +127,7 @@ This keeps a large magazine or manga volume from turning into a full-archive bro
 
 ## Jellyfin Web integration
 
-For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers Core, Progress, Preferences, Navigator and Gestures as five independent validated entries through that plugin's public `PluginInterface.RegisterScript` contract.
+For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers Localization, Core, Progress, Preferences, Navigator and Gestures as six independent validated entries through that plugin's public `PluginInterface.RegisterScript` contract.
 
 This is an optional runtime integration. Advanced Books does not reference or ship JavaScript Injector assemblies, and the server-side One-Shot/page/progress/preferences/thumbnail APIs continue to work without it.
 

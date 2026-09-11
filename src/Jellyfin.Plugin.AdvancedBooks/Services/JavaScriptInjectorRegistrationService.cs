@@ -21,6 +21,10 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
     private static readonly ScriptRegistration[] ReaderScripts =
     [
         new(
+            "jellyfin-advanced-books-reader-localization",
+            "Advanced Books Reader - Localization",
+            "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksLocalization.js"),
+        new(
             "jellyfin-advanced-books-reader-core",
             "Advanced Books Reader - Core",
             "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksReader.js",

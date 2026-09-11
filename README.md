@@ -1,5 +1,9 @@
 # Jellyfin Advanced Books
 
+<p align="center">
+  <img src="assets/advanced-books-banner.svg" alt="Jellyfin Advanced Books" width="100%">
+</p>
+
 Advanced book, comic, manga and magazine support for **Jellyfin 12**.
 
 > **Status: early development / not yet a stable release.**
@@ -44,6 +48,7 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - **Per-user reading position stored in Jellyfin user data.**
 - **Automatic resume from the saved page across Jellyfin Web clients, including books already marked played.**
 - **Per-user reader preferences stored in Jellyfin's display-preferences database.**
+- **Six-language UI localization:** English, Japanese, German, French, Spanish and Simplified Chinese, following the Jellyfin/browser language automatically.
 - Reader layout, direction, fit mode, zoom, continuous side padding/page gap, background, transition animation, touch gestures, metadata visibility and metadata auto-scroll choices restore across Jellyfin Web clients for the same user.
 - Final-page completion marks the Jellyfin Book as played.
 - Resume positions use Jellyfin's built-in ComicsPlayer page/tick convention.
@@ -86,7 +91,7 @@ Reader preferences are also stored per Jellyfin user. Single/Double/Vertical/Web
 
 To expose the **Advanced Reader** button inside Jellyfin Web, install the community [Jellyfin JavaScript Injector](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector) plugin. Advanced Books detects it at runtime and registers its embedded reader scripts automatically; you do **not** need to copy/paste the Advanced Books reader JavaScript manually.
 
-Starting with **Advanced Books 0.10.1.0**, the integration is deliberately registered as five independent JS Injector entries (**Core, Progress, Preferences, Navigator, Gestures**) instead of one very large combined script. This avoids a single oversized/corrupted registration disabling the complete reader. On startup, Advanced Books removes the legacy `jellyfin-advanced-books-reader` combined entry before registering the split entries.
+Starting with **Advanced Books 0.14.0.0**, the integration is registered as six independent JS Injector entries (**Localization, Core, Progress, Preferences, Navigator, Gestures**) instead of one very large combined script. Core remains the required reader script; the localization and feature bridges fail soft so one damaged optional resource cannot disable the complete reader. On startup, Advanced Books also removes the legacy `jellyfin-advanced-books-reader` combined entry.
 
 For **Jellyfin 12**, add this JavaScript Injector repository URL in **Dashboard -> Plugins -> Repositories**:
 
@@ -98,7 +103,7 @@ Then install **JavaScript Injector** from the Jellyfin plugin catalog and restar
 
 Without JavaScript Injector, the Advanced Books server-side resolver and APIs can still load, but the **Advanced Reader** button is not automatically inserted into Jellyfin Web.
 
-If the button disappears after upgrading from 0.10.0.0 or older, update Advanced Books, restart Jellyfin, then hard-refresh Jellyfin Web. In JS Injector you should see the five Advanced Books Reader entries above and no legacy single **Advanced Books Reader** combined entry.
+If the button disappears after upgrading from 0.10.0.0 or older, update Advanced Books, restart Jellyfin, then hard-refresh Jellyfin Web. In JS Injector you should see the six Advanced Books Reader entries above and no legacy single **Advanced Books Reader** combined entry.
 
 See [Advanced Reader](docs/READER.md) for controls and implementation details.
 
@@ -139,21 +144,27 @@ The One-Shot resolver follows Jellyfin 12's built-in book extensions: AZW, AZW3,
 
 ## Installation
 
-There is no stable release yet. Development preview releases contain `Jellyfin.Plugin.AdvancedBooks.dll` and `Jellyfin.AdvancedBooks.Core.dll` directly at the root of `AdvancedBooks_<version>.zip`, together with `.md5` and `.sha256` checksum files. Extract the two DLLs into one Advanced Books plugin-version directory and restart Jellyfin. Test development releases on a disposable or backed-up Jellyfin instance first.
+The recommended installation method is the Jellyfin plugin repository. Add this URL in **Dashboard -> Plugins -> Repositories**:
 
-Every successful CI run also publishes the same package shape as the `AdvancedBooks-dev` workflow artifact. The repository contains a Jellyfin-compatible `manifest.json`; release automation updates it from the bytes of the actually published GitHub Release asset so its MD5 checksum matches Jellyfin's installer verification.
+```text
+https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/manifest.json
+```
 
-### Manual upgrade safety
+Use **Advanced Books** as the repository name, save it, then open **Dashboard -> Plugins -> Catalog -> Books -> Advanced Books** and install the latest Jellyfin 12-compatible release. Restart Jellyfin after installation.
 
-When installing a development ZIP manually, **stop Jellyfin first and do not keep copying new DLLs into an old version-named Advanced Books directory**. Old Jellyfin plugin metadata can otherwise report an older version while a newer DLL is present, and multiple Advanced Books directories with the same plugin GUID can make troubleshooting ambiguous.
+Repository installation is also the recommended upgrade path. New releases are added to the same `manifest.json` with the checksum of the actually published GitHub Release ZIP, so future versions appear in Jellyfin's Catalog without manually replacing DLLs. Install the offered update from Jellyfin and restart the server.
 
-For a manual upgrade, keep exactly one active Advanced Books version directory under the Jellyfin plugins directory. Move old Advanced Books version directories outside the active plugins directory as a backup, create a fresh directory for the new version, extract the two DLLs there, then start Jellyfin. Advanced Books 0.11.2.0 and later logs the actual loaded assembly version, informational version and DLL path before JavaScript Injector registration.
+For the Web **Advanced Reader** button, also add the Jellyfin 12 JavaScript Injector repository:
 
-If JavaScript Injector reports an invalid embedded reader resource, treat that as an installation/package-integrity problem and reinstall from a verified ZIP. Optional reader bridges now fail soft, so a damaged optional gesture/progress/preferences/navigator resource no longer unregisters the valid Core reader.
+```text
+https://raw.githubusercontent.com/n00bcodr/jellyfin-plugins/main/12/manifest.json
+```
 
-The standard Jellyfin **Repository URL** flow requires the manifest and release assets to be anonymously reachable over HTTPS. While this GitHub repository remains private, use the downloaded development package for manual installation; do not expect Jellyfin to authenticate to the private GitHub repository automatically.
+Install **JavaScript Injector** from its Catalog entry and restart Jellyfin. Advanced Books then registers Localization, Core, Progress, Preferences, Navigator and Gestures automatically; there is no JavaScript copy/paste step.
 
-See [Development Guide](docs/DEVELOPMENT.md) for build and release details.
+Development preview and manual ZIP installation remain available as a fallback. When installing manually, stop Jellyfin first, keep only one active Advanced Books version directory, extract the two runtime DLLs into a fresh version directory, and restart Jellyfin. Do not overwrite DLLs inside an older version-named directory while Jellyfin is running.
+
+See the complete [Installation and Updates guide](docs/INSTALLATION.md) for repository setup, update behavior, manual fallback, supported UI languages and Catalog metadata.
 
 ## Configuration
 
@@ -178,6 +189,7 @@ Progress writes affect only Jellyfin's normal per-user Book state (`PlaybackPosi
 
 ## Documentation
 
+- [Installation and Updates](docs/INSTALLATION.md)
 - [Advanced Reader](docs/READER.md)
 - [Pinch Zoom](docs/PINCH_ZOOM.md)
 - [Architecture](docs/ARCHITECTURE.md)
