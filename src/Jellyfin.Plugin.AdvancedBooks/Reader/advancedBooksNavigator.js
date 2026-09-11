@@ -615,6 +615,7 @@
             if (existing) URL.revokeObjectURL(existing);
             this.cache.delete(index);
             this.cache.set(index, objectUrl);
+            this.attempts.delete(index);
             this.markFullPageFallback(index);
             this.trimCache(this.currentPageIndex(), false);
             this.applyThumbnail(index, objectUrl);
