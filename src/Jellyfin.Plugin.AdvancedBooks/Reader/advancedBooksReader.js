@@ -159,7 +159,7 @@
             this.itemId = itemId;
             this.metadata = metadata;
             this.pageCount = metadata.pages.length;
-            this.bookTitle = metadata.title || 'Advanced Reader';
+            this.bookTitle = metadata.title || metadata.originalTitle || metadata.seriesName || 'Book';
             this.bookAuthors = metadata.authors;
             this.seriesName = metadata.seriesName;
             this.indexNumber = Number.isFinite(metadata.indexNumber) ? metadata.indexNumber : null;
