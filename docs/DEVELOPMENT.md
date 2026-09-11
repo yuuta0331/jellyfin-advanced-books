@@ -47,15 +47,15 @@ To package a local Release build:
 python scripts/package_plugin.py \
   --input-dir src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0 \
   --output-dir artifacts/release \
-  --version 0.11.2.0
+  --version 0.14.0.0
 ```
 
 The generated files are:
 
 ```text
-AdvancedBooks_0.11.2.0.zip
-AdvancedBooks_0.11.2.0.zip.md5
-AdvancedBooks_0.11.2.0.zip.sha256
+AdvancedBooks_0.14.0.0.zip
+AdvancedBooks_0.14.0.0.zip.md5
+AdvancedBooks_0.14.0.0.zip.sha256
 ```
 
 The MD5 value is intentional because Jellyfin 12 verifies plugin repository packages against the manifest checksum using MD5. SHA-256 is published alongside it for stronger manual integrity checking.
@@ -64,7 +64,7 @@ The MD5 value is intentional because Jellyfin 12 verifies plugin repository pack
 
 The workflow updates root `manifest.json` with version, target ABI, release URL, MD5 checksum, UTC timestamp and changelog. Re-running the workflow for an existing release preserves the published release assets and can reconstruct the manifest entry from the already-published ZIP.
 
-The standard Jellyfin Repository URL flow requires anonymous HTTPS access. A private GitHub repository can still produce releases for manual installation, but Jellyfin cannot automatically authenticate to a private raw manifest or private GitHub release asset.
+The public repository manifest is intended for Jellyfin's standard Repository URL flow. Release automation regenerates the newest manifest entry from the actually published ZIP, so the installer checksum and source URL remain synchronized.
 
 ## Project layout
 
@@ -77,19 +77,21 @@ src/
   Jellyfin.Plugin.AdvancedBooks/
     Api/                              page/progress/preferences/thumbnail endpoints
     Configuration/                    server/plugin settings
-    Reader/                           reader, progress, preferences, navigator and gesture scripts
+    Reader/                           localization, reader, progress, preferences, navigator and gesture scripts
     Resolvers/                        Jellyfin library resolver integration
     Services/                         runtime integration + thumbnail generation
 scripts/
   package_plugin.py                   deterministic plugin ZIP + checksums
   update_manifest.py                  Jellyfin repository manifest updater
-  validate_release.py                 build/release metadata validation
+  validate_release.py                 build/release/catalog metadata validation
+  validate_localization.py            six-language reader/config coverage validation
 tests/
   Jellyfin.AdvancedBooks.Core.Tests/ unit tests
   test_release_scripts.py             packaging/manifest helper tests
 docs/
   ARCHITECTURE.md
   DEVELOPMENT.md
+  INSTALLATION.md
   PINCH_ZOOM.md
   READER.md
   ROADMAP.md
