@@ -41,7 +41,10 @@
                 Fit: preferences.fit,
                 Zoom: preferences.zoom,
                 SidePadding: preferences.sidePadding,
-                PageGap: preferences.pageGap
+                PageGap: preferences.pageGap,
+                Background: preferences.background,
+                AnimateTransitions: preferences.animateTransitions,
+                TouchGestures: preferences.touchGestures
             }),
             url: getPreferencesUrl(apiClient)
         });
@@ -54,6 +57,9 @@
         const zoom = Number(raw?.Zoom ?? raw?.zoom ?? 1);
         const sidePadding = Number(raw?.SidePadding ?? raw?.sidePadding ?? 0);
         const pageGap = Number(raw?.PageGap ?? raw?.pageGap ?? 0);
+        const background = String(raw?.Background ?? raw?.background ?? 'black');
+        const animateTransitions = raw?.AnimateTransitions ?? raw?.animateTransitions ?? true;
+        const touchGestures = raw?.TouchGestures ?? raw?.touchGestures ?? true;
         const sidePaddingValues = [0, 2, 5, 10, 15, 20];
         const pageGapValues = [0, 4, 8, 12, 16, 24, 32];
         return {
@@ -62,7 +68,10 @@
             fit: ['screen', 'width', 'height', 'original'].includes(fit) ? fit : 'screen',
             zoom: Number.isFinite(zoom) ? Math.min(4, Math.max(.5, Math.round(zoom * 20) / 20)) : 1,
             sidePadding: sidePaddingValues.includes(sidePadding) ? sidePadding : 0,
-            pageGap: pageGapValues.includes(pageGap) ? pageGap : 0
+            pageGap: pageGapValues.includes(pageGap) ? pageGap : 0,
+            background: ['black', 'gray', 'white'].includes(background) ? background : 'black',
+            animateTransitions: animateTransitions !== false && String(animateTransitions).toLowerCase() !== 'false',
+            touchGestures: touchGestures !== false && String(touchGestures).toLowerCase() !== 'false'
         };
     }
 
@@ -117,6 +126,9 @@
             fit: overlay.querySelector('[data-ab-control="fit"]') ?? selects[2],
             sidePadding: overlay.querySelector('[data-ab-control="sidePadding"]'),
             pageGap: overlay.querySelector('[data-ab-control="pageGap"]'),
+            background: overlay.querySelector('[data-ab-control="background"]'),
+            transitions: overlay.querySelector('[data-ab-control="transitions"]'),
+            gestures: overlay.querySelector('[data-ab-control="gestures"]'),
             zoomOut: toolbar.querySelector('button[title="Zoom out"]'),
             zoomReset: toolbar.querySelector('button[title="Reset zoom"]'),
             zoomIn: toolbar.querySelector('button[title="Zoom in"]'),
@@ -193,6 +205,9 @@
             setSelect(controls.fit, preferences.fit);
             setSelect(controls.sidePadding, String(preferences.sidePadding));
             setSelect(controls.pageGap, String(preferences.pageGap));
+            setSelect(controls.background, preferences.background);
+            setSelect(controls.transitions, String(preferences.animateTransitions));
+            setSelect(controls.gestures, String(preferences.touchGestures));
             applyZoom(controls, preferences.zoom, session.overlay);
         } finally {
             session.suppressSave = false;
@@ -209,12 +224,15 @@
             fit: controls.fit.value,
             zoom: Number.isFinite(zoomPercent) ? zoomPercent / 100 : 1,
             sidePadding: Number(controls.sidePadding?.value ?? 0),
-            pageGap: Number(controls.pageGap?.value ?? 0)
+            pageGap: Number(controls.pageGap?.value ?? 0),
+            background: controls.background?.value ?? 'black',
+            animateTransitions: controls.transitions?.value !== 'false',
+            touchGestures: controls.gestures?.value !== 'false'
         });
     }
 
     function serialize(preferences) {
-        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}`;
+        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}|${preferences.background}|${preferences.animateTransitions}|${preferences.touchGestures}`;
     }
 
     function capturePreferences(session) {
