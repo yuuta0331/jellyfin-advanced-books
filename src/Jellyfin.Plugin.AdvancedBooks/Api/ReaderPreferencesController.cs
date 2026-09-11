@@ -192,8 +192,8 @@ public sealed class ReaderPreferencesController : ControllerBase
             [SidePaddingKey] = request.SidePadding.ToString(CultureInfo.InvariantCulture),
             [PageGapKey] = request.PageGap.ToString(CultureInfo.InvariantCulture),
             [BackgroundKey] = request.Background,
-            [AnimateTransitionsKey] = request.AnimateTransitions.ToString(CultureInfo.InvariantCulture),
-            [TouchGesturesKey] = request.TouchGestures.ToString(CultureInfo.InvariantCulture),
+            [AnimateTransitionsKey] = request.AnimateTransitions.ToString(),
+            [TouchGesturesKey] = request.TouchGestures.ToString(),
             [PreferenceSchemaVersionKey] = ReaderPreferenceRules.CurrentPreferenceSchemaVersion.ToString(CultureInfo.InvariantCulture)
         };
 
