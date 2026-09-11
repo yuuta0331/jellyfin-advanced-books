@@ -15,6 +15,8 @@ def main() -> int:
         "stale-load generation guard": "abLoadGeneration",
         "page identity response verification": "X-AdvancedBooks-Page-Index",
         "pre-render spread orientation probe": "ensurePageAspectRatio",
+        "final-page single-spread guard": "start + 1 >= last",
+        "continuous image ownership guard": "slot.querySelector('img') !== image",
     }
     forbidden = {
         "append-based continuous page insertion": "slot.appendChild(image)",
