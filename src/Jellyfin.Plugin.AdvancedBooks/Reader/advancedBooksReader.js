@@ -301,8 +301,9 @@
                 .advancedBooksReaderSliderPreview img[hidden]{display:none!important}
                 .advancedBooksReaderSliderPreviewStatus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:.55rem;text-align:center;font-size:.76rem;line-height:1.25;opacity:.72;box-sizing:border-box;overflow:hidden;word-break:break-word}
                 .advancedBooksReaderSliderPreviewStatus[hidden]{display:none!important}
-                .advancedBooksReaderSliderPreviewStatus:not([hidden])::before{content:"";inline-size:1rem;block-size:1rem;border:2px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.8);border-radius:50%;animation:advancedBooksReaderSpin .7s linear infinite}
-                .advancedBooksReaderSliderPreviewStatus:not([hidden]){font-size:0}
+                .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{content:"";inline-size:1rem;block-size:1rem;border:2px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.8);border-radius:50%;animation:advancedBooksReaderSpin .7s linear infinite}
+                .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden]){font-size:0}
+                .advancedBooksReaderSliderPreviewStatus[data-state="error"]:not([hidden]){font-size:.72rem}
                 @keyframes advancedBooksReaderSpin{to{transform:rotate(360deg)}}
                 .advancedBooksReaderSliderPreviewLabel{padding:.35rem .2rem 0;text-align:center;font-size:.85rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
                 .advancedBooksReaderProgressRail{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:5;pointer-events:none;background:rgba(255,255,255,.16)}
@@ -336,7 +337,7 @@
                 }
                 @media(prefers-reduced-motion:reduce){
                     .advancedBooksReaderChrome,.advancedBooksReaderProgressRail::after{transition:none!important}
-                    .advancedBooksReaderSliderPreviewStatus:not([hidden])::before{animation:none}
+                    .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{animation:none}
                 }
             `;
             document.head.appendChild(style);
@@ -598,6 +599,7 @@
             this.sliderPreviewImage.draggable = false;
             this.sliderPreviewStatus = document.createElement('div');
             this.sliderPreviewStatus.className = 'advancedBooksReaderSliderPreviewStatus';
+            this.sliderPreviewStatus.dataset.state = 'loading';
             this.sliderPreviewStatus.textContent = 'Loading preview…';
             sliderPreviewImageWrap.append(this.sliderPreviewImage, this.sliderPreviewStatus);
 
@@ -772,6 +774,7 @@
 
             this.sliderPreviewImage.hidden = true;
             this.sliderPreviewImage.removeAttribute('src');
+            this.sliderPreviewStatus.dataset.state = 'loading';
             this.sliderPreviewStatus.hidden = false;
             this.sliderPreviewStatus.textContent = 'Loading preview…';
             this.sliderPreviewTimer = window.setTimeout(
@@ -804,6 +807,7 @@
                 if (error?.name === 'AbortError') return;
                 if (sequence === this.sliderPreviewSequence && !this.sliderPreview?.hidden) {
                     this.sliderPreviewImage.hidden = true;
+                    this.sliderPreviewStatus.dataset.state = 'error';
                     this.sliderPreviewStatus.hidden = false;
                     this.sliderPreviewStatus.textContent = 'Preview unavailable';
                 }
@@ -817,6 +821,7 @@
             this.sliderPreviewImage.src = objectUrl;
             this.sliderPreviewImage.alt = `Preview of page ${index + 1}`;
             this.sliderPreviewImage.hidden = false;
+            this.sliderPreviewStatus.dataset.state = 'idle';
             this.sliderPreviewStatus.hidden = true;
         }
 
