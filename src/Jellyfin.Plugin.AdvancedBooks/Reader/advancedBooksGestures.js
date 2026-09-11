@@ -142,6 +142,7 @@
 
         pointerDown(event) {
             if (event.pointerType !== 'touch') return;
+            if (this.overlay.__advancedBooksReaderSession?.touchGestures === false) return;
             this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
             if (this.pinching || this.suppressUntilRelease) {
