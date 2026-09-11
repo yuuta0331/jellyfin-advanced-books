@@ -36,6 +36,24 @@ public sealed class ZipBookArchiveReaderTests : IDisposable
     }
 
     [Fact]
+    public void IgnoresMacOsMetadataEntriesThatLookLikeImages()
+    {
+        var path = CreateArchive(
+            "metadata.cbz",
+            ("page1.jpg", [1]),
+            ("__MACOSX/._page1.jpg", [9]),
+            ("folder/page2.png", [2]),
+            ("folder/._page2.png", [8]));
+
+        var info = new ZipBookArchiveReader().GetBookInfo(path);
+
+        Assert.Collection(
+            info.Pages,
+            page => Assert.Equal("page1.jpg", page.Name),
+            page => Assert.Equal("folder/page2.png", page.Name));
+    }
+
+    [Fact]
     public async Task OpensAndCopiesOnePageWithoutExtractingArchive()
     {
         var path = CreateArchive(
