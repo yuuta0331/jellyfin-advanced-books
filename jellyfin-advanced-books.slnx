@@ -2,4 +2,5 @@
   <Project Path="src/Jellyfin.AdvancedBooks.Core/Jellyfin.AdvancedBooks.Core.csproj" />
   <Project Path="src/Jellyfin.Plugin.AdvancedBooks/Jellyfin.Plugin.AdvancedBooks.csproj" />
   <Project Path="tests/Jellyfin.AdvancedBooks.Core.Tests/Jellyfin.AdvancedBooks.Core.Tests.csproj" />
+  <Project Path="tools/EmbeddedReaderResourceVerifier/EmbeddedReaderResourceVerifier.csproj" />
 </Solution>
