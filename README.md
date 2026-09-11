@@ -33,9 +33,9 @@ Jellyfin 12 significantly improves Books, but dedicated comic servers still prov
 - Reader fullscreen toggle on supported browsers/wrappers.
 - Keyboard, click/tap, swipe and wheel controls.
 - IntersectionObserver-based continuous lazy loading plus directional read-ahead.
-- Stabilized continuous-page geometry to reduce scroll jumps while images decode.
+- Stabilized mixed-size continuous-page geometry with learned aspect ratios, viewport-marker current-page tracking and explicit scroll anchoring.
 - Bounded page cache, nearby prefetch and distant-request cancellation.
-- **Lazy thumbnail page navigator** with viewport-priority scheduling, scroll fallback and direct page jumping.
+- **Self-healing thumbnail page navigator** with visible-first scheduling, periodic viewport watchdog, timeout recovery, bounded full-page fallback and direct page jumping.
 - Server-side thumbnail generation through Jellyfin's image processor.
 - Bounded thumbnail cache in the browser and plugin data directory.
 - **Per-user reading position stored in Jellyfin user data.**
@@ -69,11 +69,11 @@ The reader consumes individual pages through Advanced Books rather than download
 
 Available modes are Single Page, Double Page, Vertical Continuous and Webtoon. Continuous modes place lightweight placeholders for the document but fetch image bytes only near the reader viewport. Distant pages are evicted from the Blob cache and can be loaded again when revisited.
 
-Reader controls no longer consume permanent screen space. A compact top chrome and bottom navigation strip appear when the reader opens, then auto-hide while reading. On desktop, hidden chrome ignores minor pointer jitter and returns only after deliberate movement (with a lower threshold near the top/bottom edges); on touch devices a center tap/click toggles it. Hovering over visible chrome pauses auto-hide. The bottom strip includes Previous/Next controls plus a page scrubber that can jump directly across long manga volumes in every layout. While scrubbing, a small page thumbnail and page/range label follow the selected position. Reader settings live in a desktop popover or mobile bottom sheet.
+Reader controls no longer consume permanent screen space. A compact top chrome and bottom navigation strip appear when the reader opens, then auto-hide while reading. On desktop, hidden chrome ignores minor pointer jitter and returns only after deliberate movement (with a lower threshold near the top/bottom edges); on touch devices a center tap/click toggles it. Hovering over visible chrome pauses auto-hide. The bottom strip includes Previous/Next controls plus a page scrubber that can jump directly across long manga volumes in every layout. While scrubbing, a small page thumbnail and page/range label follow the selected position. Loading state is rendered as a centered overlay inside the thumbnail frame, never beside or outside it. Reader settings live in a desktop popover or mobile bottom sheet.
 
 All four layouts support 50%-400% reader zoom. Fit calculations use the actual Reader viewport rather than relying only on CSS dynamic-viewport units, improving Fit Height/Screen behavior in mobile WebViews. Vertical Continuous and Webtoon keep native one-finger vertical scrolling while also supporting the zoom controls, Ctrl+wheel, and two-finger pinch. The pinch bridge now takes exclusive control once the second touch arrives so the page itself does not drift while zooming. At greater than 100% zoom, continuous layouts can be panned with normal scrolling/touch and desktop drag panning. Continuous layouts also expose persisted side-padding and page-gap controls similar to dedicated comic readers.
 
-The **Pages** button opens a thumbnail navigator. Thumbnails are loaded through a small viewport-priority queue instead of flooding the server, with an explicit scroll-position fallback for WebViews where IntersectionObserver delivery is delayed or missed. Jellyfin's normal image processor creates the small cached files; the temporary full-resolution extracted page is deleted immediately after processing. Selecting a thumbnail jumps directly to that page.
+The **Pages** button opens a thumbnail navigator. Visible cards are evaluated directly from the grid scroll position and rechecked by a periodic watchdog, so a missed observer/scroll callback cannot leave a visible row permanently stuck on `Page N`. Lightweight 128px thumbnails are requested first; if a visible thumbnail request fails or stalls, the navigator can fall back to the authenticated full-page endpoint for that card only. Full-page fallback is limited to two concurrent requests and six retained fallback Blob URLs. Selecting a thumbnail jumps directly to that page.
 
 Reading position is saved to Jellyfin's normal per-user item data after navigation settles and is flushed when the reader closes. Unfinished books reopen at the saved page. Reaching the final page marks the Book as played. Non-final progress updates do not clear an existing played state, so starting a reread does not silently mark a completed book unread.
 
