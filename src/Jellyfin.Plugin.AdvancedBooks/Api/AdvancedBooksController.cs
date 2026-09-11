@@ -1,4 +1,5 @@
 using Jellyfin.AdvancedBooks.Core.Archives;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
@@ -42,7 +43,7 @@ public sealed class AdvancedBooksController : ControllerBase
     /// <param name="itemId">Jellyfin book item identifier.</param>
     /// <returns>Archive and page metadata without exposing the server filesystem path.</returns>
     [HttpGet("Books/{itemId:guid}/Pages")]
-    [ProducesResponseType(typeof(ArchiveBookInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ReaderBookInfoDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
@@ -67,7 +68,30 @@ public sealed class AdvancedBooksController : ControllerBase
 
         try
         {
-            return Ok(_archiveReader.GetBookInfo(access.Book.Path));
+            var archive = _archiveReader.GetBookInfo(access.Book.Path);
+            var authors = _libraryManager
+                .GetPeople(access.Book)
+                .Where(static person => person.IsType(PersonKind.Author) && !string.IsNullOrWhiteSpace(person.Name))
+                .OrderBy(static person => person.SortOrder ?? int.MaxValue)
+                .Select(static person => person.Name.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            var title = string.IsNullOrWhiteSpace(access.Book.Name)
+                ? Path.GetFileNameWithoutExtension(access.Book.Path)
+                : access.Book.Name;
+
+            return Ok(new ReaderBookInfoDto(
+                archive.Format,
+                archive.ArchiveSize,
+                archive.LastModifiedUtc,
+                archive.Pages,
+                title,
+                access.Book.OriginalTitle,
+                access.Book.SeriesName,
+                access.Book.IndexNumber,
+                access.Book.ProductionYear,
+                authors));
         }
         catch (FileNotFoundException)
         {
