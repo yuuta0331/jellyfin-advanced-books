@@ -45,6 +45,8 @@
         const cleanText = value => typeof value === 'string' ? value.trim() : '';
         return {
             format: raw?.Format ?? raw?.format ?? 'CBZ',
+            archiveSize: Number(raw?.ArchiveSize ?? raw?.archiveSize ?? 0),
+            lastModifiedUtc: cleanText(raw?.LastModifiedUtc ?? raw?.lastModifiedUtc),
             pages: Array.isArray(pages) ? pages : [],
             title: cleanText(raw?.Title ?? raw?.title),
             originalTitle: cleanText(raw?.OriginalTitle ?? raw?.originalTitle),
@@ -159,6 +161,7 @@
             this.itemId = itemId;
             this.metadata = metadata;
             this.pageCount = metadata.pages.length;
+            this.archiveVersion = `${metadata.archiveSize || 0}-${metadata.lastModifiedUtc || 'unknown'}`;
             this.bookTitle = metadata.title || metadata.originalTitle || metadata.seriesName || 'Book';
             this.bookAuthors = metadata.authors;
             this.seriesName = metadata.seriesName;
@@ -407,24 +410,13 @@
 
             const metadataHeader = document.createElement('div');
             metadataHeader.className = 'advancedBooksReaderMetadata';
+            metadataHeader.dataset.abMetadataHost = 'true';
             const title = document.createElement('div');
             title.className = 'advancedBooksReaderTitle';
             title.textContent = this.bookTitle;
             title.title = this.bookTitle;
-            const subtitle = document.createElement('div');
-            subtitle.className = 'advancedBooksReaderSubtitle';
-            const subtitleParts = [];
-            if (this.bookAuthors.length) subtitleParts.push(this.bookAuthors.join(', '));
-            if (this.seriesName && this.seriesName !== this.bookTitle) {
-                const seriesLabel = this.indexNumber !== null
-                    ? `${this.seriesName} #${this.indexNumber}`
-                    : this.seriesName;
-                subtitleParts.push(seriesLabel);
-            }
-            if (this.productionYear !== null) subtitleParts.push(String(this.productionYear));
-            subtitle.textContent = subtitleParts.join(' · ') || this.metadata.format;
-            subtitle.title = subtitle.textContent;
-            metadataHeader.append(title, subtitle);
+            metadataHeader.append(title);
+            this.metadataHost = metadataHeader;
 
             this.counter = document.createElement('div');
             this.counter.className = 'advancedBooksReaderCounter';
@@ -980,7 +972,6 @@
 
         setLayout(value) {
             this.layout = value;
-            if (value === 'double') this.currentPage = this.spreadStartFor(this.currentPage);
             this.resetPan();
             this.syncControlState();
             this.render();
@@ -1144,55 +1135,56 @@
         spreadLengthAt(start) {
             if (this.layout !== 'double') return 1;
             const last = this.pageCount - 1;
-            if (start <= 0 || start >= last || this.isLandscapePage(start)) return 1;
-            if (start + 1 >= last || this.isLandscapePage(start + 1)) return 1;
+            if (start <= 0 || start >= last || this.isLandscapePage(start) || this.isLandscapePage(start + 1)) return 1;
             return 2;
         }
 
-        spreadStartFor(index) {
-            if (this.layout !== 'double') return index;
-            const target = Math.min(Math.max(0, index), Math.max(0, this.pageCount - 1));
-            let start = 0;
-            while (start < this.pageCount) {
-                const length = this.spreadLengthAt(start);
-                if (target < start + length) return start;
-                start += length;
+        async ensurePageAspectRatio(index) {
+            if (index < 0 || index >= this.pageCount || this.pageAspectRatios.has(index)) return;
+            const url = await this.loadPage(index);
+            const image = new Image();
+            await new Promise(resolve => {
+                const done = () => resolve();
+                image.addEventListener('load', done, { once: true });
+                image.addEventListener('error', done, { once: true });
+                image.src = url;
+                if (image.complete) resolve();
+            });
+            if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                this.rememberPageAspectRatio(index, image.naturalWidth, image.naturalHeight);
             }
-            return Math.max(0, this.pageCount - 1);
         }
 
-        previousSpreadStart() {
-            if (this.layout !== 'double') return Math.max(0, this.currentPage - 1);
-            let previous = 0;
-            let start = 0;
-            while (start < this.currentPage) {
-                previous = start;
-                start += this.spreadLengthAt(start);
+        async previous() {
+            if (this.layout !== 'double') {
+                this.goTo(this.currentPage - 1);
+                return;
             }
-            return previous;
+            const current = this.currentPage;
+            await Promise.all([current - 1, current - 2].map(index => this.ensurePageAspectRatio(index)));
+            if (this.closed || this.layout !== 'double' || this.currentPage !== current) return;
+            const previous = current - 1;
+            const before = previous - 1;
+            const start = previous <= 0 || this.isLandscapePage(previous) || before <= 0 || this.isLandscapePage(before)
+                ? previous
+                : before;
+            this.goTo(start);
         }
 
-        nextSpreadStart() {
-            if (this.layout !== 'double') return this.currentPage + 1;
-            return this.currentPage + this.spreadLengthAt(this.currentPage);
-        }
-
-        alignPage(index) {
-            return this.layout === 'double' ? this.spreadStartFor(index) : index;
-        }
-
-        previous() {
-            this.goTo(this.layout === 'double' ? this.previousSpreadStart() : this.currentPage - 1);
-        }
-
-        next() {
-            this.goTo(this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1);
+        async next() {
+            if (this.layout !== 'double') {
+                this.goTo(this.currentPage + 1);
+                return;
+            }
+            const current = this.currentPage;
+            await Promise.all([current, current + 1].map(index => this.ensurePageAspectRatio(index)));
+            if (this.closed || this.layout !== 'double' || this.currentPage !== current) return;
+            this.goTo(current + this.spreadLengthAt(current));
         }
 
         goTo(index, behavior = 'smooth') {
             const maximum = Math.max(0, this.pageCount - 1);
             const clamped = Math.min(maximum, Math.max(0, index));
-            const aligned = this.alignPage(clamped);
             if (this.isContinuous()) {
                 this.currentPage = clamped;
                 this.updateControls();
@@ -1203,8 +1195,8 @@
                 }
                 return;
             }
-            if (aligned === this.currentPage) return;
-            this.currentPage = aligned;
+            if (clamped === this.currentPage) return;
+            this.currentPage = clamped;
             this.resetPan();
             this.render();
         }
@@ -1232,33 +1224,25 @@
         async renderPaged(sequence) {
             this.stage.className = 'advancedBooksReaderStage';
             this.message.textContent = 'Loading page…';
-            this.updateControls();
             try {
+                if (this.layout === 'double') {
+                    await Promise.all([this.currentPage, this.currentPage + 1].map(index => this.ensurePageAspectRatio(index)));
+                }
+                if (sequence !== this.renderSequence || this.closed || !this.overlay?.isConnected) return;
+                this.updateControls();
                 const indexes = this.visibleIndexes();
                 const urls = await Promise.all(indexes.map(index => this.loadPage(index)));
                 if (sequence !== this.renderSequence || this.closed || !this.overlay?.isConnected) return;
 
-                this.pagesElement.replaceChildren();
-                indexes.forEach((index, position) => {
+                const images = indexes.map((index, position) => {
                     const image = document.createElement('img');
                     image.alt = `Page ${index + 1}`;
                     image.draggable = false;
-                    image.addEventListener('load', () => {
-                        if (this.closed || this.layout !== 'double' || image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
-                        const before = this.visibleIndexes().slice().sort((a, b) => a - b).join(',');
-                        this.rememberPageAspectRatio(index, image.naturalWidth, image.naturalHeight);
-                        const after = this.visibleIndexes().slice().sort((a, b) => a - b).join(',');
-                        if (before !== after) {
-                            requestAnimationFrame(() => {
-                                if (this.closed || this.layout !== 'double') return;
-                                this.currentPage = this.spreadStartFor(this.currentPage);
-                                this.render();
-                            });
-                        }
-                    }, { once: true });
+                    image.dataset.pageIndex = String(index);
                     image.src = urls[position];
-                    this.pagesElement.appendChild(image);
+                    return image;
                 });
+                this.pagesElement.replaceChildren(...images);
                 this.message.textContent = '';
                 this.applyTransform();
                 this.prefetchPaged();
@@ -1446,51 +1430,42 @@
         }
 
         ensurePlaceholder(slot, index, message) {
-            slot.querySelector('img')?.remove();
-            let placeholder = slot.querySelector('.advancedBooksReaderPagePlaceholder');
-            if (!placeholder) {
-                placeholder = document.createElement('div');
-                placeholder.className = 'advancedBooksReaderPagePlaceholder';
-                slot.appendChild(placeholder);
-            }
+            const placeholder = document.createElement('div');
+            placeholder.className = 'advancedBooksReaderPagePlaceholder';
             placeholder.textContent = message ? `${message} — page ${index + 1}` : `Page ${index + 1}`;
+            slot.dataset.abLoadGeneration = String((Number(slot.dataset.abLoadGeneration) || 0) + 1);
+            slot.replaceChildren(placeholder);
         }
 
         async loadContinuousPage(index, slot) {
             if (!slot?.isConnected || this.closed || !this.isContinuous()) return;
+            const generation = slot.dataset.abLoadGeneration ?? '0';
             const url = await this.loadPage(index);
-            if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
+            if (!slot.isConnected || this.closed || !this.isContinuous()
+                || this.continuousElements[index] !== slot
+                || slot.dataset.abLoadGeneration !== generation) return;
 
-            let image = slot.querySelector('img');
-            if (!image) {
+            let image = slot.querySelectorAll('img').length === 1 ? slot.querySelector('img') : null;
+            if (!image || Number(image.dataset.pageIndex) !== index) {
                 image = document.createElement('img');
                 image.alt = `Page ${index + 1}`;
                 image.draggable = false;
                 image.decoding = 'async';
                 image.dataset.pageIndex = String(index);
-
-                const finalizeGeometry = () => {
-                    if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
-                    this.stabilizeContinuousSlot(index, slot, image);
-                    this.applyContinuousImageSizing(image);
-                };
-                image.addEventListener('load', finalizeGeometry, { once: true });
                 image.src = url;
-
                 try {
                     await image.decode?.();
                 } catch {
-                    // Some WebViews reject decode() even when the normal load event succeeds.
+                    // A normal load event may still succeed in WebViews that reject decode().
                 }
-
-                if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
-                finalizeGeometry();
-                slot.querySelector('.advancedBooksReaderPagePlaceholder')?.remove();
-                slot.appendChild(image);
-                return;
+                if (!slot.isConnected || this.closed || !this.isContinuous()
+                    || this.continuousElements[index] !== slot
+                    || slot.dataset.abLoadGeneration !== generation) return;
+                slot.replaceChildren(image);
+            } else if (image.src !== url) {
+                image.src = url;
             }
 
-            if (image.src !== url) image.src = url;
             this.stabilizeContinuousSlot(index, slot, image);
             this.applyContinuousImageSizing(image);
         }
@@ -1574,9 +1549,14 @@
         }
 
         async fetchPage(index, signal) {
-            const url = this.apiClient.getUrl(`AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}`);
-            const response = await this.apiClient.fetch({ url, method: 'GET', signal }, true);
+            const version = encodeURIComponent(this.archiveVersion);
+            const url = this.apiClient.getUrl(`AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}?v=${version}`);
+            const response = await this.apiClient.fetch({ url, method: 'GET', signal, cache: 'no-store' }, true);
             if (!response || response.ok === false) throw new Error(`HTTP ${response?.status ?? 'error'}`);
+            const servedIndex = Number(response.headers?.get?.('X-AdvancedBooks-Page-Index'));
+            if (Number.isInteger(servedIndex) && servedIndex !== index) {
+                throw new Error(`Page identity mismatch: requested ${index}, received ${servedIndex}`);
+            }
             const blob = await response.blob();
             const objectUrl = URL.createObjectURL(blob);
             if (this.closed) {
@@ -1589,12 +1569,13 @@
         }
 
         prefetchPaged() {
-            const previous = this.layout === 'double' ? this.previousSpreadStart() : this.currentPage - 1;
-            const next = this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1;
-            const afterNext = this.layout === 'double'
-                ? next + (next < this.pageCount ? this.spreadLengthAt(next) : 1)
-                : next + 1;
-            const candidates = [previous, next, afterNext];
+            const candidates = [
+                this.currentPage - 2,
+                this.currentPage - 1,
+                this.currentPage + 1,
+                this.currentPage + 2,
+                this.currentPage + 3
+            ];
             for (const index of candidates) {
                 if (index >= 0 && index < this.pageCount && !this.cache.has(index) && !this.pending.has(index)) {
                     this.loadPage(index).catch(() => {});
@@ -1647,7 +1628,7 @@
             const firstVisible = visible[0] ?? this.currentPage;
             const lastVisible = visible[visible.length - 1] ?? this.currentPage;
             this.previousButton.disabled = this.currentPage <= 0;
-            this.nextButton.disabled = (this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1) >= this.pageCount;
+            this.nextButton.disabled = this.currentPage + (this.layout === 'double' ? this.spreadLengthAt(this.currentPage) : 1) >= this.pageCount;
             this.counter.textContent = firstVisible === lastVisible
                 ? `${firstVisible + 1} / ${this.pageCount}`
                 : `${firstVisible + 1}–${lastVisible + 1} / ${this.pageCount}`;
