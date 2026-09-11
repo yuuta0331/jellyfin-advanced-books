@@ -463,6 +463,21 @@
         return dictionary[value] || value;
     }
 
+    function translateMetadataValue(value) {
+        const prefixes = {
+            'Authors: ': { ja: '著者: ', de: 'Autoren: ', fr: 'Auteurs : ', es: 'Autores: ', 'zh-CN': '作者: ' },
+            'Series: ': { ja: 'シリーズ: ', de: 'Serie: ', fr: 'Série : ', es: 'Serie: ', 'zh-CN': '系列: ' },
+            'Issue: ': { ja: '号: ', de: 'Ausgabe: ', fr: 'Numéro : ', es: 'Número: ', 'zh-CN': '卷/期: ' },
+            'Year: ': { ja: '年: ', de: 'Jahr: ', fr: 'Année : ', es: 'Año: ', 'zh-CN': '年份: ' }
+        };
+        let result = value;
+        for (const [prefix, translations] of Object.entries(prefixes)) {
+            const translated = translations[locale];
+            if (translated) result = result.split(prefix).join(translated);
+        }
+        return result;
+    }
+
     function translateDynamic(value) {
         let match = /^Page (\d+)$/.exec(value);
         if (match) {
@@ -483,16 +498,6 @@
                 'zh-CN': `第 ${match[1]} 页预览`
             };
             return templates[locale] || value;
-        }
-
-        const prefixes = {
-            'Authors: ': { ja: '著者: ', de: 'Autoren: ', fr: 'Auteurs : ', es: 'Autores: ', 'zh-CN': '作者: ' },
-            'Series: ': { ja: 'シリーズ: ', de: 'Serie: ', fr: 'Série : ', es: 'Serie: ', 'zh-CN': '系列: ' },
-            'Issue: ': { ja: '号: ', de: 'Ausgabe: ', fr: 'Numéro : ', es: 'Número: ', 'zh-CN': '卷/期: ' },
-            'Year: ': { ja: '年: ', de: 'Jahr: ', fr: 'Année : ', es: 'Año: ', 'zh-CN': '年份: ' }
-        };
-        for (const [prefix, translations] of Object.entries(prefixes)) {
-            if (value.startsWith(prefix)) return (translations[locale] || prefix) + value.slice(prefix.length);
         }
 
         const pageSuffix = /^(.*) — page (\d+)$/.exec(value);
@@ -525,7 +530,7 @@
         if (element.classList.contains('advancedBooksReaderMetadataText')) {
             const value = element.textContent?.trim();
             if (!value) return;
-            const translated = translateDynamic(value);
+            const translated = translateMetadataValue(value);
             if (translated !== value) element.textContent = translated;
             return;
         }
