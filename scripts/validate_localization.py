@@ -49,7 +49,10 @@ REQUIRED_CONFIG_KEYS = (
 
 def extract_object(text: str, locale: str) -> str:
     token = re.escape(locale)
-    key = rf"(?:'{token}'|{token})" if "-" in locale else rf"(?:'{token}'|{token})"
+    key = rf"(?:'{token}'|{token})"
+    inline = re.search(rf"^\s*{key}\s*:\s*\{{\s*\}}\s*,?\s*$", text, re.MULTILINE)
+    if inline:
+        return ""
     match = re.search(rf"^\s*{key}\s*:\s*\{{(.*?)^\s*\}}\s*,?\s*$", text, re.MULTILINE | re.DOTALL)
     if not match:
         raise ValueError(f"Missing locale block: {locale}")
