@@ -36,6 +36,7 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Jellyfin Web reader injection adapter
 - [x] Single-page mode
 - [x] Double-page mode
+- [x] Smart spreads: first/last and landscape pages remain single
 - [x] LTR / RTL
 - [x] Fit width / height / screen / original
 - [x] Basic zoom and drag-to-pan
@@ -56,6 +57,10 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Debounced thumbnail preview while page scrubbing
 - [x] Pointer-anchored low-latency scrub preview
 - [x] Measured viewport Fit sizing and square mobile reader controls
+- [x] Jellyfin title/author/series/year metadata in reader chrome
+- [x] Black/gray/white reader backgrounds
+- [x] Optional page-transition animation and touch gestures
+- [x] Contextual keyboard/gesture help
 
 ## Phase 4 - Continuous reader and progress
 
