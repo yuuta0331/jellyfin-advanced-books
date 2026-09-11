@@ -309,6 +309,7 @@
     .advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none;will-change:auto;padding:.5rem min(var(--ab-side-padding,0vw),12rem);gap:var(--ab-page-gap,0px);margin-inline:auto;box-sizing:border-box}
     .advancedBooksReaderPages.ab-layout-webtoon{padding-block:0}
     .advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box;overflow-anchor:none}
+    .advancedBooksReaderPageSlot>img~img{display:none!important}
     .advancedBooksReaderPages.ab-layout-webtoon .advancedBooksReaderPageSlot{min-height:30vh}
     .advancedBooksReaderPagePlaceholder{display:flex;align-items:center;justify-content:center;width:100%;min-height:inherit;color:var(--ab-stage-fg);opacity:.35;font-variant-numeric:tabular-nums}
     .advancedBooksReaderPages.ab-continuous.ab-fit-screen img{max-width:100%;max-height:var(--ab-stage-height);width:auto;height:auto}
