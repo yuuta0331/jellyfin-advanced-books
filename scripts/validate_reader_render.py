@@ -17,6 +17,7 @@ def main() -> int:
         "pre-render spread orientation probe": "ensurePageAspectRatio",
         "final-page single-spread guard": "start + 1 >= last",
         "continuous image ownership guard": "slot.querySelector('img') !== image",
+        "defensive duplicate-image CSS guard": ".advancedBooksReaderPageSlot>img~img{display:none!important}",
     }
     forbidden = {
         "append-based continuous page insertion": "slot.appendChild(image)",
