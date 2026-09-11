@@ -373,15 +373,31 @@
             }
         }
 
-        abortRequest(index) {
+        abortRequest(index, reason = 'scroll') {
             const pending = this.pending.get(index);
             if (!pending) return;
             this.pending.delete(index);
             this.activeRequests = Math.max(0, this.activeRequests - 1);
             pending.aborted = true;
+            pending.abortReason = reason;
             pending.controller.abort();
             const card = this.cards[index];
             if (card?.dataset.thumbnailState === 'loading') this.setCardState(index, 'idle');
+
+            if (reason === 'timeout') {
+                const attempts = (this.attempts.get(index) ?? 0) + 1;
+                this.attempts.set(index, attempts);
+                if (this.isVisible(index)) {
+                    if (attempts < thumbnailRetryLimit) {
+                        window.setTimeout(() => this.queueThumbnail(index, -100000, true), 80);
+                    } else {
+                        this.startFullPageFallback(index, this.panelGeneration).catch(() => {
+                            this.setCardState(index, 'failed', 'Preview unavailable');
+                        });
+                    }
+                }
+            }
+
             this.pumpThumbnailQueue();
         }
 
@@ -447,7 +463,7 @@
 
             pending.timeout = window.setTimeout(() => {
                 const current = this.pending.get(item.index);
-                if (current?.id === requestId) this.abortRequest(item.index);
+                if (current?.id === requestId) this.abortRequest(item.index, 'timeout');
             }, thumbnailRequestTimeoutMs);
 
             this.fetchThumbnail(item.index, controller.signal, generation)
