@@ -302,13 +302,13 @@
     .advancedBooksReaderPages.ab-layout-webtoon{padding-block:0}
     .advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box;overflow-anchor:none}
     .advancedBooksReaderPages.ab-layout-webtoon .advancedBooksReaderPageSlot{min-height:30vh}
-    .advancedBooksReaderPagePlaceholder{display:flex;align-items:center;justify-content:center;width:100%;min-height:inherit;color:rgba(255,255,255,.35);font-variant-numeric:tabular-nums}
+    .advancedBooksReaderPagePlaceholder{display:flex;align-items:center;justify-content:center;width:100%;min-height:inherit;color:var(--ab-stage-fg);opacity:.35;font-variant-numeric:tabular-nums}
     .advancedBooksReaderPages.ab-continuous.ab-fit-screen img{max-width:100%;max-height:var(--ab-stage-height);width:auto;height:auto}
     .advancedBooksReaderPages.ab-continuous.ab-fit-width img{width:100%;max-width:none;height:auto}
     .advancedBooksReaderPages.ab-continuous.ab-fit-height img{height:var(--ab-stage-height);max-height:none;width:auto;max-width:100%}
     .advancedBooksReaderPages.ab-continuous.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
     .advancedBooksReaderPages.ab-layout-webtoon img{box-shadow:none}
-    .advancedBooksReaderMessage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:1.05rem;color:rgba(255,255,255,.82);padding:1rem;text-align:center}
+    .advancedBooksReaderMessage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:1.05rem;color:var(--ab-stage-fg);opacity:.82;padding:1rem;text-align:center}
     .advancedBooksReaderChrome{position:absolute;left:0;right:0;z-index:6;display:flex;align-items:center;gap:.55rem;box-sizing:border-box;transition:opacity .18s ease,transform .18s ease;pointer-events:auto}
     .advancedBooksReaderChromeTop{top:0;min-height:3.5rem;padding:calc(.45rem + env(safe-area-inset-top,0px)) .75rem .45rem;background:linear-gradient(to bottom,rgba(0,0,0,.82),rgba(0,0,0,.48),transparent)}
     .advancedBooksReaderChromeBottom{bottom:0;min-height:4rem;padding:.65rem .75rem calc(.65rem + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,rgba(0,0,0,.86),rgba(0,0,0,.5),transparent)}
