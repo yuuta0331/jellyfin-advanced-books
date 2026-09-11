@@ -669,11 +669,24 @@
             const width = Math.max(1, Math.round(this.stage.clientWidth || window.visualViewport?.width || window.innerWidth));
             const height = Math.max(1, Math.round(this.stage.clientHeight || window.visualViewport?.height || window.innerHeight));
             if (width === this.viewportWidth && height === this.viewportHeight) return;
+
+            const anchor = this.isContinuous() ? this.continuousElements[this.currentPage] : null;
+            const anchorOffset = anchor?.isConnected ? anchor.offsetTop - this.stage.scrollTop : null;
+
             this.viewportWidth = width;
             this.viewportHeight = height;
             this.overlay.style.setProperty('--ab-stage-width', `${width}px`);
             this.overlay.style.setProperty('--ab-stage-height', `${height}px`);
-            if (this.isContinuous()) this.refreshContinuousImageSizing();
+            if (this.isContinuous()) {
+                this.refreshContinuousImageSizing();
+                if (anchorOffset !== null && anchor?.isConnected) {
+                    requestAnimationFrame(() => {
+                        if (!this.closed && anchor.isConnected) {
+                            this.stage.scrollTop = Math.max(0, anchor.offsetTop - anchorOffset);
+                        }
+                    });
+                }
+            }
         }
 
         beginExternalPinch() {
