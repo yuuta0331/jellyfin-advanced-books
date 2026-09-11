@@ -107,7 +107,7 @@ Use a disposable or backed-up Jellyfin 12 test instance.
 6. Open Dashboard -> Plugins -> Advanced Books and configure the reader/One-Shot settings.
 7. Rescan a small Books test library.
 
-Do not start integration testing with a production-scale library. First test a fixture containing regular series, several `_oneshots` files, one nested `_oneshots`, and several small CBZ files with deliberately non-lexical names such as `page2.jpg` and `page10.jpg`.
+Do not start integration testing with a production-scale library. First test a fixture containing regular series, several `_oneshots` files, one nested `_oneshots`, and several small CBZ files with deliberately non-lexical names such as `page2.jpg` and `page10.jpg`. Include one archive containing `__MACOSX/._page1.jpg` and `folder/._page2.png` metadata entries beside real pages and confirm those metadata entries never appear in the page list.
 
 ### Page API smoke test
 
@@ -118,7 +118,7 @@ GET /AdvancedBooks/Books/{itemId}/Pages
 GET /AdvancedBooks/Books/{itemId}/Pages/0
 ```
 
-The first request should return JSON page metadata plus Jellyfin title/authors/series/issue/year context without a server filesystem path. The second should return the first image using its image content type. Verify a user that cannot see the library gets 404 for the item and an unauthenticated request is rejected by Jellyfin authentication.
+The first request should return JSON page metadata plus Jellyfin title/authors/series/issue/year context without a server filesystem path. The second should return the first image using its image content type, `Cache-Control: private, no-store`, and `X-AdvancedBooks-Page-Index: 0`. Repeat for another page and verify the index header changes with the requested page. Verify a user that cannot see the library gets 404 for the item and an unauthenticated request is rejected by Jellyfin authentication.
 
 Also test a corrupt ZIP and a deliberately over-limit fixture; these should fail cleanly with HTTP 422 rather than exhausting server memory or extracting files.
 
@@ -166,7 +166,7 @@ GET /AdvancedBooks/Reader/Preferences
 PUT /AdvancedBooks/Reader/Preferences
 ```
 
-A new user should receive the safe defaults: Single Page, RTL, Fit Screen, 100% zoom, black background, page transitions enabled and touch gestures enabled. A representative PUT body is:
+A new user should receive the safe defaults: Single Page, RTL, Fit Screen, 100% zoom, black background, page transitions enabled, touch gestures enabled, metadata visible, all metadata fields visible and metadata auto-scroll enabled. A representative PUT body is:
 
 ```json
 {
@@ -178,7 +178,14 @@ A new user should receive the safe defaults: Single Page, RTL, Fit Screen, 100% 
   "PageGap": 8,
   "Background": "gray",
   "AnimateTransitions": false,
-  "TouchGestures": true
+  "TouchGestures": true,
+  "ShowMetadata": true,
+  "ShowMetadataTitle": true,
+  "ShowMetadataAuthors": false,
+  "ShowMetadataSeries": true,
+  "ShowMetadataIssue": true,
+  "ShowMetadataYear": false,
+  "AutoScrollMetadata": true
 }
 ```
 
@@ -219,11 +226,11 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 3. confirm **Advanced Reader** appears in the main detail buttons with a single reader-mode icon (not duplicated/multi-book glyphs);
 4. open it and verify only the current/nearby page endpoints are requested in browser developer tools rather than a full-book download;
 5. verify a new/default user opens with Fit Screen; upgrade a user that previously persisted legacy Fit Height and confirm it migrates to Fit Screen, then explicitly select Fit Height and confirm the current preference schema preserves that choice; verify all four fit modes in portrait/landscape and after resizing;
-6. verify Vertical Continuous and Webtoon can be scrolled through a long book containing mixed portrait, landscape, short and very tall pages without repeated layout jumps or current-page jumps; confirm pages ahead are prefetched while the cache remains bounded and the viewport marker follows the page actually being read;
+6. verify Vertical Continuous and Webtoon can be scrolled rapidly through a long book containing mixed portrait, landscape, short and very tall pages while observer loading, directional prefetch and direct jumps overlap; every `.advancedBooksReaderPageSlot` must contain at most one `<img>`, no page may appear duplicated side-by-side, pages ahead are prefetched while the cache remains bounded, and the viewport marker follows the page actually being read;
 7. open **Pages**, scroll several screens downward quickly, stop on a previously unseen range, and keep the panel open for at least 10 seconds; every visible card must either show its thumbnail or a contained failure state—no visible card may remain forever as plain `Page N`; verify off-screen queued work is deprioritized/aborted, a stalled visible thumbnail can fall back to the page endpoint, and no more than two full-page fallbacks run concurrently;
 8. jump to a distant thumbnail and confirm the live reader session reaches the intended page directly without temporarily changing layouts;
 9. close the page navigator during thumbnail loading and confirm outstanding requests are aborted;
-10. select Double Page, LTR, Fit Width and a non-100% zoom, close the reader, then reopen and confirm those controls are restored;
+10. select Double Page and move through portrait pages, then landscape pages and the final page; verify orientation is resolved before each spread is shown, so there is no brief incorrect two-page spread followed by a relayout. Then select LTR, Fit Width and a non-100% zoom, close the reader, and confirm those controls restore;
 11. change controls and immediately close while a preference PUT is still in flight; reopen and confirm the newest queued state wins;
 12. repeat the preference restore test from a second Jellyfin Web browser/client signed in as the same user;
 13. navigate to a middle page, close the reader, reopen it, and confirm it resumes at that page before applying saved reader controls;
@@ -237,9 +244,10 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 21. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet; on mobile confirm the top/bottom icon and navigation buttons remain square rather than vertically stretched;
 22. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
 23. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
-24. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
-25. zoom above 100% in a paged mode, drag to pan, then close with Escape;
-26. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+24. use a book with a deliberately long title, authors and series name. Confirm overflowing metadata automatically scrolls far enough to reveal the complete text, then disable Auto-scroll and confirm it stops. Toggle the metadata header and each Title/Authors/Series/Issue/Year field independently, reopen the reader, and verify every choice restores for the same Jellyfin user;
+25. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
+26. zoom above 100% in a paged mode, drag to pan, then close with Escape;
+27. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
 ### Mobile pinch smoke test
 
