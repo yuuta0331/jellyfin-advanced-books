@@ -70,7 +70,7 @@ GET /AdvancedBooks/Books/{itemId}/Pages
 GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}
 ```
 
-The metadata response intentionally excludes the server media path. It contains archive format, file size, last-modified time, ordered page metadata, and reader-safe Jellyfin metadata (title, original title, series/issue, year and authors). Page ordering is natural and case-insensitive for text portions, so `page2.jpg` precedes `page10.jpg`. Non-image metadata such as `ComicInfo.xml` is ignored by the page list.
+The metadata response intentionally excludes the server media path. It contains archive format, file size, last-modified time, ordered page metadata, and reader-safe Jellyfin metadata (title, original title, series/issue, year and authors). Page ordering is natural and case-insensitive for text portions, so `page2.jpg` precedes `page10.jpg`. Non-image metadata such as `ComicInfo.xml` is ignored, and image-looking macOS metadata (`__MACOSX` and AppleDouble `._*` entries) is excluded before page indexes are assigned.
 
 The server currently re-opens and validates the archive for each page request. This keeps resource ownership simple and bounded while real-world behavior is validated. Reader-side nearby-page prefetch and Blob caching hide much of that latency without changing the external API.
 
@@ -118,7 +118,7 @@ PUT /AdvancedBooks/Reader/Preferences
 
 A fixed Advanced Books pseudo-item GUID plus client namespace `AdvancedBooksReader` isolates the custom preference keys from normal Jellyfin display settings. The display-preference manager keys the data by the authenticated Jellyfin user, so preferences are shared across Jellyfin Web clients for that user while remaining separate between users.
 
-Persisted values are layout, direction, fit, zoom, continuous side padding/page gap, background, transition animation and touch-gesture state. Server-side `ReaderPreferenceRules` rejects unsupported enum-like values, bounds zoom to 50%-400%, and normalizes it to a 5-percent grid reachable by the current reader controls. Unknown/stale stored values fall back to safe defaults during GET.
+Persisted values are layout, direction, fit, zoom, continuous side padding/page gap, background, transition animation, touch-gesture state, metadata header/field visibility and metadata auto-scroll. Server-side `ReaderPreferenceRules` rejects unsupported enum-like values, bounds zoom to 50%-400%, and normalizes it to a 5-percent grid reachable by the current reader controls. Unknown/stale stored values fall back to safe defaults during GET.
 
 The Web preference bridge waits until reading-position restore has finished before applying controls. The progress bridge marks the active overlay and emits `advancedbooks:progress-ready`; the preference bridge listens for that signal with a bounded timeout. This ordering keeps the temporary continuous-mode resume jump separate from the user's persisted layout.
 
@@ -146,7 +146,7 @@ The reader is an embedded JavaScript module that renders a full-window overlay i
 
 The reader never puts an authenticated page endpoint directly into an `<img src>`. Instead it uses Jellyfin's authenticated `ApiClient.fetch(...)`, converts each response to a temporary Blob URL, and gives only that local Blob URL to the image element.
 
-Paged and continuous modes use bounded Blob caches. Continuous mode additionally uses `IntersectionObserver` for lazy loading and current-page tracking.
+Paged and continuous modes use bounded Blob caches. Double Page resolves the orientation of the current/next page before committing a spread, avoiding an initial guessed spread followed by a layout correction. Continuous mode additionally uses `IntersectionObserver` for lazy loading and current-page tracking. A Continuous/Webtoon slot may contain exactly one placeholder or one page image: all successful loads use replacement semantics, and a slot generation value invalidates stale asynchronous completions after eviction/reset. This is the primary defense against duplicate images caused by overlapping initial load, observer and prefetch paths.
 
 ### Progress bridge
 
@@ -156,7 +156,7 @@ For a distant resume position it calls the live reader session directly, avoidin
 
 ### Preferences bridge
 
-`advancedBooksPreferences.js` reads global per-user settings while the reader opens, waits for the progress-ready signal, and then applies the saved controls. It observes select changes and the visible zoom percentage, debounces updates, serializes saves so the latest user state wins, and hosts the lightweight contextual help UI so the Core injector payload stays below its size limit.
+`advancedBooksPreferences.js` reads global per-user settings while the reader opens, waits for the progress-ready signal, and then applies the saved controls. It observes select changes and the visible zoom percentage, debounces updates, serializes saves so the latest user state wins, hosts the lightweight contextual help UI, and owns configurable metadata rendering/marquee behavior so the Core injector payload stays below its size limit.
 
 The bridge intentionally talks only to the Advanced Books preferences API; it does not call Jellyfin's general display-preferences HTTP controller or expose the internal pseudo-item namespace to the browser.
 
@@ -176,7 +176,7 @@ Jellyfin does not currently expose a stable general-purpose server-plugin API fo
 
 For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. Core, Progress, Preferences, Navigator and Gestures are registered as five independent entries; Core is required while optional bridges fail soft, and each embedded resource is validated before registration.
 
-If Jellyfin changes its item-detail route, `.mainDetailButtons` container, reader DOM or legacy `window.ApiClient`, only the Web adapter/bridges should require changes; archive and storage code remain independent.
+Full-page responses use `Cache-Control: private, no-store` and include `X-AdvancedBooks-Page-Index`; the browser includes an archive-version query key and verifies the returned index before caching the page Blob. If Jellyfin changes its item-detail route, `.mainDetailButtons` container, reader DOM or legacy `window.ApiClient`, only the Web adapter/bridges should require changes; archive and storage code remain independent.
 
 ## Distribution boundary
 
