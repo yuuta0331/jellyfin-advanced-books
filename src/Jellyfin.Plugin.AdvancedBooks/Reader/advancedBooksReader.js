@@ -365,7 +365,7 @@
         .advancedBooksReaderChromeTop{min-height:3.25rem;padding-inline:.45rem;gap:.35rem}
         .advancedBooksReaderMetadata{max-width:28vw}
         .advancedBooksReaderTitle{font-size:.86rem}
-        .advancedBooksReaderSubtitle{display:none}
+        .advancedBooksReaderSubtitle{font-size:.72rem}
         .advancedBooksReaderCounter{font-size:.9rem;padding-inline:.45rem}
         .advancedBooksReaderChromeBottom{gap:.35rem;padding-inline:.45rem}
         .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;max-width:2.75rem;max-height:2.75rem;padding:0;flex:0 0 2.75rem}
@@ -1464,9 +1464,7 @@
                     }
                 }, { once: true });
                 image.src = url;
-                // Claim the slot immediately. Concurrent observer/prefetch callers now
-                // reuse this exact image node instead of creating another copy while
-                // decode is still pending.
+                // Claim before decode so concurrent loaders reuse this node.
                 slot.replaceChildren(image);
                 try {
                     await image.decode?.();
