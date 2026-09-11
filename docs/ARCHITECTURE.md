@@ -70,7 +70,7 @@ GET /AdvancedBooks/Books/{itemId}/Pages
 GET /AdvancedBooks/Books/{itemId}/Pages/{pageIndex}
 ```
 
-The metadata response intentionally excludes the server media path. It contains archive format, file size, last-modified time and ordered page metadata. Page ordering is natural and case-insensitive for text portions, so `page2.jpg` precedes `page10.jpg`. Non-image metadata such as `ComicInfo.xml` is ignored by the page list.
+The metadata response intentionally excludes the server media path. It contains archive format, file size, last-modified time, ordered page metadata, and reader-safe Jellyfin metadata (title, original title, series/issue, year and authors). Page ordering is natural and case-insensitive for text portions, so `page2.jpg` precedes `page10.jpg`. Non-image metadata such as `ComicInfo.xml` is ignored by the page list.
 
 The server currently re-opens and validates the archive for each page request. This keeps resource ownership simple and bounded while real-world behavior is validated. Reader-side nearby-page prefetch and Blob caching hide much of that latency without changing the external API.
 
@@ -118,7 +118,7 @@ PUT /AdvancedBooks/Reader/Preferences
 
 A fixed Advanced Books pseudo-item GUID plus client namespace `AdvancedBooksReader` isolates the custom preference keys from normal Jellyfin display settings. The display-preference manager keys the data by the authenticated Jellyfin user, so preferences are shared across Jellyfin Web clients for that user while remaining separate between users.
 
-Persisted values are layout, direction, fit and zoom. Server-side `ReaderPreferenceRules` rejects unsupported values, bounds zoom to 50%-400%, and normalizes it to a 5-percent grid reachable by the current reader controls. Unknown/stale stored values fall back to safe defaults during GET.
+Persisted values are layout, direction, fit, zoom, continuous side padding/page gap, background, transition animation and touch-gesture state. Server-side `ReaderPreferenceRules` rejects unsupported enum-like values, bounds zoom to 50%-400%, and normalizes it to a 5-percent grid reachable by the current reader controls. Unknown/stale stored values fall back to safe defaults during GET.
 
 The Web preference bridge waits until reading-position restore has finished before applying controls. The progress bridge marks the active overlay and emits `advancedbooks:progress-ready`; the preference bridge listens for that signal with a bounded timeout. This ordering keeps the temporary continuous-mode resume jump separate from the user's persisted layout.
 
@@ -150,13 +150,13 @@ Paged and continuous modes use bounded Blob caches. Continuous mode additionally
 
 ### Progress bridge
 
-`advancedBooksProgress.js` is intentionally separate from the core reader module. It observes the reader's public DOM state, debounces progress writes, flushes on close, restores unfinished books from the server-side progress endpoint, and signals when resume handling is complete.
+`advancedBooksProgress.js` is intentionally separate from the core reader module. It observes the reader's public DOM state, debounces progress writes, captures the final position from the reader's pre-removal close event, queues the newest position behind an in-flight PUT, restores any non-zero saved position even for already-played books, and signals when resume handling is complete.
 
-For a distant resume position it temporarily uses the continuous page-slot model to jump directly to the saved page, then restores the initial layout. This avoids performing hundreds of sequential page-navigation operations.
+For a distant resume position it calls the live reader session directly, avoiding hundreds of sequential page-navigation operations or a temporary layout switch.
 
 ### Preferences bridge
 
-`advancedBooksPreferences.js` reads global per-user settings while the reader opens, waits for the progress-ready signal, and then applies the saved controls. It observes select changes and the visible zoom percentage, debounces updates, and serializes saves so the latest user state wins.
+`advancedBooksPreferences.js` reads global per-user settings while the reader opens, waits for the progress-ready signal, and then applies the saved controls. It observes select changes and the visible zoom percentage, debounces updates, serializes saves so the latest user state wins, and hosts the lightweight contextual help UI so the Core injector payload stays below its size limit.
 
 The bridge intentionally talks only to the Advanced Books preferences API; it does not call Jellyfin's general display-preferences HTTP controller or expose the internal pseudo-item namespace to the browser.
 
@@ -168,13 +168,13 @@ Selecting a thumbnail reuses the continuous page-slot model to reach a distant p
 
 ### Touch gesture bridge
 
-`advancedBooksGestures.js` owns paged two-finger pinch handling. It tracks the original pinch pair, isolates multi-touch pointer events from the base reader's one-finger tap/swipe/pan state, renders only a temporary gesture preview, then commits a normalized zoom through the base reader's existing controls. Continuous/Webtoon modes are intentionally left to native vertical touch behavior.
+`advancedBooksGestures.js` owns two-finger pinch handling across paged and continuous layouts. It tracks the original pinch pair, isolates multi-touch pointer events from the base reader's one-finger tap/swipe/pan state, respects the persisted touch-gesture toggle, renders only a temporary gesture preview, then commits a normalized zoom through the live reader session.
 
 ### Replaceable Jellyfin Web adapter
 
 Jellyfin does not currently expose a stable general-purpose server-plugin API for replacing arbitrary Web UI components. Web integration is therefore kept replaceable.
 
-For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. The reader, progress, preferences, navigator and gesture resources are concatenated into a single registered injection payload so their load order is deterministic.
+For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. Core, Progress, Preferences, Navigator and Gestures are registered as five independent entries; Core is required while optional bridges fail soft, and each embedded resource is validated before registration.
 
 If Jellyfin changes its item-detail route, `.mainDetailButtons` container, reader DOM or legacy `window.ApiClient`, only the Web adapter/bridges should require changes; archive and storage code remain independent.
 
