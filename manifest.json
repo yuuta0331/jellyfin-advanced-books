@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.12.0.0",
+        "changelog": "Show Jellyfin book title, authors, series and year in the Advanced Reader. Fix progress resume for played books and close-time/in-flight save races so the latest reached page is queued and synchronized reliably. Replace the desktop scrubber resize cursor with a normal pointer. Add Komga-style smart double-page spreads with first/last and landscape pages shown singly, persisted black/gray/ white backgrounds, optional page-transition animation, optional touch gestures, and contextual keyboard/gesture help. Keep the Core JavaScript below the JavaScript Injector size limit and extend preference schema migration/tests.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.12.0.0/AdvancedBooks_0.12.0.0.zip",
+        "checksum": "f5455da9b79b485ee84f2f6bba6ff752",
+        "timestamp": "2026-09-11T03:36:09Z"
+      },
+      {
         "version": "0.11.2.0",
         "changelog": "Harden JavaScript Injector startup recovery. Validate all embedded reader assets before replacing existing registrations, keep the required Core transactional, and allow optional Progress/Preferences/Navigator/Gestures bridges to fail soft without removing the rest of the reader. Log the actual loaded Advanced Books assembly version, informational version, and DLL path at startup. CI and release workflows now validate the five reader resources from the built plugin DLL itself with strict UTF-8 and size checks, in addition to source JavaScript checks.",
         "targetAbi": "12.0.0.0",
