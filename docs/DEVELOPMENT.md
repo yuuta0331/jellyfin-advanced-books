@@ -193,12 +193,22 @@ A subsequent GET should return the same normalized values. Invalid layout/direct
 
 The preferences endpoint must not accept an arbitrary user id. Storage belongs to the authenticated user and is backed by Jellyfin's display-preferences database.
 
+### Localization validation
+
+Run:
+
+```bash
+python scripts/validate_localization.py
+```
+
+The validation requires all six supported locales in both the reader localization bridge and the plugin configuration page, checks representative Reader/metadata keys, and verifies that Preferences/Gestures use stable localized-control action identifiers rather than relying only on English tooltips.
+
 ### Built embedded-resource verification
 
 CI and release validation must inspect the **built plugin DLL**, not only the JavaScript source files. The `EmbeddedReaderResourceVerifier` reads managed manifest resources directly from the PE/CLI resource directory and verifies:
 
 - plugin AssemblyVersion matches the release version;
-- all five reader resources are present;
+- all six reader resources (Localization, Core, Progress, Preferences, Navigator and Gestures) are present;
 - every reader resource is strict UTF-8;
 - no unexpected control characters are present; and
 - each resource remains within the 96 KiB JavaScript Injector defensive limit.
@@ -212,7 +222,7 @@ dotnet run \
   --no-build \
   -- \
   src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll \
-  0.11.2.0
+  0.14.0.0
 ```
 
 A source file passing `node --check` is not sufficient evidence if the bytes embedded into the final DLL differ.
