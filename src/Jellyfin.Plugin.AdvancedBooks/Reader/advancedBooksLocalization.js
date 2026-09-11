@@ -495,12 +495,13 @@
             'Issue: ': { ja: '号: ', de: 'Ausgabe: ', fr: 'Numéro : ', es: 'Número: ', 'zh-CN': '卷/期: ' },
             'Year: ': { ja: '年: ', de: 'Jahr: ', fr: 'Année : ', es: 'Año: ', 'zh-CN': '年份: ' }
         };
-        let result = value;
-        for (const [prefix, translations] of Object.entries(prefixes)) {
-            const translated = translations[locale];
-            if (translated) result = result.split(prefix).join(translated);
-        }
-        return result;
+        return value.split(' · ').map(part => {
+            for (const [prefix, translations] of Object.entries(prefixes)) {
+                if (!part.startsWith(prefix)) continue;
+                return (translations[locale] || prefix) + part.slice(prefix.length);
+            }
+            return part;
+        }).join(' · ');
     }
 
     function translateDynamic(value) {
@@ -568,6 +569,7 @@
     function translateLeaf(element) {
         if (!(element instanceof HTMLElement) || element.childElementCount !== 0) return;
         if (element.classList.contains('advancedBooksReaderMetadataText')) {
+            if (element.parentElement?.classList.contains('advancedBooksReaderTitle')) return;
             const value = element.textContent?.trim();
             if (!value) return;
             const translated = translateMetadataValue(value);
