@@ -8,6 +8,14 @@
     "category": "Books",
     "versions": [
       {
+        "version": "0.14.0.0",
+        "changelog": "Add six-language localization for the Advanced Reader and plugin configuration: English, Japanese, German, French, Spanish and Simplified Chinese. Reader UI follows the Jellyfin/browser language automatically and keeps localized controls addressable through stable action identifiers. Add a repository-owned catalog icon and project banner, publish imageUrl and Books-category metadata in the Jellyfin repository manifest, and document repository-based installation and Catalog-discovered updates. Extend embedded-resource verification to the new localization bridge and add release validation for catalog metadata.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.14.0.0/AdvancedBooks_0.14.0.0.zip",
+        "checksum": "662cb2ca500104f53ff2b0d4d555a125",
+        "timestamp": "2026-09-11T06:38:19Z"
+      },
+      {
         "version": "0.13.0.0",
         "changelog": "Fix a critical Continuous/Webtoon rendering race that could append duplicate page images to the same slot and display them side by side. Enforce a strict one-image-per-page DOM invariant with generation guards so stale asynchronous loads cannot resurrect evicted images. Make double-page spreads stable by determining page orientation before rendering instead of displaying a guessed spread and correcting it afterward. Ignore __MACOSX and AppleDouble image-like entries in CBZ/ZIP archives, disable browser caching for full-page responses, and verify the served page index in the Web reader. Add configurable reader metadata visibility for title, authors, series, issue and year, plus automatic overflow scrolling that can be enabled or disabled per Jellyfin user.",
         "targetAbi": "12.0.0.0",
