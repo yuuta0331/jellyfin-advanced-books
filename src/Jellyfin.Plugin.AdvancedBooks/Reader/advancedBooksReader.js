@@ -88,7 +88,7 @@
         const icon = document.createElement('span');
         icon.className = 'material-icons detailButton-icon';
         icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = 'auto_stories';
+        icon.textContent = 'chrome_reader_mode';
 
         content.appendChild(icon);
         button.appendChild(content);
