@@ -27,7 +27,7 @@ class ReleasePackagingTests(unittest.TestCase):
         self.assertRegex(metadata["target_abi"], r"^\d+\.\d+\.\d+\.\d+$")
         self.assertEqual("Books", metadata["category"])
         self.assertTrue(metadata["image_url"].startswith("https://"))
-        self.assertTrue(metadata["image_url"].endswith(".svg"))
+        self.assertTrue(metadata["image_url"].endswith(".png"))
         self.assertTrue(metadata["changelog"])
 
     def test_package_is_reproducible_and_flat(self) -> None:
