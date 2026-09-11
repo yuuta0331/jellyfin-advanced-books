@@ -43,14 +43,21 @@
         const pages = raw?.Pages ?? raw?.pages ?? [];
         const authors = raw?.Authors ?? raw?.authors ?? [];
         const cleanText = value => typeof value === 'string' ? value.trim() : '';
+        const optionalNumber = value => {
+            if (value === null || value === undefined || value === '') return null;
+            const number = Number(value);
+            return Number.isFinite(number) ? number : null;
+        };
         return {
             format: raw?.Format ?? raw?.format ?? 'CBZ',
+            archiveSize: Number(raw?.ArchiveSize ?? raw?.archiveSize ?? 0),
+            lastModifiedUtc: cleanText(raw?.LastModifiedUtc ?? raw?.lastModifiedUtc),
             pages: Array.isArray(pages) ? pages : [],
             title: cleanText(raw?.Title ?? raw?.title),
             originalTitle: cleanText(raw?.OriginalTitle ?? raw?.originalTitle),
             seriesName: cleanText(raw?.SeriesName ?? raw?.seriesName),
-            indexNumber: Number(raw?.IndexNumber ?? raw?.indexNumber),
-            productionYear: Number(raw?.ProductionYear ?? raw?.productionYear),
+            indexNumber: optionalNumber(raw?.IndexNumber ?? raw?.indexNumber),
+            productionYear: optionalNumber(raw?.ProductionYear ?? raw?.productionYear),
             authors: Array.isArray(authors)
                 ? authors.map(cleanText).filter(Boolean)
                 : []
@@ -159,6 +166,7 @@
             this.itemId = itemId;
             this.metadata = metadata;
             this.pageCount = metadata.pages.length;
+            this.archiveVersion = `${metadata.archiveSize || 0}-${metadata.lastModifiedUtc || 'unknown'}`;
             this.bookTitle = metadata.title || metadata.originalTitle || metadata.seriesName || 'Book';
             this.bookAuthors = metadata.authors;
             this.seriesName = metadata.seriesName;
@@ -280,101 +288,102 @@
             const style = document.createElement('style');
             style.id = 'advancedBooksReaderStyles';
             style.textContent = `
-    .advancedBooksReaderButton .detailButton-content{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
-    .advancedBooksReaderOverlay{position:fixed;inset:0;z-index:2147483000;background:#080808;color:#fff;font-family:inherit;overflow:hidden;--ab-accent:var(--theme-primary-color,#00a4dc);--ab-progress:0%;--ab-stage-width:100vw;--ab-stage-height:100dvh;--ab-stage-bg:#080808;--ab-stage-fg:#fff}
-    .advancedBooksReaderStage{position:absolute;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:var(--ab-stage-bg);color:var(--ab-stage-fg);touch-action:pan-y;user-select:none;overscroll-behavior:contain;overflow-anchor:none;scrollbar-width:none}
-    .advancedBooksReaderOverlay[data-ab-background="black"]{--ab-stage-bg:#080808;--ab-stage-fg:#fff}
-    .advancedBooksReaderOverlay[data-ab-background="gray"]{--ab-stage-bg:#666;--ab-stage-fg:#fff}
-    .advancedBooksReaderOverlay[data-ab-background="white"]{--ab-stage-bg:#f4f4f4;--ab-stage-fg:#111}
-    .advancedBooksReaderStage::-webkit-scrollbar{display:none}
-    .advancedBooksReaderPages{min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;transform-origin:center center;will-change:transform;box-sizing:border-box;padding:.4rem}
-    .advancedBooksReaderPages img{display:block;object-fit:contain;flex:0 1 auto;box-shadow:0 0 20px rgba(0,0,0,.35)}
-    .advancedBooksReaderPages.ab-fit-screen img{max-width:calc(var(--ab-stage-width) - 1rem);max-height:calc(var(--ab-stage-height) - 1rem);width:auto;height:auto}
-    .advancedBooksReaderPages.ab-layout-double.ab-fit-screen img{max-width:calc((var(--ab-stage-width) - 1.4rem)/2)}
-    .advancedBooksReaderPages.ab-layout-double.ab-spread-single.ab-fit-screen img{max-width:calc(var(--ab-stage-width) - 1rem)}
-    .advancedBooksReaderPages.ab-fit-width{align-items:flex-start}.advancedBooksReaderPages.ab-fit-width img{width:calc(var(--ab-stage-width) - 1rem);max-width:none;height:auto}
-    .advancedBooksReaderPages.ab-layout-double.ab-fit-width img{width:calc((var(--ab-stage-width) - 1.4rem)/2)}
-    .advancedBooksReaderPages.ab-layout-double.ab-spread-single.ab-fit-width img{width:calc(var(--ab-stage-width) - 1rem)}
-    .advancedBooksReaderPages.ab-fit-height img{height:calc(var(--ab-stage-height) - 1rem);max-height:none;width:auto}
-    .advancedBooksReaderPages.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
-    .advancedBooksReaderStage.ab-continuous{display:block;align-items:initial;justify-content:initial;touch-action:pan-y}
-    .advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none;will-change:auto;padding:.5rem min(var(--ab-side-padding,0vw),12rem);gap:var(--ab-page-gap,0px);margin-inline:auto;box-sizing:border-box}
-    .advancedBooksReaderPages.ab-layout-webtoon{padding-block:0}
-    .advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box;overflow-anchor:none}
-    .advancedBooksReaderPages.ab-layout-webtoon .advancedBooksReaderPageSlot{min-height:30vh}
-    .advancedBooksReaderPagePlaceholder{display:flex;align-items:center;justify-content:center;width:100%;min-height:inherit;color:var(--ab-stage-fg);opacity:.35;font-variant-numeric:tabular-nums}
-    .advancedBooksReaderPages.ab-continuous.ab-fit-screen img{max-width:100%;max-height:var(--ab-stage-height);width:auto;height:auto}
-    .advancedBooksReaderPages.ab-continuous.ab-fit-width img{width:100%;max-width:none;height:auto}
-    .advancedBooksReaderPages.ab-continuous.ab-fit-height img{height:var(--ab-stage-height);max-height:none;width:auto;max-width:100%}
-    .advancedBooksReaderPages.ab-continuous.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
-    .advancedBooksReaderPages.ab-layout-webtoon img{box-shadow:none}
-    .advancedBooksReaderMessage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:1.05rem;color:var(--ab-stage-fg);opacity:.82;padding:1rem;text-align:center}
-    .advancedBooksReaderChrome{position:absolute;left:0;right:0;z-index:6;display:flex;align-items:center;gap:.55rem;box-sizing:border-box;transition:opacity .18s ease,transform .18s ease;pointer-events:auto}
-    .advancedBooksReaderChromeTop{top:0;min-height:3.5rem;padding:calc(.45rem + env(safe-area-inset-top,0px)) .75rem .45rem;background:linear-gradient(to bottom,rgba(0,0,0,.82),rgba(0,0,0,.48),transparent)}
-    .advancedBooksReaderChromeBottom{bottom:0;min-height:4rem;padding:.65rem .75rem calc(.65rem + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,rgba(0,0,0,.86),rgba(0,0,0,.5),transparent)}
-    .advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChrome{opacity:0;pointer-events:none}
-    .advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeTop{transform:translateY(-1rem)}
-    .advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom{transform:translateY(1rem)}
-    .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{display:inline-flex;align-items:center;justify-content:center;min-width:2.75rem;min-height:2.75rem;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(28,28,28,.88);color:#fff;padding:.45rem .7rem;font:inherit;cursor:pointer;backdrop-filter:blur(8px)}
-    .advancedBooksReaderIconButton:hover,.advancedBooksReaderNavButton:hover,.advancedBooksReaderIconButton:focus-visible,.advancedBooksReaderNavButton:focus-visible{background:rgba(62,62,62,.95);outline:2px solid var(--ab-accent);outline-offset:2px}
-    .advancedBooksReaderIconButton:disabled,.advancedBooksReaderNavButton:disabled{opacity:.35;cursor:default}
-    .advancedBooksReaderMetadata{display:flex;flex-direction:column;min-width:0;max-width:min(42vw,32rem);line-height:1.18}
-    .advancedBooksReaderTitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .advancedBooksReaderSubtitle{font-size:.82rem;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .advancedBooksReaderCounter{font-variant-numeric:tabular-nums;white-space:nowrap;padding:.3rem .55rem;border-radius:999px;background:rgba(0,0,0,.35)}
-    .advancedBooksReaderTopSpacer{flex:1 1 auto}
-    .advancedBooksReaderPagesHost{display:flex;align-items:center;gap:.4rem}
-    .advancedBooksReaderPageSlider{flex:1 1 auto;min-width:5rem;height:2.75rem;margin:0;cursor:pointer;accent-color:var(--ab-accent);touch-action:none}
-    .advancedBooksReaderPageSliderValue{min-width:5.2rem;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .advancedBooksReaderSliderPreview{position:absolute;z-index:10;bottom:calc(100% - .1rem);left:50%;transform:translate(-50%,-.35rem);width:min(8.5rem,28vw);padding:.35rem;border:1px solid rgba(255,255,255,.18);border-radius:.6rem;background:rgba(15,15,15,.96);box-shadow:0 10px 32px rgba(0,0,0,.55);pointer-events:none;box-sizing:border-box;backdrop-filter:blur(12px)}
-    .advancedBooksReaderSliderPreview[hidden]{display:none!important}
-    .advancedBooksReaderSliderPreviewImageWrap{position:relative;width:100%;aspect-ratio:2/3;display:block;overflow:hidden;border-radius:.35rem;background:#070707}
-    .advancedBooksReaderSliderPreview img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain}
-    .advancedBooksReaderSliderPreview img[hidden]{display:none!important}
-    .advancedBooksReaderSliderPreviewStatus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:.55rem;text-align:center;font-size:.76rem;line-height:1.25;opacity:.72;box-sizing:border-box;overflow:hidden;word-break:break-word}
-    .advancedBooksReaderSliderPreviewStatus[hidden]{display:none!important}
-    .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{content:"";inline-size:1rem;block-size:1rem;border:2px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.8);border-radius:50%;animation:advancedBooksReaderSpin .7s linear infinite}
-    .advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden]){font-size:0}
-    .advancedBooksReaderSliderPreviewStatus[data-state="error"]:not([hidden]){font-size:.72rem}
-    @keyframes advancedBooksReaderSpin{to{transform:rotate(360deg)}}
-    .advancedBooksReaderSliderPreviewLabel{padding:.35rem .2rem 0;text-align:center;font-size:.85rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .advancedBooksReaderProgressRail{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:5;pointer-events:none;background:rgba(255,255,255,.16)}
-    .advancedBooksReaderProgressRail::after{content:"";display:block;width:var(--ab-progress);height:100%;background:var(--ab-accent);transition:width .12s linear}
-    .advancedBooksReaderSettingsPanel{position:absolute!important;z-index:9;top:calc(3.6rem + env(safe-area-inset-top,0px));right:.65rem;width:min(24rem,calc(100vw - 1.3rem));max-height:calc(100dvh - 5rem);overflow:auto;display:grid!important;gap:.8rem;padding:1rem;border:1px solid rgba(255,255,255,.14);border-radius:.8rem;background:rgba(20,20,20,.97);box-shadow:0 14px 48px rgba(0,0,0,.55);box-sizing:border-box;backdrop-filter:blur(14px)}
-    .advancedBooksReaderSettingsPanel[hidden]{display:none!important}
-    .advancedBooksReaderSettingsHeader{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:1.05rem;font-weight:600}
-    .advancedBooksReaderSettingRow{display:grid;grid-template-columns:minmax(7rem,1fr) minmax(9rem,1.35fr);align-items:center;gap:.75rem}
-    .advancedBooksReaderSettingRow[hidden]{display:none!important}
-    .advancedBooksReaderSettingRow label{opacity:.82}
-    .advancedBooksReaderSettingRow select{width:100%;min-height:2.7rem;border:1px solid rgba(255,255,255,.2);border-radius:.45rem;background:#252525;color:#fff;padding:.4rem .55rem;font:inherit}
-    .advancedBooksReaderZoomRow{display:flex;align-items:center;gap:.45rem;justify-content:flex-end}
-    .advancedBooksReaderZoomRow button{min-width:2.7rem;min-height:2.7rem;border:1px solid rgba(255,255,255,.2);border-radius:.45rem;background:#252525;color:#fff;padding:.35rem .6rem;font:inherit}
-    .advancedBooksReaderZoomRow button[title="Reset zoom"]{min-width:4.5rem;font-variant-numeric:tabular-nums}
-    .advancedBooksReaderSettingsHint{margin:0;font-size:.85rem;line-height:1.35;opacity:.62}
-    .advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous) img{animation:advancedBooksReaderPageIn .16s ease-out}
-    @keyframes advancedBooksReaderPageIn{from{opacity:.35;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
-    @media(max-width:700px){
-        .advancedBooksReaderChromeTop{min-height:3.25rem;padding-inline:.45rem;gap:.35rem}
-        .advancedBooksReaderMetadata{max-width:28vw}
-        .advancedBooksReaderTitle{font-size:.86rem}
-        .advancedBooksReaderSubtitle{display:none}
-        .advancedBooksReaderCounter{font-size:.9rem;padding-inline:.45rem}
-        .advancedBooksReaderChromeBottom{gap:.35rem;padding-inline:.45rem}
-        .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;max-width:2.75rem;max-height:2.75rem;padding:0;flex:0 0 2.75rem}
-        .advancedBooksReaderPageSliderValue{min-width:4.4rem;font-size:.88rem}
-        .advancedBooksReaderSliderPreview{width:min(7.5rem,34vw)}
-        .advancedBooksReaderSettingsPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(72dvh,38rem);border-radius:1rem 1rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
-        .advancedBooksReaderSettingRow{grid-template-columns:1fr;gap:.35rem}
-        .advancedBooksReaderPageSlot{min-height:45vh}
-    }
-    @media(pointer:coarse){
-        .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;padding:0}
-        .advancedBooksReaderSettingRow select,.advancedBooksReaderZoomRow button{min-height:2.75rem}
-    }
-    @media(prefers-reduced-motion:reduce){
-        .advancedBooksReaderChrome,.advancedBooksReaderProgressRail::after{transition:none!important}
-        .advancedBooksReaderPages img,.advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{animation:none!important}
-    }
+.advancedBooksReaderButton .detailButton-content{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
+.advancedBooksReaderOverlay{position:fixed;inset:0;z-index:2147483000;background:#080808;color:#fff;font-family:inherit;overflow:hidden;--ab-accent:var(--theme-primary-color,#00a4dc);--ab-progress:0%;--ab-stage-width:100vw;--ab-stage-height:100dvh;--ab-stage-bg:#080808;--ab-stage-fg:#fff}
+.advancedBooksReaderStage{position:absolute;inset:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:var(--ab-stage-bg);color:var(--ab-stage-fg);touch-action:pan-y;user-select:none;overscroll-behavior:contain;overflow-anchor:none;scrollbar-width:none}
+.advancedBooksReaderOverlay[data-ab-background="black"]{--ab-stage-bg:#080808;--ab-stage-fg:#fff}
+.advancedBooksReaderOverlay[data-ab-background="gray"]{--ab-stage-bg:#666;--ab-stage-fg:#fff}
+.advancedBooksReaderOverlay[data-ab-background="white"]{--ab-stage-bg:#f4f4f4;--ab-stage-fg:#111}
+.advancedBooksReaderStage::-webkit-scrollbar{display:none}
+.advancedBooksReaderPages{min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;gap:.4rem;transform-origin:center center;will-change:transform;box-sizing:border-box;padding:.4rem}
+.advancedBooksReaderPages img{display:block;object-fit:contain;flex:0 1 auto;box-shadow:0 0 20px rgba(0,0,0,.35)}
+.advancedBooksReaderPages.ab-fit-screen img{max-width:calc(var(--ab-stage-width) - 1rem);max-height:calc(var(--ab-stage-height) - 1rem);width:auto;height:auto}
+.advancedBooksReaderPages.ab-layout-double.ab-fit-screen img{max-width:calc((var(--ab-stage-width) - 1.4rem)/2)}
+.advancedBooksReaderPages.ab-layout-double.ab-spread-single.ab-fit-screen img{max-width:calc(var(--ab-stage-width) - 1rem)}
+.advancedBooksReaderPages.ab-fit-width{align-items:flex-start}.advancedBooksReaderPages.ab-fit-width img{width:calc(var(--ab-stage-width) - 1rem);max-width:none;height:auto}
+.advancedBooksReaderPages.ab-layout-double.ab-fit-width img{width:calc((var(--ab-stage-width) - 1.4rem)/2)}
+.advancedBooksReaderPages.ab-layout-double.ab-spread-single.ab-fit-width img{width:calc(var(--ab-stage-width) - 1rem)}
+.advancedBooksReaderPages.ab-fit-height img{height:calc(var(--ab-stage-height) - 1rem);max-height:none;width:auto}
+.advancedBooksReaderPages.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
+.advancedBooksReaderStage.ab-continuous{display:block;align-items:initial;justify-content:initial;touch-action:pan-y}
+.advancedBooksReaderPages.ab-continuous{min-height:auto;min-width:0;width:100%;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;transform:none;will-change:auto;padding:.5rem min(var(--ab-side-padding,0vw),12rem);gap:var(--ab-page-gap,0px);margin-inline:auto;box-sizing:border-box}
+.advancedBooksReaderPages.ab-layout-webtoon{padding-block:0}
+.advancedBooksReaderPageSlot{width:100%;min-height:55vh;display:flex;align-items:center;justify-content:center;position:relative;box-sizing:border-box;overflow-anchor:none}
+.advancedBooksReaderPageSlot>img~img{display:none!important}
+.advancedBooksReaderPages.ab-layout-webtoon .advancedBooksReaderPageSlot{min-height:30vh}
+.advancedBooksReaderPagePlaceholder{display:flex;align-items:center;justify-content:center;width:100%;min-height:inherit;color:var(--ab-stage-fg);opacity:.35;font-variant-numeric:tabular-nums}
+.advancedBooksReaderPages.ab-continuous.ab-fit-screen img{max-width:100%;max-height:var(--ab-stage-height);width:auto;height:auto}
+.advancedBooksReaderPages.ab-continuous.ab-fit-width img{width:100%;max-width:none;height:auto}
+.advancedBooksReaderPages.ab-continuous.ab-fit-height img{height:var(--ab-stage-height);max-height:none;width:auto;max-width:100%}
+.advancedBooksReaderPages.ab-continuous.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
+.advancedBooksReaderPages.ab-layout-webtoon img{box-shadow:none}
+.advancedBooksReaderMessage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:1.05rem;color:var(--ab-stage-fg);opacity:.82;padding:1rem;text-align:center}
+.advancedBooksReaderChrome{position:absolute;left:0;right:0;z-index:6;display:flex;align-items:center;gap:.55rem;box-sizing:border-box;transition:opacity .18s ease,transform .18s ease;pointer-events:auto}
+.advancedBooksReaderChromeTop{top:0;min-height:3.5rem;padding:calc(.45rem + env(safe-area-inset-top,0px)) .75rem .45rem;background:linear-gradient(to bottom,rgba(0,0,0,.82),rgba(0,0,0,.48),transparent)}
+.advancedBooksReaderChromeBottom{bottom:0;min-height:4rem;padding:.65rem .75rem calc(.65rem + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,rgba(0,0,0,.86),rgba(0,0,0,.5),transparent)}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChrome{opacity:0;pointer-events:none}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeTop{transform:translateY(-1rem)}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom{transform:translateY(1rem)}
+.advancedBooksReaderIconButton,.advancedBooksReaderNavButton{display:inline-flex;align-items:center;justify-content:center;min-width:2.75rem;min-height:2.75rem;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(28,28,28,.88);color:#fff;padding:.45rem .7rem;font:inherit;cursor:pointer;backdrop-filter:blur(8px)}
+.advancedBooksReaderIconButton:hover,.advancedBooksReaderNavButton:hover,.advancedBooksReaderIconButton:focus-visible,.advancedBooksReaderNavButton:focus-visible{background:rgba(62,62,62,.95);outline:2px solid var(--ab-accent);outline-offset:2px}
+.advancedBooksReaderIconButton:disabled,.advancedBooksReaderNavButton:disabled{opacity:.35;cursor:default}
+.advancedBooksReaderMetadata{display:flex;flex-direction:column;min-width:0;max-width:min(42vw,32rem);line-height:1.18}
+.advancedBooksReaderTitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.advancedBooksReaderSubtitle{font-size:.82rem;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.advancedBooksReaderCounter{font-variant-numeric:tabular-nums;white-space:nowrap;padding:.3rem .55rem;border-radius:999px;background:rgba(0,0,0,.35)}
+.advancedBooksReaderTopSpacer{flex:1 1 auto}
+.advancedBooksReaderPagesHost{display:flex;align-items:center;gap:.4rem}
+.advancedBooksReaderPageSlider{flex:1 1 auto;min-width:5rem;height:2.75rem;margin:0;cursor:pointer;accent-color:var(--ab-accent);touch-action:none}
+.advancedBooksReaderPageSliderValue{min-width:5.2rem;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+.advancedBooksReaderSliderPreview{position:absolute;z-index:10;bottom:calc(100% - .1rem);left:50%;transform:translate(-50%,-.35rem);width:min(8.5rem,28vw);padding:.35rem;border:1px solid rgba(255,255,255,.18);border-radius:.6rem;background:rgba(15,15,15,.96);box-shadow:0 10px 32px rgba(0,0,0,.55);pointer-events:none;box-sizing:border-box;backdrop-filter:blur(12px)}
+.advancedBooksReaderSliderPreview[hidden]{display:none!important}
+.advancedBooksReaderSliderPreviewImageWrap{position:relative;width:100%;aspect-ratio:2/3;display:block;overflow:hidden;border-radius:.35rem;background:#070707}
+.advancedBooksReaderSliderPreview img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain}
+.advancedBooksReaderSliderPreview img[hidden]{display:none!important}
+.advancedBooksReaderSliderPreviewStatus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:.55rem;text-align:center;font-size:.76rem;line-height:1.25;opacity:.72;box-sizing:border-box;overflow:hidden;word-break:break-word}
+.advancedBooksReaderSliderPreviewStatus[hidden]{display:none!important}
+.advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{content:"";inline-size:1rem;block-size:1rem;border:2px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.8);border-radius:50%;animation:advancedBooksReaderSpin .7s linear infinite}
+.advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden]){font-size:0}
+.advancedBooksReaderSliderPreviewStatus[data-state="error"]:not([hidden]){font-size:.72rem}
+@keyframes advancedBooksReaderSpin{to{transform:rotate(360deg)}}
+.advancedBooksReaderSliderPreviewLabel{padding:.35rem .2rem 0;text-align:center;font-size:.85rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.advancedBooksReaderProgressRail{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:5;pointer-events:none;background:rgba(255,255,255,.16)}
+.advancedBooksReaderProgressRail::after{content:"";display:block;width:var(--ab-progress);height:100%;background:var(--ab-accent);transition:width .12s linear}
+.advancedBooksReaderSettingsPanel{position:absolute!important;z-index:9;top:calc(3.6rem + env(safe-area-inset-top,0px));right:.65rem;width:min(24rem,calc(100vw - 1.3rem));max-height:calc(100dvh - 5rem);overflow:auto;display:grid!important;gap:.8rem;padding:1rem;border:1px solid rgba(255,255,255,.14);border-radius:.8rem;background:rgba(20,20,20,.97);box-shadow:0 14px 48px rgba(0,0,0,.55);box-sizing:border-box;backdrop-filter:blur(14px)}
+.advancedBooksReaderSettingsPanel[hidden]{display:none!important}
+.advancedBooksReaderSettingsHeader{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:1.05rem;font-weight:600}
+.advancedBooksReaderSettingRow{display:grid;grid-template-columns:minmax(7rem,1fr) minmax(9rem,1.35fr);align-items:center;gap:.75rem}
+.advancedBooksReaderSettingRow[hidden]{display:none!important}
+.advancedBooksReaderSettingRow label{opacity:.82}
+.advancedBooksReaderSettingRow select{width:100%;min-height:2.7rem;border:1px solid rgba(255,255,255,.2);border-radius:.45rem;background:#252525;color:#fff;padding:.4rem .55rem;font:inherit}
+.advancedBooksReaderZoomRow{display:flex;align-items:center;gap:.45rem;justify-content:flex-end}
+.advancedBooksReaderZoomRow button{min-width:2.7rem;min-height:2.7rem;border:1px solid rgba(255,255,255,.2);border-radius:.45rem;background:#252525;color:#fff;padding:.35rem .6rem;font:inherit}
+.advancedBooksReaderZoomRow button[title="Reset zoom"]{min-width:4.5rem;font-variant-numeric:tabular-nums}
+.advancedBooksReaderSettingsHint{margin:0;font-size:.85rem;line-height:1.35;opacity:.62}
+.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous) img{animation:advancedBooksReaderPageIn .16s ease-out}
+@keyframes advancedBooksReaderPageIn{from{opacity:.35;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:700px){
+    .advancedBooksReaderChromeTop{min-height:3.25rem;padding-inline:.45rem;gap:.35rem}
+    .advancedBooksReaderMetadata{max-width:28vw}
+    .advancedBooksReaderTitle{font-size:.86rem}
+    .advancedBooksReaderSubtitle{font-size:.72rem}
+    .advancedBooksReaderCounter{font-size:.9rem;padding-inline:.45rem}
+    .advancedBooksReaderChromeBottom{gap:.35rem;padding-inline:.45rem}
+    .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;max-width:2.75rem;max-height:2.75rem;padding:0;flex:0 0 2.75rem}
+    .advancedBooksReaderPageSliderValue{min-width:4.4rem;font-size:.88rem}
+    .advancedBooksReaderSliderPreview{width:min(7.5rem,34vw)}
+    .advancedBooksReaderSettingsPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(72dvh,38rem);border-radius:1rem 1rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
+    .advancedBooksReaderSettingRow{grid-template-columns:1fr;gap:.35rem}
+    .advancedBooksReaderPageSlot{min-height:45vh}
+}
+@media(pointer:coarse){
+    .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;padding:0}
+    .advancedBooksReaderSettingRow select,.advancedBooksReaderZoomRow button{min-height:2.75rem}
+}
+@media(prefers-reduced-motion:reduce){
+    .advancedBooksReaderChrome,.advancedBooksReaderProgressRail::after{transition:none!important}
+    .advancedBooksReaderPages img,.advancedBooksReaderSliderPreviewStatus[data-state="loading"]:not([hidden])::before{animation:none!important}
+}
             `;
             document.head.appendChild(style);
         }
@@ -407,24 +416,13 @@
 
             const metadataHeader = document.createElement('div');
             metadataHeader.className = 'advancedBooksReaderMetadata';
+            metadataHeader.dataset.abMetadataHost = 'true';
             const title = document.createElement('div');
             title.className = 'advancedBooksReaderTitle';
             title.textContent = this.bookTitle;
             title.title = this.bookTitle;
-            const subtitle = document.createElement('div');
-            subtitle.className = 'advancedBooksReaderSubtitle';
-            const subtitleParts = [];
-            if (this.bookAuthors.length) subtitleParts.push(this.bookAuthors.join(', '));
-            if (this.seriesName && this.seriesName !== this.bookTitle) {
-                const seriesLabel = this.indexNumber !== null
-                    ? `${this.seriesName} #${this.indexNumber}`
-                    : this.seriesName;
-                subtitleParts.push(seriesLabel);
-            }
-            if (this.productionYear !== null) subtitleParts.push(String(this.productionYear));
-            subtitle.textContent = subtitleParts.join(' · ') || this.metadata.format;
-            subtitle.title = subtitle.textContent;
-            metadataHeader.append(title, subtitle);
+            metadataHeader.append(title);
+            this.metadataHost = metadataHeader;
 
             this.counter = document.createElement('div');
             this.counter.className = 'advancedBooksReaderCounter';
@@ -980,7 +978,6 @@
 
         setLayout(value) {
             this.layout = value;
-            if (value === 'double') this.currentPage = this.spreadStartFor(this.currentPage);
             this.resetPan();
             this.syncControlState();
             this.render();
@@ -1141,58 +1138,75 @@
             return Number.isFinite(ratio) && ratio < 1;
         }
 
-        spreadLengthAt(start) {
-            if (this.layout !== 'double') return 1;
+        doublePairStart(index) {
             const last = this.pageCount - 1;
-            if (start <= 0 || start >= last || this.isLandscapePage(start)) return 1;
-            if (start + 1 >= last || this.isLandscapePage(start + 1)) return 1;
-            return 2;
+            if (index <= 0 || index >= last) return index;
+            return index % 2 === 0 ? index - 1 : index;
         }
 
-        spreadStartFor(index) {
-            if (this.layout !== 'double') return index;
-            const target = Math.min(Math.max(0, index), Math.max(0, this.pageCount - 1));
-            let start = 0;
-            while (start < this.pageCount) {
-                const length = this.spreadLengthAt(start);
-                if (target < start + length) return start;
-                start += length;
+        isDoublePair(start) {
+            const last = this.pageCount - 1;
+            return start > 0
+                && (start % 2) === 1
+                && start + 1 < last
+                && this.pageAspectRatios.has(start)
+                && this.pageAspectRatios.has(start + 1)
+                && !this.isLandscapePage(start)
+                && !this.isLandscapePage(start + 1);
+        }
+
+        spreadLengthAt(start) {
+            return this.layout === 'double' && this.isDoublePair(start) ? 2 : 1;
+        }
+
+        async ensurePageAspectRatio(index) {
+            if (index < 0 || index >= this.pageCount || this.pageAspectRatios.has(index)) return;
+            const url = await this.loadPage(index);
+            const image = new Image();
+            await new Promise(resolve => {
+                const done = () => resolve();
+                image.addEventListener('load', done, { once: true });
+                image.addEventListener('error', done, { once: true });
+                image.src = url;
+                if (image.complete) resolve();
+            });
+            if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                this.rememberPageAspectRatio(index, image.naturalWidth, image.naturalHeight);
             }
-            return Math.max(0, this.pageCount - 1);
         }
 
-        previousSpreadStart() {
-            if (this.layout !== 'double') return Math.max(0, this.currentPage - 1);
-            let previous = 0;
-            let start = 0;
-            while (start < this.currentPage) {
-                previous = start;
-                start += this.spreadLengthAt(start);
+        async ensureDoublePair(index) {
+            const start = this.doublePairStart(index);
+            await Promise.all([start, start + 1].map(page => this.ensurePageAspectRatio(page)));
+            return start;
+        }
+
+        async previous() {
+            if (this.layout !== 'double') {
+                this.goTo(this.currentPage - 1);
+                return;
             }
-            return previous;
+            const current = this.currentPage;
+            const candidate = current - 1;
+            const pairStart = await this.ensureDoublePair(candidate);
+            if (this.closed || this.layout !== 'double' || this.currentPage !== current) return;
+            this.goTo(this.isDoublePair(pairStart) ? pairStart : candidate);
         }
 
-        nextSpreadStart() {
-            if (this.layout !== 'double') return this.currentPage + 1;
-            return this.currentPage + this.spreadLengthAt(this.currentPage);
-        }
-
-        alignPage(index) {
-            return this.layout === 'double' ? this.spreadStartFor(index) : index;
-        }
-
-        previous() {
-            this.goTo(this.layout === 'double' ? this.previousSpreadStart() : this.currentPage - 1);
-        }
-
-        next() {
-            this.goTo(this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1);
+        async next() {
+            if (this.layout !== 'double') {
+                this.goTo(this.currentPage + 1);
+                return;
+            }
+            const current = this.currentPage;
+            await this.ensureDoublePair(current);
+            if (this.closed || this.layout !== 'double' || this.currentPage !== current) return;
+            this.goTo(current + this.spreadLengthAt(current));
         }
 
         goTo(index, behavior = 'smooth') {
             const maximum = Math.max(0, this.pageCount - 1);
             const clamped = Math.min(maximum, Math.max(0, index));
-            const aligned = this.alignPage(clamped);
             if (this.isContinuous()) {
                 this.currentPage = clamped;
                 this.updateControls();
@@ -1203,8 +1217,8 @@
                 }
                 return;
             }
-            if (aligned === this.currentPage) return;
-            this.currentPage = aligned;
+            if (clamped === this.currentPage) return;
+            this.currentPage = clamped;
             this.resetPan();
             this.render();
         }
@@ -1232,33 +1246,28 @@
         async renderPaged(sequence) {
             this.stage.className = 'advancedBooksReaderStage';
             this.message.textContent = 'Loading page…';
-            this.updateControls();
             try {
+                if (this.layout === 'double') {
+                    const requestedPage = this.currentPage;
+                    const pairStart = await this.ensureDoublePair(requestedPage);
+                    if (sequence !== this.renderSequence || this.closed || !this.overlay?.isConnected) return;
+                    if (this.isDoublePair(pairStart)) this.currentPage = pairStart;
+                }
+                if (sequence !== this.renderSequence || this.closed || !this.overlay?.isConnected) return;
+                this.updateControls();
                 const indexes = this.visibleIndexes();
                 const urls = await Promise.all(indexes.map(index => this.loadPage(index)));
                 if (sequence !== this.renderSequence || this.closed || !this.overlay?.isConnected) return;
 
-                this.pagesElement.replaceChildren();
-                indexes.forEach((index, position) => {
+                const images = indexes.map((index, position) => {
                     const image = document.createElement('img');
                     image.alt = `Page ${index + 1}`;
                     image.draggable = false;
-                    image.addEventListener('load', () => {
-                        if (this.closed || this.layout !== 'double' || image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
-                        const before = this.visibleIndexes().slice().sort((a, b) => a - b).join(',');
-                        this.rememberPageAspectRatio(index, image.naturalWidth, image.naturalHeight);
-                        const after = this.visibleIndexes().slice().sort((a, b) => a - b).join(',');
-                        if (before !== after) {
-                            requestAnimationFrame(() => {
-                                if (this.closed || this.layout !== 'double') return;
-                                this.currentPage = this.spreadStartFor(this.currentPage);
-                                this.render();
-                            });
-                        }
-                    }, { once: true });
+                    image.dataset.pageIndex = String(index);
                     image.src = urls[position];
-                    this.pagesElement.appendChild(image);
+                    return image;
                 });
+                this.pagesElement.replaceChildren(...images);
                 this.message.textContent = '';
                 this.applyTransform();
                 this.prefetchPaged();
@@ -1446,51 +1455,48 @@
         }
 
         ensurePlaceholder(slot, index, message) {
-            slot.querySelector('img')?.remove();
-            let placeholder = slot.querySelector('.advancedBooksReaderPagePlaceholder');
-            if (!placeholder) {
-                placeholder = document.createElement('div');
-                placeholder.className = 'advancedBooksReaderPagePlaceholder';
-                slot.appendChild(placeholder);
-            }
+            const placeholder = document.createElement('div');
+            placeholder.className = 'advancedBooksReaderPagePlaceholder';
             placeholder.textContent = message ? `${message} — page ${index + 1}` : `Page ${index + 1}`;
+            slot.dataset.abLoadGeneration = String((Number(slot.dataset.abLoadGeneration) || 0) + 1);
+            slot.replaceChildren(placeholder);
         }
 
         async loadContinuousPage(index, slot) {
             if (!slot?.isConnected || this.closed || !this.isContinuous()) return;
+            const generation = slot.dataset.abLoadGeneration ?? '0';
             const url = await this.loadPage(index);
-            if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
+            if (!slot.isConnected || this.closed || !this.isContinuous()
+                || this.continuousElements[index] !== slot
+                || slot.dataset.abLoadGeneration !== generation) return;
 
-            let image = slot.querySelector('img');
-            if (!image) {
+            let image = slot.querySelectorAll('img').length === 1 ? slot.querySelector('img') : null;
+            if (!image || Number(image.dataset.pageIndex) !== index) {
                 image = document.createElement('img');
                 image.alt = `Page ${index + 1}`;
                 image.draggable = false;
                 image.decoding = 'async';
                 image.dataset.pageIndex = String(index);
-
-                const finalizeGeometry = () => {
-                    if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
-                    this.stabilizeContinuousSlot(index, slot, image);
-                    this.applyContinuousImageSizing(image);
-                };
-                image.addEventListener('load', finalizeGeometry, { once: true });
+                image.addEventListener('load', () => {
+                    if (slot.isConnected && this.continuousElements[index] === slot && slot.querySelector('img') === image) {
+                        this.stabilizeContinuousSlot(index, slot, image);
+                        this.applyContinuousImageSizing(image);
+                    }
+                }, { once: true });
                 image.src = url;
-
+                slot.replaceChildren(image);
                 try {
                     await image.decode?.();
                 } catch {
-                    // Some WebViews reject decode() even when the normal load event succeeds.
                 }
-
-                if (!slot.isConnected || this.closed || !this.isContinuous() || this.continuousElements[index] !== slot) return;
-                finalizeGeometry();
-                slot.querySelector('.advancedBooksReaderPagePlaceholder')?.remove();
-                slot.appendChild(image);
-                return;
+                if (!slot.isConnected || this.closed || !this.isContinuous()
+                    || this.continuousElements[index] !== slot
+                    || slot.dataset.abLoadGeneration !== generation
+                    || slot.querySelector('img') !== image) return;
+            } else if (image.src !== url) {
+                image.src = url;
             }
 
-            if (image.src !== url) image.src = url;
             this.stabilizeContinuousSlot(index, slot, image);
             this.applyContinuousImageSizing(image);
         }
@@ -1574,9 +1580,17 @@
         }
 
         async fetchPage(index, signal) {
-            const url = this.apiClient.getUrl(`AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}`);
-            const response = await this.apiClient.fetch({ url, method: 'GET', signal }, true);
+            const version = encodeURIComponent(this.archiveVersion);
+            const url = this.apiClient.getUrl(`AdvancedBooks/Books/${encodeURIComponent(this.itemId)}/Pages/${index}?v=${version}`);
+            const response = await this.apiClient.fetch({ url, method: 'GET', signal, cache: 'no-store' }, true);
             if (!response || response.ok === false) throw new Error(`HTTP ${response?.status ?? 'error'}`);
+            const servedIndexText = response.headers?.get?.('X-AdvancedBooks-Page-Index');
+            if (servedIndexText !== null && servedIndexText !== undefined) {
+                const servedIndex = Number(servedIndexText);
+                if (Number.isInteger(servedIndex) && servedIndex !== index) {
+                    throw new Error(`Page identity mismatch: requested ${index}, received ${servedIndex}`);
+                }
+            }
             const blob = await response.blob();
             const objectUrl = URL.createObjectURL(blob);
             if (this.closed) {
@@ -1589,12 +1603,13 @@
         }
 
         prefetchPaged() {
-            const previous = this.layout === 'double' ? this.previousSpreadStart() : this.currentPage - 1;
-            const next = this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1;
-            const afterNext = this.layout === 'double'
-                ? next + (next < this.pageCount ? this.spreadLengthAt(next) : 1)
-                : next + 1;
-            const candidates = [previous, next, afterNext];
+            const candidates = [
+                this.currentPage - 2,
+                this.currentPage - 1,
+                this.currentPage + 1,
+                this.currentPage + 2,
+                this.currentPage + 3
+            ];
             for (const index of candidates) {
                 if (index >= 0 && index < this.pageCount && !this.cache.has(index) && !this.pending.has(index)) {
                     this.loadPage(index).catch(() => {});
@@ -1647,7 +1662,7 @@
             const firstVisible = visible[0] ?? this.currentPage;
             const lastVisible = visible[visible.length - 1] ?? this.currentPage;
             this.previousButton.disabled = this.currentPage <= 0;
-            this.nextButton.disabled = (this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1) >= this.pageCount;
+            this.nextButton.disabled = this.currentPage + (this.layout === 'double' ? this.spreadLengthAt(this.currentPage) : 1) >= this.pageCount;
             this.counter.textContent = firstVisible === lastVisible
                 ? `${firstVisible + 1} / ${this.pageCount}`
                 : `${firstVisible + 1}–${lastVisible + 1} / ${this.pageCount}`;

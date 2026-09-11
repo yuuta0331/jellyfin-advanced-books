@@ -1,3 +1,4 @@
+using System.Globalization;
 using Jellyfin.AdvancedBooks.Core.Archives;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
@@ -185,8 +186,9 @@ public sealed class AdvancedBooksController : ControllerBase
             Response.StatusCode = StatusCodes.Status200OK;
             Response.ContentType = lease.Page.ContentType;
             Response.ContentLength = lease.Page.Length;
-            Response.Headers.CacheControl = "private, max-age=3600";
+            Response.Headers.CacheControl = "private, no-store";
             Response.Headers["X-Content-Type-Options"] = "nosniff";
+            Response.Headers["X-AdvancedBooks-Page-Index"] = lease.Page.Index.ToString(CultureInfo.InvariantCulture);
 
             try
             {

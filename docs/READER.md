@@ -7,7 +7,7 @@ The Advanced Reader is a client-side overlay backed by Advanced Books' authentic
 Four reading modes are available for CBZ/ZIP-backed Jellyfin Book items:
 
 - **Single page** - one page at a time;
-- **Double page** - RTL/LTR smart spreads; first/last pages and detected landscape pages remain single;
+- **Double page** - RTL/LTR smart spreads; first/last pages and detected landscape pages remain single, with page orientation resolved before the spread is committed to the DOM;
 - **Vertical continuous** - independent comic pages stacked vertically;
 - **Webtoon** - edge-to-edge continuous vertical reading with zero gap by default and optional page-gap/side-padding tuning.
 
@@ -33,7 +33,7 @@ The reader UI is optimized to disappear while reading. A compact top chrome and 
 
 The bottom strip is available in Single, Double, Vertical Continuous and Webtoon modes. It contains Previous/Next controls, the current page/range, and a range scrubber for direct jumps across long books. Pressing or dragging the scrubber opens a compact thumbnail preview anchored to the actual pointer/finger position rather than an approximate track position. Loading is shown as a centered spinner inside the preview image frame; error text is contained in the same frame. Requests use a short debounce, stale requests are aborted, 128px previews are used for faster first display, and a small bounded browser cache avoids repeatedly generating the same preview. The Pages grid and scrub preview now both request 128px variants so they share the same server cache immediately; the server can still reuse a compatible larger cached variant when one already exists. A thin progress rail remains visible at the bottom edge even when the larger controls are hidden.
 
-The top chrome shows Jellyfin book metadata: title plus available authors, series/issue context and production year. Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit, zoom, black/gray/white background, page-transition animation and touch gestures are available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome, and the contextual **?** help panel lists keyboard and gesture controls.
+The top chrome shows Jellyfin book metadata: title plus available authors, series, issue/index and production year. The metadata header can be disabled entirely or configured field-by-field. When enabled text is wider than the available header space, optional auto-scroll pans that line horizontally between both ends so the entire value becomes visible. Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit, zoom, black/gray/white background, page-transition animation and touch gestures are available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome, and the contextual **?** help panel lists keyboard and gesture controls.
 
 ## Per-user reader preferences
 
@@ -54,7 +54,10 @@ The following settings are persisted for the current authenticated Jellyfin user
 - continuous page gap: 0, 4, 8, 12, 16, 24 or 32 pixels;
 - reader background: Black / Gray / White;
 - paged transition animation: On / Off; and
-- touch gestures: On / Off.
+- touch gestures: On / Off;
+- metadata header: Show / Hide;
+- title, authors, series, issue/index and year: individually Show / Hide; and
+- metadata auto-scroll: On / Off.
 
 Preferences use a fixed Advanced Books display-preference namespace, so the same Jellyfin user receives the same reader controls in another Jellyfin Web browser/client. Different Jellyfin users remain isolated.
 
@@ -105,18 +108,20 @@ Reaching the final page marks the Jellyfin Book as played. Completion is server-
 
 ## Continuous lazy loading
 
-Continuous mode creates lightweight page placeholders but does **not** download every image. Two `IntersectionObserver`s are rooted to the reader viewport:
+Continuous mode creates lightweight page placeholders but does **not** download every image. Each page slot has a strict DOM invariant: it contains exactly one placeholder or exactly one image for that page. Observer loading, directional prefetch and direct jumps may request the same page concurrently, but successful loads replace the slot content instead of appending another image. A per-slot load generation prevents an older asynchronous request from restoring an image after the slot has been evicted or reset.
+
+Two `IntersectionObserver`s are rooted to the reader viewport:
 
 1. a prefetch observer begins authenticated page loading only when a placeholder enters an expanded area around the viewport; and
 2. a visibility observer tracks which page occupies the viewport and updates the current page counter.
 
-Nearby pages are kept in memory. Continuous mode has a bounded Blob cache and evicts distant pages, revoking their object URLs and returning the page to a lightweight placeholder. Distant in-flight requests are aborted as the reading position moves.
+Nearby pages are kept in memory. Continuous mode has a bounded Blob cache and evicts distant pages, revoking their object URLs and returning the page to a lightweight placeholder. Distant in-flight requests are aborted as the reading position moves. The invariant above prevents the former race where the initial load, observer and prefetch paths could each create a copy of the same `<img>` and leave duplicate images side-by-side in the flex page slot.
 
 This keeps a large magazine or manga volume from turning into a full-archive browser download while still allowing smooth continuous scrolling.
 
 ## Jellyfin Web integration
 
-For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers the embedded reader, progress, preferences, navigator and gesture scripts as one combined injection payload through that plugin's public `PluginInterface.RegisterScript` contract.
+For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers Core, Progress, Preferences, Navigator and Gestures as five independent validated entries through that plugin's public `PluginInterface.RegisterScript` contract.
 
 This is an optional runtime integration. Advanced Books does not reference or ship JavaScript Injector assemblies, and the server-side One-Shot/page/progress/preferences/thumbnail APIs continue to work without it.
 
@@ -130,7 +135,7 @@ Only a supported, accessible archive with at least one page receives an **Advanc
 
 ## Page loading
 
-Image elements cannot attach Jellyfin's custom authorization header directly. Full pages and thumbnail images are therefore requested through Jellyfin's authenticated `ApiClient.fetch(...)`, converted to temporary Blob URLs and then assigned to images. The complete CBZ is never intentionally downloaded by the Advanced Reader.
+Image elements cannot attach Jellyfin's custom authorization header directly. Full pages and thumbnail images are therefore requested through Jellyfin's authenticated `ApiClient.fetch(...)`, converted to temporary Blob URLs and then assigned to images. Full-page requests use an archive-version query key and `no-store`; the server returns `X-AdvancedBooks-Page-Index`, which the reader checks before accepting the bytes. The complete CBZ is never intentionally downloaded by the Advanced Reader.
 
 ## Controls
 

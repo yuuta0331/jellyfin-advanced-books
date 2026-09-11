@@ -27,6 +27,13 @@ public sealed class ReaderPreferencesController : ControllerBase
     private const string BackgroundKey = "background";
     private const string AnimateTransitionsKey = "animateTransitions";
     private const string TouchGesturesKey = "touchGestures";
+    private const string ShowMetadataKey = "showMetadata";
+    private const string ShowMetadataTitleKey = "showMetadataTitle";
+    private const string ShowMetadataAuthorsKey = "showMetadataAuthors";
+    private const string ShowMetadataSeriesKey = "showMetadataSeries";
+    private const string ShowMetadataIssueKey = "showMetadataIssue";
+    private const string ShowMetadataYearKey = "showMetadataYear";
+    private const string AutoScrollMetadataKey = "autoScrollMetadata";
     private const string PreferenceSchemaVersionKey = "schemaVersion";
 
     // Stable pseudo-item namespace reserved for global Advanced Reader preferences.
@@ -72,6 +79,13 @@ public sealed class ReaderPreferencesController : ControllerBase
         stored.TryGetValue(BackgroundKey, out var background);
         stored.TryGetValue(AnimateTransitionsKey, out var animateTransitionsText);
         stored.TryGetValue(TouchGesturesKey, out var touchGesturesText);
+        stored.TryGetValue(ShowMetadataKey, out var showMetadataText);
+        stored.TryGetValue(ShowMetadataTitleKey, out var showMetadataTitleText);
+        stored.TryGetValue(ShowMetadataAuthorsKey, out var showMetadataAuthorsText);
+        stored.TryGetValue(ShowMetadataSeriesKey, out var showMetadataSeriesText);
+        stored.TryGetValue(ShowMetadataIssueKey, out var showMetadataIssueText);
+        stored.TryGetValue(ShowMetadataYearKey, out var showMetadataYearText);
+        stored.TryGetValue(AutoScrollMetadataKey, out var autoScrollMetadataText);
         stored.TryGetValue(PreferenceSchemaVersionKey, out var schemaVersionText);
 
         var schemaVersion = 1;
@@ -102,19 +116,15 @@ public sealed class ReaderPreferencesController : ControllerBase
             pageGap = ReaderPreferenceRules.NormalizePageGap(parsedPageGap);
         }
 
-        var animateTransitions = ReaderPreferenceRules.DefaultAnimateTransitions;
-        if (!string.IsNullOrWhiteSpace(animateTransitionsText)
-            && bool.TryParse(animateTransitionsText, out var parsedAnimateTransitions))
-        {
-            animateTransitions = parsedAnimateTransitions;
-        }
-
-        var touchGestures = ReaderPreferenceRules.DefaultTouchGestures;
-        if (!string.IsNullOrWhiteSpace(touchGesturesText)
-            && bool.TryParse(touchGesturesText, out var parsedTouchGestures))
-        {
-            touchGestures = parsedTouchGestures;
-        }
+        var animateTransitions = ParseStoredBoolean(animateTransitionsText, ReaderPreferenceRules.DefaultAnimateTransitions);
+        var touchGestures = ParseStoredBoolean(touchGesturesText, ReaderPreferenceRules.DefaultTouchGestures);
+        var showMetadata = ParseStoredBoolean(showMetadataText, ReaderPreferenceRules.DefaultShowMetadata);
+        var showMetadataTitle = ParseStoredBoolean(showMetadataTitleText, ReaderPreferenceRules.DefaultShowMetadataTitle);
+        var showMetadataAuthors = ParseStoredBoolean(showMetadataAuthorsText, ReaderPreferenceRules.DefaultShowMetadataAuthors);
+        var showMetadataSeries = ParseStoredBoolean(showMetadataSeriesText, ReaderPreferenceRules.DefaultShowMetadataSeries);
+        var showMetadataIssue = ParseStoredBoolean(showMetadataIssueText, ReaderPreferenceRules.DefaultShowMetadataIssue);
+        var showMetadataYear = ParseStoredBoolean(showMetadataYearText, ReaderPreferenceRules.DefaultShowMetadataYear);
+        var autoScrollMetadata = ParseStoredBoolean(autoScrollMetadataText, ReaderPreferenceRules.DefaultAutoScrollMetadata);
 
         var normalizedFit = ReaderPreferenceRules.NormalizeStoredFit(fit, schemaVersion);
 
@@ -127,7 +137,14 @@ public sealed class ReaderPreferencesController : ControllerBase
             pageGap,
             ReaderPreferenceRules.NormalizeBackground(background),
             animateTransitions,
-            touchGestures));
+            touchGestures,
+            showMetadata,
+            showMetadataTitle,
+            showMetadataAuthors,
+            showMetadataSeries,
+            showMetadataIssue,
+            showMetadataYear,
+            autoScrollMetadata));
     }
 
     /// <summary>Replaces the current user's global Advanced Reader preferences.</summary>
@@ -194,6 +211,13 @@ public sealed class ReaderPreferencesController : ControllerBase
             [BackgroundKey] = request.Background,
             [AnimateTransitionsKey] = request.AnimateTransitions.ToString(),
             [TouchGesturesKey] = request.TouchGestures.ToString(),
+            [ShowMetadataKey] = request.ShowMetadata.ToString(),
+            [ShowMetadataTitleKey] = request.ShowMetadataTitle.ToString(),
+            [ShowMetadataAuthorsKey] = request.ShowMetadataAuthors.ToString(),
+            [ShowMetadataSeriesKey] = request.ShowMetadataSeries.ToString(),
+            [ShowMetadataIssueKey] = request.ShowMetadataIssue.ToString(),
+            [ShowMetadataYearKey] = request.ShowMetadataYear.ToString(),
+            [AutoScrollMetadataKey] = request.AutoScrollMetadata.ToString(),
             [PreferenceSchemaVersionKey] = ReaderPreferenceRules.CurrentPreferenceSchemaVersion.ToString(CultureInfo.InvariantCulture)
         };
 
@@ -212,7 +236,14 @@ public sealed class ReaderPreferencesController : ControllerBase
             request.PageGap,
             request.Background,
             request.AnimateTransitions,
-            request.TouchGestures));
+            request.TouchGestures,
+            request.ShowMetadata,
+            request.ShowMetadataTitle,
+            request.ShowMetadataAuthors,
+            request.ShowMetadataSeries,
+            request.ShowMetadataIssue,
+            request.ShowMetadataYear,
+            request.AutoScrollMetadata));
     }
 
     private async Task<User?> GetCurrentUser()
@@ -222,6 +253,9 @@ public sealed class ReaderPreferencesController : ControllerBase
             .ConfigureAwait(false);
         return authorizationInfo.User;
     }
+
+    private static bool ParseStoredBoolean(string? value, bool fallback)
+        => !string.IsNullOrWhiteSpace(value) && bool.TryParse(value, out var parsed) ? parsed : fallback;
 
     private ActionResult InvalidPreference(string name, string value)
     {

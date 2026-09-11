@@ -15,7 +15,7 @@ public static class ReaderPreferenceRules
     public const string DefaultFit = "screen";
 
     /// <summary>Current persisted reader-preference schema version.</summary>
-    public const int CurrentPreferenceSchemaVersion = 3;
+    public const int CurrentPreferenceSchemaVersion = 4;
 
     /// <summary>Default reader zoom.</summary>
     public const double DefaultZoom = 1d;
@@ -28,6 +28,27 @@ public static class ReaderPreferenceRules
 
     /// <summary>Whether touch gestures are enabled by default.</summary>
     public const bool DefaultTouchGestures = true;
+
+    /// <summary>Whether the reader metadata header is shown by default.</summary>
+    public const bool DefaultShowMetadata = true;
+
+    /// <summary>Whether the title is shown in reader metadata by default.</summary>
+    public const bool DefaultShowMetadataTitle = true;
+
+    /// <summary>Whether authors are shown in reader metadata by default.</summary>
+    public const bool DefaultShowMetadataAuthors = true;
+
+    /// <summary>Whether series is shown in reader metadata by default.</summary>
+    public const bool DefaultShowMetadataSeries = true;
+
+    /// <summary>Whether issue/index is shown in reader metadata by default.</summary>
+    public const bool DefaultShowMetadataIssue = true;
+
+    /// <summary>Whether year is shown in reader metadata by default.</summary>
+    public const bool DefaultShowMetadataYear = true;
+
+    /// <summary>Whether overflowing reader metadata scrolls automatically by default.</summary>
+    public const bool DefaultAutoScrollMetadata = true;
 
     /// <summary>Default continuous-reader side padding percentage.</summary>
     public const int DefaultSidePadding = 0;

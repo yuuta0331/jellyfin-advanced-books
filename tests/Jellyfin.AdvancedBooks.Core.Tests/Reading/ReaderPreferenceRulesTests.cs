@@ -72,9 +72,22 @@ public sealed class ReaderPreferenceRulesTests
     }
 
     [Fact]
-    public void SchemaV2HeightFit_RemainsExplicitChoiceAfterSchemaV3()
+    public void SchemaV2HeightFit_RemainsExplicitChoiceAfterLaterSchemas()
     {
         Assert.Equal("height", ReaderPreferenceRules.NormalizeStoredFit("height", 2));
+    }
+
+    [Fact]
+    public void MetadataPreferences_DefaultToVisibleAndAutoScrolling()
+    {
+        Assert.Equal(4, ReaderPreferenceRules.CurrentPreferenceSchemaVersion);
+        Assert.True(ReaderPreferenceRules.DefaultShowMetadata);
+        Assert.True(ReaderPreferenceRules.DefaultShowMetadataTitle);
+        Assert.True(ReaderPreferenceRules.DefaultShowMetadataAuthors);
+        Assert.True(ReaderPreferenceRules.DefaultShowMetadataSeries);
+        Assert.True(ReaderPreferenceRules.DefaultShowMetadataIssue);
+        Assert.True(ReaderPreferenceRules.DefaultShowMetadataYear);
+        Assert.True(ReaderPreferenceRules.DefaultAutoScrollMetadata);
     }
 
     [Theory]

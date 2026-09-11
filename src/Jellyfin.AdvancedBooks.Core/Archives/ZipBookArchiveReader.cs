@@ -124,6 +124,11 @@ public sealed class ZipBookArchiveReader : IZipBookArchiveReader
         var imageEntries = archive.Entries
             .Where(static entry => !string.IsNullOrEmpty(entry.Name))
             .Where(entry => TryGetImageContentType(entry.FullName, out _))
+            .Where(static entry =>
+            {
+                ValidateEntryPath(entry.FullName);
+                return !IsIgnoredArchiveEntry(entry.FullName);
+            })
             .OrderBy(static entry => NormalizeEntryName(entry.FullName), NaturalStringComparer.Instance)
             .ToArray();
 
@@ -221,6 +226,14 @@ public sealed class ZipBookArchiveReader : IZipBookArchiveReader
 
     private static bool TryGetImageContentType(string path, out string? contentType)
         => _imageContentTypes.TryGetValue(Path.GetExtension(path), out contentType);
+
+    private static bool IsIgnoredArchiveEntry(string path)
+    {
+        var normalized = NormalizeEntryName(path);
+        var segments = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return segments.Any(static segment => segment.Equals("__MACOSX", StringComparison.OrdinalIgnoreCase))
+            || (segments.Length > 0 && segments[^1].StartsWith("._", StringComparison.Ordinal));
+    }
 
     private static string NormalizeEntryName(string value) => value.Replace('\\', '/');
 
