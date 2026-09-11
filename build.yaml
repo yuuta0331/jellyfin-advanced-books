@@ -22,6 +22,6 @@ changelog: >
   the Jellyfin/browser language automatically and keeps localized controls addressable
   through stable action identifiers. Add a repository-owned catalog icon and project
   banner, publish imageUrl and Books-category metadata in the Jellyfin repository
-  manifest, and document repository-based installation and automatic future updates.
+  manifest, and document repository-based installation and Catalog-discovered updates.
   Extend embedded-resource verification to the new localization bridge and add release
   validation for catalog metadata.
