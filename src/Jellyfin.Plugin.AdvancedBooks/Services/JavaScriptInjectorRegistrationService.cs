@@ -178,12 +178,19 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             return;
         }
 
-        // From this point onward, all resources we intend to register have already passed strict
-        // validation. Replace old/partial entries with the prepared set.
-        TryUnregister(interfaceType, plugin.Id.ToString());
+        // Register in place. JavaScript Injector updates entries with the same ID, so deleting all
+        // current registrations first only creates an unnecessary failure window. Keep the current
+        // Core alive until a validated replacement has been accepted.
+        TryUnregisterLegacyScript(interfaceType);
 
         var registeredIds = new List<string>(preparedScripts.Count);
         var skippedIds = new List<string>(ReaderScripts.Length - preparedScripts.Count);
+        var invalidOptionalIds = ReaderScripts
+            .Where(registration =>
+                !registration.Required
+                && preparedScripts.All(prepared => prepared.Registration.Id != registration.Id))
+            .Select(registration => registration.Id)
+            .ToArray();
 
         foreach (var prepared in preparedScripts)
         {
@@ -227,10 +234,9 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             {
                 if (registration.Required)
                 {
-                    TryUnregister(interfaceType, plugin.Id.ToString());
                     _logger.LogWarning(
                         exception,
-                        "Required Advanced Books reader script {ScriptId} could not be registered. The partial registration was rolled back.",
+                        "Required Advanced Books reader script {ScriptId} could not be registered. Existing JavaScript Injector registrations were left in place where possible.",
                         registration.Id);
                     return;
                 }
@@ -244,13 +250,10 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             }
         }
 
-        foreach (var registration in ReaderScripts)
+        foreach (var scriptId in invalidOptionalIds)
         {
-            if (!registration.Required
-                && preparedScripts.All(prepared => prepared.Registration.Id != registration.Id))
-            {
-                skippedIds.Add(registration.Id);
-            }
+            TryUnregisterScript(interfaceType, scriptId);
+            skippedIds.Add(scriptId);
         }
 
         _logger.LogInformation(
@@ -287,14 +290,10 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
                 types: [typeof(string)],
                 modifiers: null);
 
-            // The legacy entry is removed by its exact ID because older installs may have
-            // persisted ownership metadata inconsistently. New split entries use plugin ownership
-            // when the newer bulk API is available.
-            unregisterMethod?.Invoke(null, [LegacyCombinedScriptId]);
-
             if (unregisterAllMethod is not null)
             {
                 unregisterAllMethod.Invoke(null, [pluginId]);
+                unregisterMethod?.Invoke(null, [LegacyCombinedScriptId]);
                 return;
             }
 
@@ -312,6 +311,11 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
         {
             _logger.LogDebug(exception, "Failed to unregister Advanced Books reader scripts.");
         }
+    }
+
+    private void TryUnregisterLegacyScript(Type interfaceType)
+    {
+        TryUnregisterScript(interfaceType, LegacyCombinedScriptId);
     }
 
     private void TryUnregisterScript(Type interfaceType, string scriptId)
