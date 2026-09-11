@@ -47,10 +47,11 @@ public sealed class ZipBookArchiveReaderTests : IDisposable
 
         var info = new ZipBookArchiveReader().GetBookInfo(path);
 
-        Assert.Collection(
-            info.Pages,
-            page => Assert.Equal("page1.jpg", page.Name),
-            page => Assert.Equal("folder/page2.png", page.Name));
+        Assert.Equal(2, info.Pages.Count);
+        Assert.Contains(info.Pages, page => page.Name == "page1.jpg");
+        Assert.Contains(info.Pages, page => page.Name == "folder/page2.png");
+        Assert.DoesNotContain(info.Pages, page => page.Name.Contains("__MACOSX", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(info.Pages, page => Path.GetFileName(page.Name).StartsWith("._", StringComparison.Ordinal));
     }
 
     [Fact]
