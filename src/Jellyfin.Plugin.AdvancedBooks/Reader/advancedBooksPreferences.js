@@ -154,9 +154,9 @@
             showMetadataIssue: overlay.querySelector('[data-ab-control="showMetadataIssue"]'),
             showMetadataYear: overlay.querySelector('[data-ab-control="showMetadataYear"]'),
             autoScrollMetadata: overlay.querySelector('[data-ab-control="autoScrollMetadata"]'),
-            zoomOut: toolbar.querySelector('button[title="Zoom out"]'),
-            zoomReset: toolbar.querySelector('button[title="Reset zoom"]'),
-            zoomIn: toolbar.querySelector('button[title="Zoom in"]'),
+            zoomOut: toolbar.querySelector('button[data-ab-action="zoom-out"],button[title="Zoom out"]'),
+            zoomReset: toolbar.querySelector('button[data-ab-action="zoom-reset"],button[title="Reset zoom"]'),
+            zoomIn: toolbar.querySelector('button[data-ab-action="zoom-in"],button[title="Zoom in"]'),
             stage: overlay.querySelector('.advancedBooksReaderStage')
         };
     }
@@ -289,7 +289,7 @@
 
     function attachHelp(session) {
         const top = session.overlay.querySelector('.advancedBooksReaderChromeTop');
-        const settingsButton = top?.querySelector('button[title="Reader settings"]');
+        const settingsButton = top?.querySelector('button[data-ab-action="settings"],button[title="Reader settings"]');
         if (!top || !settingsButton) return;
 
         ensureHelpStyles();
@@ -554,7 +554,7 @@
         session.removalObserver?.disconnect();
         session.controls.toolbar?.removeEventListener('change', session.onControlChange, true);
         if (session.overlay?.__advancedBooksCloseHelp) delete session.overlay.__advancedBooksCloseHelp;
-        session.controls.toolbar?.parentElement?.querySelector('button[title="Reader settings"]')
+        session.controls.toolbar?.parentElement?.querySelector('button[data-ab-action="settings"],button[title="Reader settings"]')
             ?.removeEventListener('click', session.onSettingsClick, true);
         session.helpButton?.remove();
         session.helpPanel?.remove();
