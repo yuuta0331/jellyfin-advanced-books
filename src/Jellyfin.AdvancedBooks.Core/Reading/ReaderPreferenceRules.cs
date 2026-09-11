@@ -89,7 +89,7 @@ public static class ReaderPreferenceRules
     public static string NormalizeStoredFit(string? value, int schemaVersion)
     {
         var normalized = NormalizeFit(value);
-        return schemaVersion < CurrentPreferenceSchemaVersion && normalized == "height"
+        return schemaVersion < 2 && normalized == "height"
             ? DefaultFit
             : normalized;
     }
