@@ -20,7 +20,7 @@ PLUGIN_METADATA = {
     "overview": "Advanced comic, manga, magazine and book reader for Jellyfin 12.",
     "owner": "yuuta0331",
     "category": "Books",
-    "imageUrl": "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.svg",
+    "imageUrl": "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.png",
 }
 
 
