@@ -1138,11 +1138,22 @@
             return Number.isFinite(ratio) && ratio < 1;
         }
 
-        spreadLengthAt(start) {
-            if (this.layout !== 'double') return 1;
+        doublePairStart(index) {
             const last = this.pageCount - 1;
-            if (start <= 0 || start >= last || start + 1 >= last || this.isLandscapePage(start) || this.isLandscapePage(start + 1)) return 1;
-            return 2;
+            if (index <= 0 || index >= last) return index;
+            return index % 2 === 0 ? index - 1 : index;
+        }
+
+        isDoublePair(start) {
+            const last = this.pageCount - 1;
+            return start > 0
+                && start + 1 < last
+                && !this.isLandscapePage(start)
+                && !this.isLandscapePage(start + 1);
+        }
+
+        spreadLengthAt(start) {
+            return this.layout === 'double' && this.isDoublePair(start) ? 2 : 1;
         }
 
         async ensurePageAspectRatio(index) {
@@ -1161,20 +1172,22 @@
             }
         }
 
+        async ensureDoublePair(index) {
+            const start = this.doublePairStart(index);
+            await Promise.all([start, start + 1].map(page => this.ensurePageAspectRatio(page)));
+            return start;
+        }
+
         async previous() {
             if (this.layout !== 'double') {
                 this.goTo(this.currentPage - 1);
                 return;
             }
             const current = this.currentPage;
-            await Promise.all([current - 1, current - 2].map(index => this.ensurePageAspectRatio(index)));
+            const candidate = current - 1;
+            const pairStart = await this.ensureDoublePair(candidate);
             if (this.closed || this.layout !== 'double' || this.currentPage !== current) return;
-            const previous = current - 1;
-            const before = previous - 1;
-            const start = previous <= 0 || this.isLandscapePage(previous) || before <= 0 || this.isLandscapePage(before)
-                ? previous
-                : before;
-            this.goTo(start);
+            this.goTo(this.isDoublePair(pairStart) ? pairStart : candidate);
         }
 
         async next() {
@@ -1183,7 +1196,7 @@
                 return;
             }
             const current = this.currentPage;
-            await Promise.all([current, current + 1].map(index => this.ensurePageAspectRatio(index)));
+            await this.ensureDoublePair(current);
             if (this.closed || this.layout !== 'double' || this.currentPage !== current) return;
             this.goTo(current + this.spreadLengthAt(current));
         }
@@ -1232,7 +1245,10 @@
             this.message.textContent = 'Loading page…';
             try {
                 if (this.layout === 'double') {
-                    await Promise.all([this.currentPage, this.currentPage + 1].map(index => this.ensurePageAspectRatio(index)));
+                    const requestedPage = this.currentPage;
+                    const pairStart = await this.ensureDoublePair(requestedPage);
+                    if (sequence !== this.renderSequence || this.closed || !this.overlay?.isConnected) return;
+                    if (this.isDoublePair(pairStart)) this.currentPage = pairStart;
                 }
                 if (sequence !== this.renderSequence || this.closed || !this.overlay?.isConnected) return;
                 this.updateControls();
