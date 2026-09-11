@@ -66,6 +66,18 @@ jobs:
       - name: Test
         run: dotnet test jellyfin-advanced-books.slnx --configuration Release --no-build
 
+      - name: Validate built embedded reader resources
+        env:
+          VERSION: ${{ steps.release_meta.outputs.version }}
+        run: >-
+          dotnet run
+          --project tools/EmbeddedReaderResourceVerifier/EmbeddedReaderResourceVerifier.csproj
+          --configuration Release
+          --no-build
+          --
+          src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll
+          "$VERSION"
+
       - name: Package development plugin twice
         env:
           VERSION: ${{ steps.release_meta.outputs.version }}
