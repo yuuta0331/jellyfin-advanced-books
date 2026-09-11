@@ -207,16 +207,27 @@
         }
         panel.append(header, grid);
 
+        const reader = session.overlay.__advancedBooksReaderSession;
         const setOpen = open => {
+            if (open && settingsButton.getAttribute('aria-expanded') === 'true') settingsButton.click();
             panel.hidden = !open;
             button.setAttribute('aria-expanded', String(open));
-            if (open) close.focus?.({ preventScroll: true });
+            if (open) {
+                reader?.showControls?.(false);
+                close.focus?.({ preventScroll: true });
+            } else {
+                reader?.showControls?.();
+            }
         };
         button.addEventListener('click', () => setOpen(panel.hidden));
         close.addEventListener('click', () => {
             setOpen(false);
             button.focus?.({ preventScroll: true });
         });
+        session.onSettingsClick = () => {
+            if (!panel.hidden) setOpen(false);
+        };
+        settingsButton.addEventListener('click', session.onSettingsClick, true);
 
         top.insertBefore(button, settingsButton);
         session.overlay.appendChild(panel);
@@ -391,6 +402,8 @@
         session.removalObserver?.disconnect();
         session.controls.toolbar?.removeEventListener('change', session.onControlChange, true);
         if (session.overlay?.__advancedBooksCloseHelp) delete session.overlay.__advancedBooksCloseHelp;
+        session.controls.toolbar?.parentElement?.querySelector('button[title="Reader settings"]')
+            ?.removeEventListener('click', session.onSettingsClick, true);
         session.helpButton?.remove();
         session.helpPanel?.remove();
         if (currentSession === session) currentSession = null;
@@ -421,6 +434,7 @@
             zoomObserver: null,
             removalObserver: null,
             onControlChange: null,
+            onSettingsClick: null,
             helpButton: null,
             helpPanel: null
         };
