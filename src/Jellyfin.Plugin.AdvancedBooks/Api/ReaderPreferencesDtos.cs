@@ -1,3 +1,5 @@
+using Jellyfin.AdvancedBooks.Core.Reading;
+
 namespace Jellyfin.Plugin.AdvancedBooks.Api;
 
 /// <summary>
@@ -9,7 +11,10 @@ public sealed record ReaderPreferencesDto(
     string Fit,
     double Zoom,
     int SidePadding,
-    int PageGap);
+    int PageGap,
+    string Background,
+    bool AnimateTransitions,
+    bool TouchGestures);
 
 /// <summary>
 /// Replaces the current user's Advanced Reader preferences.
@@ -33,4 +38,13 @@ public sealed class UpdateReaderPreferencesRequest
 
     /// <summary>Gets or sets continuous-reader page gap in pixels.</summary>
     public int PageGap { get; set; }
+
+    /// <summary>Gets or sets the reader background.</summary>
+    public string Background { get; set; } = ReaderPreferenceRules.DefaultBackground;
+
+    /// <summary>Gets or sets whether paged transitions are animated.</summary>
+    public bool AnimateTransitions { get; set; } = ReaderPreferenceRules.DefaultAnimateTransitions;
+
+    /// <summary>Gets or sets whether touch gestures are enabled.</summary>
+    public bool TouchGestures { get; set; } = ReaderPreferenceRules.DefaultTouchGestures;
 }
