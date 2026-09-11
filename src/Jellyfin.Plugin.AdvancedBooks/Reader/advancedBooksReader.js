@@ -216,7 +216,7 @@
             this.boundFocusIn = event => this.onFocusIn(event);
             this.boundChromeEnter = () => this.showControls(false);
             this.boundChromeLeave = () => {
-                if (!this.settingsOpen) this.showControls();
+                if (!this.settingsOpen && !this.helpOpen) this.showControls();
             };
             this.boundFullscreenChange = () => this.updateFullscreenButton();
             this.boundViewportResize = () => this.updateViewportMetrics();
@@ -242,6 +242,12 @@
 
         close() {
             if (this.closed) return;
+            this.overlay?.dispatchEvent(new CustomEvent('advancedbooks:reader-closing', {
+                detail: {
+                    pageIndex: this.currentPage,
+                    reachedPageIndex: Math.max(...this.visibleIndexes())
+                }
+            }));
             this.closed = true;
             window.clearTimeout(this.controlsTimer);
             window.clearTimeout(this.sliderPreviewTimer);
@@ -286,8 +292,10 @@
                 .advancedBooksReaderPages img{display:block;object-fit:contain;flex:0 1 auto;box-shadow:0 0 20px rgba(0,0,0,.35)}
                 .advancedBooksReaderPages.ab-fit-screen img{max-width:calc(var(--ab-stage-width) - 1rem);max-height:calc(var(--ab-stage-height) - 1rem);width:auto;height:auto}
                 .advancedBooksReaderPages.ab-layout-double.ab-fit-screen img{max-width:calc((var(--ab-stage-width) - 1.4rem)/2)}
+                .advancedBooksReaderPages.ab-layout-double.ab-spread-single.ab-fit-screen img{max-width:calc(var(--ab-stage-width) - 1rem)}
                 .advancedBooksReaderPages.ab-fit-width{align-items:flex-start}.advancedBooksReaderPages.ab-fit-width img{width:calc(var(--ab-stage-width) - 1rem);max-width:none;height:auto}
                 .advancedBooksReaderPages.ab-layout-double.ab-fit-width img{width:calc((var(--ab-stage-width) - 1.4rem)/2)}
+                .advancedBooksReaderPages.ab-layout-double.ab-spread-single.ab-fit-width img{width:calc(var(--ab-stage-width) - 1rem)}
                 .advancedBooksReaderPages.ab-fit-height img{height:calc(var(--ab-stage-height) - 1rem);max-height:none;width:auto}
                 .advancedBooksReaderPages.ab-fit-original img{max-width:none;max-height:none;width:auto;height:auto}
                 .advancedBooksReaderStage.ab-continuous{display:block;align-items:initial;justify-content:initial;touch-action:pan-y}
@@ -1046,7 +1054,7 @@
 
         setLayout(value) {
             this.layout = value;
-            if (value === 'double') this.currentPage = Math.floor(this.currentPage / 2) * 2;
+            if (value === 'double') this.currentPage = this.spreadStartFor(this.currentPage);
             this.resetPan();
             this.syncControlState();
             this.render();
@@ -1061,6 +1069,13 @@
             if (this.directionRow) this.directionRow.hidden = continuous;
             if (this.sidePaddingRow) this.sidePaddingRow.hidden = !continuous;
             if (this.pageGapRow) this.pageGapRow.hidden = !continuous;
+            if (this.overlay) {
+                this.overlay.dataset.abBackground = this.background;
+                this.overlay.classList.toggle('ab-animate-transitions', this.animateTransitions);
+            }
+            if (this.backgroundSelect && this.backgroundSelect.value !== this.background) this.backgroundSelect.value = this.background;
+            if (this.transitionSelect && this.transitionSelect.value !== String(this.animateTransitions)) this.transitionSelect.value = String(this.animateTransitions);
+            if (this.gestureSelect && this.gestureSelect.value !== String(this.touchGestures)) this.gestureSelect.value = String(this.touchGestures);
             this.updateFullscreenButton();
         }
 
@@ -1134,7 +1149,7 @@
             const previous = this.lastPointerPosition;
             this.lastPointerPosition = point;
 
-            if (this.pointerStart || this.settingsOpen || this.sliderScrubbing) return;
+            if (this.pointerStart || this.settingsOpen || this.helpOpen || this.sliderScrubbing) return;
 
             const hidden = this.overlay.classList.contains('ab-controls-hidden');
             if (hidden) {
@@ -1164,7 +1179,7 @@
                 return;
             }
 
-            if (event.target?.closest?.('.advancedBooksReaderChrome,.advancedBooksReaderSettingsPanel,.advancedBooksNavigatorPanel')) {
+            if (event.target?.closest?.('.advancedBooksReaderChrome,.advancedBooksReaderSettingsPanel,.advancedBooksReaderHelpPanel,.advancedBooksNavigatorPanel')) {
                 this.visiblePointerAnchor = point;
                 this.showControls();
                 return;
@@ -1191,20 +1206,62 @@
                 this.suppressNextStageClick = false;
                 return;
             }
-            if (event.target?.closest?.('button,select,input,.advancedBooksReaderSettingsPanel,.advancedBooksNavigatorPanel')) return;
+            if (event.target?.closest?.('button,select,input,.advancedBooksReaderSettingsPanel,.advancedBooksReaderHelpPanel,.advancedBooksNavigatorPanel')) return;
             this.toggleControls();
         }
 
-        pageStep() {
-            return this.layout === 'double' ? 2 : 1;
+        isLandscapePage(index) {
+            const ratio = this.pageAspectRatios.get(index);
+            return Number.isFinite(ratio) && ratio < 1;
+        }
+
+        spreadLengthAt(start) {
+            if (this.layout !== 'double') return 1;
+            const last = this.pageCount - 1;
+            if (start <= 0 || start >= last || this.isLandscapePage(start)) return 1;
+            if (start + 1 >= last || this.isLandscapePage(start + 1)) return 1;
+            return 2;
+        }
+
+        spreadStartFor(index) {
+            if (this.layout !== 'double') return index;
+            const target = Math.min(Math.max(0, index), Math.max(0, this.pageCount - 1));
+            let start = 0;
+            while (start < this.pageCount) {
+                const length = this.spreadLengthAt(start);
+                if (target < start + length) return start;
+                start += length;
+            }
+            return Math.max(0, this.pageCount - 1);
+        }
+
+        previousSpreadStart() {
+            if (this.layout !== 'double') return Math.max(0, this.currentPage - 1);
+            let previous = 0;
+            let start = 0;
+            while (start < this.currentPage) {
+                previous = start;
+                start += this.spreadLengthAt(start);
+            }
+            return previous;
+        }
+
+        nextSpreadStart() {
+            if (this.layout !== 'double') return this.currentPage + 1;
+            return this.currentPage + this.spreadLengthAt(this.currentPage);
         }
 
         alignPage(index) {
-            return this.layout === 'double' ? Math.floor(index / 2) * 2 : index;
+            return this.layout === 'double' ? this.spreadStartFor(index) : index;
         }
 
-        previous() { this.goTo(this.currentPage - this.pageStep()); }
-        next() { this.goTo(this.currentPage + this.pageStep()); }
+        previous() {
+            this.goTo(this.layout === 'double' ? this.previousSpreadStart() : this.currentPage - 1);
+        }
+
+        next() {
+            this.goTo(this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1);
+        }
 
         goTo(index, behavior = 'smooth') {
             const maximum = Math.max(0, this.pageCount - 1);
@@ -1228,7 +1285,9 @@
 
         visibleIndexes() {
             const indexes = [this.currentPage];
-            if (this.layout === 'double' && this.currentPage + 1 < this.pageCount) indexes.push(this.currentPage + 1);
+            if (this.layout === 'double' && this.spreadLengthAt(this.currentPage) > 1) {
+                indexes.push(this.currentPage + 1);
+            }
             if (this.direction === 'rtl' && indexes.length > 1) indexes.reverse();
             return indexes;
         }
@@ -1256,9 +1315,22 @@
                 this.pagesElement.replaceChildren();
                 indexes.forEach((index, position) => {
                     const image = document.createElement('img');
-                    image.src = urls[position];
                     image.alt = `Page ${index + 1}`;
                     image.draggable = false;
+                    image.addEventListener('load', () => {
+                        if (this.closed || this.layout !== 'double' || image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
+                        const before = this.visibleIndexes().slice().sort((a, b) => a - b).join(',');
+                        this.rememberPageAspectRatio(index, image.naturalWidth, image.naturalHeight);
+                        const after = this.visibleIndexes().slice().sort((a, b) => a - b).join(',');
+                        if (before !== after) {
+                            requestAnimationFrame(() => {
+                                if (this.closed || this.layout !== 'double') return;
+                                this.currentPage = this.spreadStartFor(this.currentPage);
+                                this.render();
+                            });
+                        }
+                    }, { once: true });
+                    image.src = urls[position];
                     this.pagesElement.appendChild(image);
                 });
                 this.message.textContent = '';
@@ -1591,8 +1663,12 @@
         }
 
         prefetchPaged() {
-            const step = this.pageStep();
-            const candidates = [this.currentPage - step, this.currentPage + step, this.currentPage + step + (this.layout === 'double' ? 1 : 0)];
+            const previous = this.layout === 'double' ? this.previousSpreadStart() : this.currentPage - 1;
+            const next = this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1;
+            const afterNext = this.layout === 'double'
+                ? next + (next < this.pageCount ? this.spreadLengthAt(next) : 1)
+                : next + 1;
+            const candidates = [previous, next, afterNext];
             for (const index of candidates) {
                 if (index >= 0 && index < this.pageCount && !this.cache.has(index) && !this.pending.has(index)) {
                     this.loadPage(index).catch(() => {});
@@ -1641,26 +1717,25 @@
         }
 
         updateControls() {
+            const visible = this.visibleIndexes().slice().sort((a, b) => a - b);
+            const firstVisible = visible[0] ?? this.currentPage;
+            const lastVisible = visible[visible.length - 1] ?? this.currentPage;
             this.previousButton.disabled = this.currentPage <= 0;
-            this.nextButton.disabled = this.currentPage + this.pageStep() >= this.pageCount;
-            if (this.layout === 'double' && this.currentPage + 1 < this.pageCount) {
-                this.counter.textContent = `${this.currentPage + 1}–${this.currentPage + 2} / ${this.pageCount}`;
-            } else {
-                this.counter.textContent = `${this.currentPage + 1} / ${this.pageCount}`;
-            }
+            this.nextButton.disabled = (this.layout === 'double' ? this.nextSpreadStart() : this.currentPage + 1) >= this.pageCount;
+            this.counter.textContent = firstVisible === lastVisible
+                ? `${firstVisible + 1} / ${this.pageCount}`
+                : `${firstVisible + 1}–${lastVisible + 1} / ${this.pageCount}`;
 
             if (this.pageSlider) {
                 this.pageSlider.max = String(Math.max(1, this.pageCount));
-                this.pageSlider.step = this.layout === 'double' ? '2' : '1';
-                this.pageSlider.value = String(Math.min(this.pageCount, this.currentPage + 1));
+                this.pageSlider.step = '1';
+                this.pageSlider.value = String(Math.min(this.pageCount, firstVisible + 1));
                 this.pageSlider.setAttribute('aria-valuetext', this.counter.textContent);
                 this.pageSlider.dir = !this.isContinuous() && this.direction === 'rtl' ? 'rtl' : 'ltr';
                 if (!this.sliderPreview?.hidden) this.positionSliderPreview(Number(this.pageSlider.value) - 1, this.sliderPointerX);
             }
             if (this.pageSliderValue) this.pageSliderValue.textContent = this.counter.textContent;
-            const reachedPage = this.layout === 'double'
-                ? Math.min(this.pageCount - 1, this.currentPage + 1)
-                : this.currentPage;
+            const reachedPage = lastVisible;
             const progress = this.pageCount <= 1 ? 100 : (reachedPage / (this.pageCount - 1)) * 100;
             this.overlay?.style.setProperty('--ab-progress', `${Math.max(0, Math.min(100, progress))}%`);
         }
@@ -1711,7 +1786,8 @@
             this.pagesElement.style.minWidth = '';
             this.pagesElement.style.removeProperty('--ab-side-padding');
             this.pagesElement.style.removeProperty('--ab-page-gap');
-            this.pagesElement.className = `advancedBooksReaderPages ab-layout-${this.layout} ab-fit-${this.fit}`;
+            const spreadClass = this.layout === 'double' && this.visibleIndexes().length === 1 ? ' ab-spread-single' : '';
+            this.pagesElement.className = `advancedBooksReaderPages ab-layout-${this.layout} ab-fit-${this.fit}${spreadClass}`;
             this.pagesElement.style.transform = `translate(${this.panX}px,${this.panY}px) scale(${this.zoom})`;
             this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
             this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
@@ -1724,6 +1800,7 @@
                 event.preventDefault();
                 event.stopPropagation();
                 if (this.settingsOpen) this.toggleSettings(false);
+                else if (this.helpOpen) this.toggleHelp(false);
                 else this.close();
                 return;
             }
@@ -1779,6 +1856,10 @@
 
         onPointerDown(event) {
             if (this.externalPinchActive) return;
+            if (event.pointerType === 'touch' && !this.touchGestures) {
+                this.pointerStart = null;
+                return;
+            }
             if (this.isContinuous()) {
                 if (this.zoom > 1 && event.pointerType !== 'touch' && (event.button ?? 0) === 0) {
                     this.pointerStart = {
