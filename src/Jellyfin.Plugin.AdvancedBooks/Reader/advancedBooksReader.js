@@ -1140,7 +1140,7 @@
         spreadLengthAt(start) {
             if (this.layout !== 'double') return 1;
             const last = this.pageCount - 1;
-            if (start <= 0 || start >= last || this.isLandscapePage(start) || this.isLandscapePage(start + 1)) return 1;
+            if (start <= 0 || start >= last || start + 1 >= last || this.isLandscapePage(start) || this.isLandscapePage(start + 1)) return 1;
             return 2;
         }
 
