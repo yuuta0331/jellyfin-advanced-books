@@ -4,7 +4,7 @@ guid: "843f3c69-88ee-4e82-84f3-330b84d64d88"
 version: "0.14.0.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
-imageUrl: "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.svg"
+imageUrl: "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.png"
 overview: "Advanced comic, manga, magazine and book reader for Jellyfin 12."
 description: >
   Adds advanced comic, manga, magazine and book features to Jellyfin 12, including
