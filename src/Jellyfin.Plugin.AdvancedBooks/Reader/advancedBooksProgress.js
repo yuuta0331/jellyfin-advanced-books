@@ -163,10 +163,12 @@
         }
     }
 
-    function cleanupSession(session, flush) {
+    function cleanupSession(session, flush, captureCounter = true) {
         if (!session || session.cleaned) return;
-        const parsed = parseCounter(session.counter);
-        if (parsed) session.lastPosition = parsed;
+        if (captureCounter) {
+            const parsed = parseCounter(session.counter);
+            if (parsed) session.lastPosition = parsed;
+        }
         session.cleaned = true;
         session.counterObserver?.disconnect();
         session.removalObserver?.disconnect();
@@ -256,7 +258,7 @@
                     pageCount
                 };
             }
-            cleanupSession(session, true);
+            cleanupSession(session, true, false);
         };
         overlay.addEventListener('advancedbooks:reader-closing', session.boundClosing, { once: true });
 
