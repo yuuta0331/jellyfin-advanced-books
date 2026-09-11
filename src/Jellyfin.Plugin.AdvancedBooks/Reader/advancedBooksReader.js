@@ -1464,6 +1464,10 @@
                     }
                 }, { once: true });
                 image.src = url;
+                // Claim the slot immediately. Concurrent observer/prefetch callers now
+                // reuse this exact image node instead of creating another copy while
+                // decode is still pending.
+                slot.replaceChildren(image);
                 try {
                     await image.decode?.();
                 } catch {
@@ -1471,8 +1475,8 @@
                 }
                 if (!slot.isConnected || this.closed || !this.isContinuous()
                     || this.continuousElements[index] !== slot
-                    || slot.dataset.abLoadGeneration !== generation) return;
-                slot.replaceChildren(image);
+                    || slot.dataset.abLoadGeneration !== generation
+                    || slot.querySelector('img') !== image) return;
             } else if (image.src !== url) {
                 image.src = url;
             }
