@@ -165,11 +165,14 @@
 
     function cleanupSession(session, flush) {
         if (!session || session.cleaned) return;
+        const parsed = parseCounter(session.counter);
+        if (parsed) session.lastPosition = parsed;
         session.cleaned = true;
         session.counterObserver?.disconnect();
         session.removalObserver?.disconnect();
+        session.overlay?.removeEventListener('advancedbooks:reader-closing', session.boundClosing);
         window.clearTimeout(session.saveTimer);
-        if (flush) flushProgress(session);
+        if (flush) flushProgress(session, true);
         if (currentSession === session) currentSession = null;
     }
 
@@ -182,10 +185,15 @@
         session.saveTimer = window.setTimeout(() => flushProgress(session), saveDelayMs);
     }
 
-    function flushProgress(session) {
-        if (!session || !session.lastPosition || session.saving) return;
-        const position = session.lastPosition;
+    function flushProgress(session, allowAfterCleanup = false) {
+        if (!session || !session.lastPosition || (session.cleaned && !allowAfterCleanup)) return;
+        const position = { ...session.lastPosition };
         if (session.lastSavedPage === position.pageIndex) return;
+
+        if (session.saving) {
+            session.queuedPosition = position;
+            return;
+        }
 
         session.saving = true;
         putProgress(session.itemId, position.pageIndex).then(() => {
@@ -194,7 +202,12 @@
             // Keep reading usable when progress persistence is temporarily unavailable.
         }).finally(() => {
             session.saving = false;
-            if (session.lastPosition?.pageIndex !== session.lastSavedPage && !session.cleaned) {
+            const queued = session.queuedPosition;
+            session.queuedPosition = null;
+            if (queued && queued.pageIndex !== session.lastSavedPage) {
+                session.lastPosition = queued;
+                flushProgress(session, session.cleaned);
+            } else if (session.lastPosition?.pageIndex !== session.lastSavedPage && !session.cleaned) {
                 scheduleSave(session);
             }
         });
@@ -216,11 +229,13 @@
             suppressSave: true,
             saveTimer: null,
             saving: false,
+            queuedPosition: null,
             lastSavedPage: null,
             lastPosition: null,
             cleaned: false,
             counterObserver: null,
-            removalObserver: null
+            removalObserver: null,
+            boundClosing: null
         };
         currentSession = session;
 
@@ -232,8 +247,21 @@
         });
         session.removalObserver.observe(document.body, { childList: true, subtree: true });
 
+        session.boundClosing = event => {
+            const reachedPageIndex = Number(event.detail?.reachedPageIndex);
+            if (Number.isInteger(reachedPageIndex) && reachedPageIndex >= 0) {
+                const pageCount = parseCounter(session.counter)?.pageCount ?? 0;
+                session.lastPosition = {
+                    pageIndex: pageCount > 0 ? Math.min(pageCount - 1, reachedPageIndex) : reachedPageIndex,
+                    pageCount
+                };
+            }
+            cleanupSession(session, true);
+        };
+        overlay.addEventListener('advancedbooks:reader-closing', session.boundClosing, { once: true });
+
         const progress = normalizeProgress(await progressPromise.catch(() => null));
-        if (progress && !progress.played && progress.pageCount > 0) {
+        if (progress && progress.pageCount > 0) {
             const resumePage = Math.max(0, Math.min(progress.pageCount - 1, progress.pageIndex));
             session.lastSavedPage = resumePage;
             await restorePage(session, resumePage);
@@ -257,6 +285,9 @@
     }, true);
 
     window.addEventListener('beforeunload', () => {
-        if (currentSession) flushProgress(currentSession);
+        if (!currentSession) return;
+        const parsed = parseCounter(currentSession.counter);
+        if (parsed) currentSession.lastPosition = parsed;
+        flushProgress(currentSession, true);
     });
 })();
