@@ -123,8 +123,12 @@ public sealed class ZipBookArchiveReader : IZipBookArchiveReader
 
         var imageEntries = archive.Entries
             .Where(static entry => !string.IsNullOrEmpty(entry.Name))
-            .Where(static entry => !IsIgnoredArchiveEntry(entry.FullName))
             .Where(entry => TryGetImageContentType(entry.FullName, out _))
+            .Where(static entry =>
+            {
+                ValidateEntryPath(entry.FullName);
+                return !IsIgnoredArchiveEntry(entry.FullName);
+            })
             .OrderBy(static entry => NormalizeEntryName(entry.FullName), NaturalStringComparer.Instance)
             .ToArray();
 
