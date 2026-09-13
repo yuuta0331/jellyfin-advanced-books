@@ -114,7 +114,9 @@ The stored `PlaybackPositionTicks` follows Jellyfin Web's built-in ComicsPlayer 
 playbackPositionTicks = zeroBasedPageIndex * 10,000
 ```
 
-This is intentional. Jellyfin's standard ComicsPlayer restores its page with `startPositionTicks / 10,000`, so the standard and Advanced readers can share the same resume position.
+This is intentional. Jellyfin's standard ComicsPlayer restores its page with `startPositionTicks / 10,000`, so the standard and Advanced readers share the same authoritative resume position in both directions. A page saved by the built-in reader is therefore the page Advanced Reader restores next, and a page saved by Advanced Reader is the position the built-in reader receives on its next launch.
+
+Generic Home/Library card, list and keyboard/remote **Play** actions intentionally enter Advanced Reader through the resume path and ask the server for that shared position instead of trusting a potentially stale `data-positionticks` value left in the current Jellyfin Web DOM. With no saved position this still opens page 1. Explicit Replay/Start-over/Play-from-beginning actions remain explicit resets to page 1.
 
 The browser progress bridge observes the Advanced Reader's page counter. After navigation settles for about 1.2 seconds it saves the furthest visible page. The reader also emits a close event before removing its DOM, allowing the bridge to capture the final reached page; if an earlier PUT is still in flight, only the newest position is queued and sent immediately afterward. In Double Page mode the furthest page in the current smart spread is considered reached. Vertical/Webtoon modes use the viewport-tracked current page.
 
@@ -143,7 +145,7 @@ The Jellyfin Integration bridge keeps route/history and host-UI behavior outside
 
 When **Use Advanced Reader for Jellyfin book actions** is enabled, supported CBZ/ZIP items reuse Jellyfin's normal Book actions across the Web UI rather than only on the legacy detail page. The integration covers legacy detail Play/Resume/Replay buttons, the modern `.btnPlayOrResume` action, Home/Library card Play buttons, list-view Play/Resume buttons, keyboard/remote `play` and `resume` commands, and item-context-menu Play/Resume commands. The Core reader exposes a direct item-opening API so those surfaces no longer depend on a separately rendered **Advanced Reader** detail button.
 
-Resume restores saved Advanced Books progress. Explicit Start/Replay actions deliberately skip restore and open page 1; generic card Play actions preserve Jellyfin's existing playback-position semantics when the card carries saved position ticks. Unsupported/inaccessible/non-CBZ/ZIP items fall back to the original Jellyfin action instead of being blocked.
+Resume restores the shared Jellyfin `UserItemData` progress used by both the built-in ComicsPlayer and Advanced Reader. Explicit Start/Replay actions deliberately skip restore and open page 1; generic card/list/remote Play actions query the server-side shared progress even when the current card DOM has stale or missing playback ticks. Unsupported/inaccessible/non-CBZ/ZIP items fall back to the original Jellyfin action instead of being blocked.
 
 The same bridge replaces the previous/next text glyphs with centered inline SVG chevrons and hides the duplicate visual top page counter while retaining that counter in the DOM for progress synchronization.
 
