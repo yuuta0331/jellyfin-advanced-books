@@ -276,18 +276,15 @@
         markProgressReady(overlay);
     }
 
-    document.addEventListener('click', event => {
-        const button = event.target?.closest?.('.advancedBooksReaderButton');
-        if (!button) return;
-
-        const itemId = button.dataset.advancedBooksItemId;
+    document.addEventListener('advancedbooks:reader-opening', event => {
+        const itemId = event.detail?.itemId;
         if (!itemId) return;
 
         const token = ++sessionToken;
-        const startMode = button.dataset.advancedBooksStartMode === 'start' ? 'start' : 'resume';
+        const startMode = event.detail?.startMode === 'start' ? 'start' : 'resume';
         const progressPromise = startMode === 'start' ? Promise.resolve(null) : getProgress(itemId);
         attachProgressSession(itemId, progressPromise, token, startMode).catch(() => {});
-    }, true);
+    });
 
     window.addEventListener('beforeunload', () => {
         if (!currentSession) return;
