@@ -79,7 +79,7 @@ def main() -> int:
     require("ILibraryPostScanTask" in post_scan and "KomgaSyncAfterLibraryScan" in post_scan,
             "Optional post-scan Komga synchronization is missing")
 
-    require("PermissionKind.IsAdministrator" in controller,
+    require('User.IsInRole("Administrator")' in controller,
             "Komga administrative actions are not restricted to Jellyfin administrators")
     require('HttpPost("Test")' in controller and 'HttpPost("Sync")' in controller,
             "Komga Test/Sync administrative endpoints are missing")
