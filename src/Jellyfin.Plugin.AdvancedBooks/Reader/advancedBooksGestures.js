@@ -356,9 +356,8 @@
             if (drag.scrollPan) {
                 try { this.stage.releasePointerCapture?.(event.pointerId); } catch {}
                 this.stage.classList.remove('ab-grabbing');
-                if (drag.moved) {
-                    if (this.reader) this.reader.suppressNextStageClick = true;
-                } else {
+                if (this.reader) this.reader.suppressNextStageClick = true;
+                if (!drag.moved) {
                     this.handleMouseClick(event.clientX, event.clientY);
                 }
                 event.preventDefault();
