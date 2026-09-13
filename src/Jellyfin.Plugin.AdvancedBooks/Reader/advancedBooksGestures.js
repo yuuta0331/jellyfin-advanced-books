@@ -105,6 +105,7 @@
             originalSetZoom(value);
 
             const nextZoom = Number.isFinite(reader.zoom) ? reader.zoom : oldZoom;
+            session.updateGrabCursor?.();
             if (continuous) {
                 session.stage.style.touchAction = nextZoom > 1 ? 'none' : 'pan-y';
                 requestAnimationFrame(() => {
