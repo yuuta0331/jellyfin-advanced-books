@@ -1850,6 +1850,7 @@
             event.preventDefault();
             this.panX = this.pointerStart.panX + event.clientX - this.pointerStart.x;
             this.panY = this.pointerStart.panY + event.clientY - this.pointerStart.y;
+            this.clampPan?.();
             this.applyTransform();
             this.pagesElement.style.cursor = 'grabbing';
         }
