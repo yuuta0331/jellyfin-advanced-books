@@ -94,7 +94,7 @@
             <label class="inputLabel inputLabelUnfocused" for="KomgaApiKey" data-i18n="komgaApiKey">Komga API key</label>
             <input id="KomgaApiKey" type="password" is="emby-input" autocomplete="new-password">
             <div class="fieldDescription" data-i18n="komgaApiKeyDescription">
-              Recommended. If an API key is configured, it is preferred over Basic authentication.
+              Recommended. Use a Komga administrator API key so full Book file paths are available. If configured, it is preferred over Basic authentication.
             </div>
           </div>
 
@@ -106,7 +106,7 @@
           <div class="inputContainer">
             <label class="inputLabel inputLabelUnfocused" for="KomgaPassword" data-i18n="komgaPassword">Komga password</label>
             <input id="KomgaPassword" type="password" is="emby-input" autocomplete="new-password">
-            <div class="fieldDescription" data-i18n="komgaBasicDescription">Used only when no API key is configured.</div>
+            <div class="fieldDescription" data-i18n="komgaBasicDescription">Used only when no API key is configured. The Komga account must be an administrator so Book file paths are visible.</div>
           </div>
 
           <div class="inputContainer">
@@ -181,10 +181,10 @@
             enableKomgaMetadataSyncDescription: 'Reads metadata stored in Komga\'s database through its API. ComicInfo.xml is not used. Matching uses the Komga book file URL and Jellyfin Book path.',
             komgaServerUrl: 'Komga server URL',
             komgaApiKey: 'Komga API key',
-            komgaApiKeyDescription: 'Recommended. If an API key is configured, it is preferred over Basic authentication.',
+            komgaApiKeyDescription: 'Recommended. Use a Komga administrator API key so full Book file paths are available. If configured, it is preferred over Basic authentication.',
             komgaUsername: 'Komga username',
             komgaPassword: 'Komga password',
-            komgaBasicDescription: 'Used only when no API key is configured.',
+            komgaBasicDescription: 'Used only when no API key is configured. The Komga account must be an administrator so Book file paths are visible.',
             komgaPathMappings: 'Komga → Jellyfin path mappings',
             komgaPathMappingsDescription: 'Optional, one mapping per line, for example /data/manga => G:/Manga. Use this when Komga and Jellyfin see the same files through different paths. No title-based fuzzy matching is used.',
             komgaPathCaseSensitive: 'Komga path matching is case-sensitive',
@@ -222,10 +222,10 @@
             enableKomgaMetadataSyncDescription: 'Komgaのデータベースに保存されたメタデータをAPI経由で直接読み込みます。ComicInfo.xmlは使用しません。Komgaの本のファイルURLとJellyfinのBookパスを照合します。',
             komgaServerUrl: 'KomgaサーバーURL',
             komgaApiKey: 'Komga APIキー',
-            komgaApiKeyDescription: '推奨です。APIキーが設定されている場合はBasic認証より優先して使用します。',
+            komgaApiKeyDescription: '推奨です。Bookの完全なファイルパスを取得するため、Komga管理者のAPIキーを使用してください。設定時はBasic認証より優先します。',
             komgaUsername: 'Komgaユーザー名',
             komgaPassword: 'Komgaパスワード',
-            komgaBasicDescription: 'APIキーが設定されていない場合のみ使用します。',
+            komgaBasicDescription: 'APIキーが設定されていない場合のみ使用します。Bookのファイルパスを取得するためKomga管理者アカウントが必要です。',
             komgaPathMappings: 'Komga → Jellyfin パスマッピング',
             komgaPathMappingsDescription: '任意。1行につき1件、例: /data/manga => G:/Manga。Docker/ホストなどで同じファイルが異なるパスに見える場合に使用します。タイトルによる曖昧一致は行いません。',
             komgaPathCaseSensitive: 'Komgaパス照合で大文字・小文字を区別する',
@@ -263,10 +263,10 @@
             enableKomgaMetadataSyncDescription: 'Liest in Komgas Datenbank gespeicherte Metadaten direkt über die API. ComicInfo.xml wird nicht verwendet. Die Zuordnung erfolgt über Datei-URL und Jellyfin-Pfad.',
             komgaServerUrl: 'Komga-Server-URL',
             komgaApiKey: 'Komga-API-Schlüssel',
-            komgaApiKeyDescription: 'Empfohlen. Ein API-Schlüssel wird gegenüber Basic Auth bevorzugt.',
+            komgaApiKeyDescription: 'Empfohlen. Verwenden Sie einen API-Schlüssel eines Komga-Administrators, damit vollständige Buchpfade verfügbar sind. Er wird gegenüber Basic Auth bevorzugt.',
             komgaUsername: 'Komga-Benutzername',
             komgaPassword: 'Komga-Passwort',
-            komgaBasicDescription: 'Wird nur ohne API-Schlüssel verwendet.',
+            komgaBasicDescription: 'Wird nur ohne API-Schlüssel verwendet. Das Komga-Konto muss Administrator sein, damit Buchpfade sichtbar sind.',
             komgaPathMappings: 'Komga → Jellyfin Pfadzuordnungen',
             komgaPathMappingsDescription: 'Optional, eine Zuordnung pro Zeile, z. B. /data/manga => G:/Manga. Für unterschiedliche Container-/Host-Pfade. Keine unscharfe Titelzuordnung.',
             komgaPathCaseSensitive: 'Groß-/Kleinschreibung bei Komga-Pfaden beachten',
@@ -304,10 +304,10 @@
             enableKomgaMetadataSyncDescription: 'Lit directement via l’API les métadonnées stockées dans la base Komga. ComicInfo.xml n’est pas utilisé. La correspondance utilise l’URL de fichier Komga et le chemin Jellyfin.',
             komgaServerUrl: 'URL du serveur Komga',
             komgaApiKey: 'Clé API Komga',
-            komgaApiKeyDescription: 'Recommandé. Une clé API est prioritaire sur l’authentification Basic.',
+            komgaApiKeyDescription: 'Recommandé. Utilisez une clé API d’administrateur Komga afin d’obtenir les chemins complets des livres. Elle est prioritaire sur l’authentification Basic.',
             komgaUsername: 'Nom d’utilisateur Komga',
             komgaPassword: 'Mot de passe Komga',
-            komgaBasicDescription: 'Utilisé uniquement si aucune clé API n’est configurée.',
+            komgaBasicDescription: 'Utilisé uniquement si aucune clé API n’est configurée. Le compte Komga doit être administrateur pour exposer les chemins des livres.',
             komgaPathMappings: 'Mappages de chemin Komga → Jellyfin',
             komgaPathMappingsDescription: 'Optionnel, un mappage par ligne, ex. /data/manga => G:/Manga. Pour les chemins différents entre conteneur et hôte. Aucune correspondance floue par titre.',
             komgaPathCaseSensitive: 'Respecter la casse pour les chemins Komga',
@@ -345,10 +345,10 @@
             enableKomgaMetadataSyncDescription: 'Lee por API los metadatos guardados en la base de datos de Komga. No usa ComicInfo.xml. La coincidencia usa la URL del archivo de Komga y la ruta del Book en Jellyfin.',
             komgaServerUrl: 'URL del servidor Komga',
             komgaApiKey: 'Clave API de Komga',
-            komgaApiKeyDescription: 'Recomendado. Si se configura, la clave API tiene prioridad sobre Basic Auth.',
+            komgaApiKeyDescription: 'Recomendado. Use una clave API de administrador de Komga para disponer de las rutas completas de los libros. Tiene prioridad sobre Basic Auth.',
             komgaUsername: 'Usuario de Komga',
             komgaPassword: 'Contraseña de Komga',
-            komgaBasicDescription: 'Solo se usa cuando no hay una clave API.',
+            komgaBasicDescription: 'Solo se usa cuando no hay una clave API. La cuenta de Komga debe ser administradora para exponer las rutas de los libros.',
             komgaPathMappings: 'Mapeos de ruta Komga → Jellyfin',
             komgaPathMappingsDescription: 'Opcional, un mapeo por línea, p. ej. /data/manga => G:/Manga. Para rutas distintas entre contenedor y host. No se usa coincidencia difusa por título.',
             komgaPathCaseSensitive: 'Distinguir mayúsculas en rutas de Komga',
@@ -386,10 +386,10 @@
             enableKomgaMetadataSyncDescription: '通过 API 直接读取存储在 Komga 数据库中的元数据，不使用 ComicInfo.xml。按 Komga 图书文件 URL 与 Jellyfin Book 路径匹配。',
             komgaServerUrl: 'Komga 服务器 URL',
             komgaApiKey: 'Komga API 密钥',
-            komgaApiKeyDescription: '推荐。配置 API 密钥后会优先于 Basic 认证使用。',
+            komgaApiKeyDescription: '推荐。请使用 Komga 管理员 API 密钥，以便获取完整的图书文件路径；配置后优先于 Basic 认证。',
             komgaUsername: 'Komga 用户名',
             komgaPassword: 'Komga 密码',
-            komgaBasicDescription: '仅在未配置 API 密钥时使用。',
+            komgaBasicDescription: '仅在未配置 API 密钥时使用。Komga 账户必须具有管理员权限，才能获取图书文件路径。',
             komgaPathMappings: 'Komga → Jellyfin 路径映射',
             komgaPathMappingsDescription: '可选，每行一个映射，例如 /data/manga => G:/Manga。用于容器与主机看到不同路径的情况。不使用标题模糊匹配。',
             komgaPathCaseSensitive: 'Komga 路径匹配区分大小写',
