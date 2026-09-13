@@ -364,8 +364,86 @@
             }
         }
 
-        if (header) header.insertAdjacentElement('afterend', host);
-        else toolbar.prepend(host);
+        const body = document.createElement('div');
+        body.className = 'advancedBooksReaderSettingsBody';
+        body.appendChild(host);
+
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'advancedBooksReaderSheetHandle';
+        handle.title = 'Resize settings panel';
+        handle.setAttribute('aria-label', 'Resize settings panel');
+        const grip = document.createElement('span');
+        grip.className = 'advancedBooksReaderSheetHandleBar';
+        grip.setAttribute('aria-hidden', 'true');
+        handle.appendChild(grip);
+
+        toolbar.prepend(handle);
+        toolbar.appendChild(body);
+    }
+
+    function attachSettingsSheet(session) {
+        const toolbar = session.controls.toolbar;
+        const handle = toolbar?.querySelector('.advancedBooksReaderSheetHandle');
+        const reader = session.overlay.__advancedBooksReaderSession;
+        if (!toolbar || !handle || !reader) return;
+
+        let drag = null;
+        const compact = () => window.matchMedia?.('(max-width:700px)')?.matches === true;
+        const viewportHeight = () => window.visualViewport?.height ?? window.innerHeight;
+
+        session.onSheetPointerDown = event => {
+            if (!compact() || (event.button ?? 0) !== 0) return;
+            const rect = toolbar.getBoundingClientRect();
+            drag = { id: event.pointerId, startY: event.clientY, startHeight: rect.height };
+            toolbar.classList.add('ab-sheet-resizing');
+            handle.setPointerCapture?.(event.pointerId);
+            reader.showControls?.(false);
+            event.preventDefault();
+        };
+        session.onSheetPointerMove = event => {
+            if (!drag || event.pointerId !== drag.id) return;
+            const max = Math.max(320, viewportHeight() * .92);
+            const min = Math.min(320, max);
+            const next = Math.max(min, Math.min(max, drag.startHeight + drag.startY - event.clientY));
+            toolbar.style.setProperty('--ab-sheet-height', `${Math.round(next)}px`);
+            event.preventDefault();
+        };
+        session.onSheetPointerUp = event => {
+            if (!drag || event.pointerId !== drag.id) return;
+            const deltaDown = event.clientY - drag.startY;
+            drag = null;
+            toolbar.classList.remove('ab-sheet-resizing');
+            try { handle.releasePointerCapture?.(event.pointerId); } catch {}
+            if (deltaDown > 110) {
+                toolbar.style.removeProperty('--ab-sheet-height');
+                reader.toggleSettings?.(false);
+            } else {
+                reader.showControls?.(false);
+            }
+            event.preventDefault();
+        };
+        session.onSheetKeyDown = event => {
+            if (!compact()) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                reader.toggleSettings?.(false);
+                return;
+            }
+            if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+            event.preventDefault();
+            const current = toolbar.getBoundingClientRect().height;
+            const max = Math.max(320, viewportHeight() * .92);
+            const next = Math.max(280, Math.min(max, current + (event.key === 'ArrowUp' ? 48 : -48)));
+            toolbar.style.setProperty('--ab-sheet-height', `${Math.round(next)}px`);
+        };
+
+        handle.addEventListener('pointerdown', session.onSheetPointerDown);
+        handle.addEventListener('pointermove', session.onSheetPointerMove);
+        handle.addEventListener('pointerup', session.onSheetPointerUp);
+        handle.addEventListener('pointercancel', session.onSheetPointerUp);
+        handle.addEventListener('keydown', session.onSheetKeyDown);
+        session.sheetHandle = handle;
     }
 
     function refreshMetadataMarquee(session, enabled) {
