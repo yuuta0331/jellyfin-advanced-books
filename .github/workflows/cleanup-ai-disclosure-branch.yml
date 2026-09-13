@@ -1,0 +1,36 @@
+name: Temporary AI disclosure branch cleanup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/cleanup-ai-disclosure-branch.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.event.head_commit.message == 'chore: temporary branch cleanup'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete merged branch
+        run: |
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/docs/ai-usage-disclosure"
+
+      - name: Remove this temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/cleanup-ai-disclosure-branch.yml
+          git commit -m "chore: remove temporary AI disclosure cleanup workflow [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
