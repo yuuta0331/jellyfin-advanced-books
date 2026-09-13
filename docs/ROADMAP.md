@@ -65,6 +65,9 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Optional page-transition animation and touch gestures
 - [x] Contextual keyboard/gesture help
 - [x] Six-language Advanced Reader localization with automatic locale detection
+- [x] Per-user language override while retaining automatic Jellyfin/browser detection
+- [x] Grouped Reader Settings and compact floating mobile chrome
+- [x] One-direction metadata marquee with invisible reset instead of ping-pong motion
 
 ## Phase 4 - Continuous reader and progress
 
