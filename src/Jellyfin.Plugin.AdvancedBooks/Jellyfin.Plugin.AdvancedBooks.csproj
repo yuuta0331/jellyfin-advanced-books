@@ -29,6 +29,8 @@
     <EmbeddedResource Include="Configuration/configPage.html" />
     <None Remove="Reader/advancedBooksLocalization.js" />
     <EmbeddedResource Include="Reader/advancedBooksLocalization.js" />
+    <None Remove="Reader/advancedBooksZoom.js" />
+    <EmbeddedResource Include="Reader/advancedBooksZoom.js" />
     <None Remove="Reader/advancedBooksReader.js" />
     <EmbeddedResource Include="Reader/advancedBooksReader.js" />
     <None Remove="Reader/advancedBooksProgress.js" />
