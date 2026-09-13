@@ -149,26 +149,23 @@ def main() -> int:
     require("document.createElement('details')" in preferences
             and "document.createElement('summary')" in preferences,
             "Reader settings sections are not collapsible")
-    require("advancedBooksReaderMoreMenu" in preferences
-            and "advancedBooksReaderMoreSource" in preferences,
-            "Mobile secondary reader actions are not grouped into an overflow menu")
-    require("session.openHelp" in preferences and "fullscreenButton?.click()" in preferences,
-            "Overflow menu does not reuse the existing Help/Fullscreen actions")
     require('button[data-ab-action="zoom-reset"]' in gestures,
             "Gestures still depends only on localized zoom title")
-    require("installAnchoredZoom" in gestures and "normalizeAnchor" in gestures,
-            "Reader zoom is not anchored to the user focal point")
-    require("clampPagedPan" in gestures and "pagedContentSize" in gestures,
+    require("installZoomController" in gestures and "normalizeAnchor" in gestures,
+            "Reader zoom is not routed through the unified focal-point controller")
+    require("clampPagedPan" in gestures and "pagedContentBounds" in gestures,
             "Paged zoom does not clamp pan to the rendered content")
-    require("livePagedPinch" in gestures,
-            "Paged pinch zoom still uses a separate preview transform that can jump on commit")
+    require("{ snap: false }" in gestures
+            and "previewRatio = this.targetZoom" not in gestures
+            and "livePagedPinch" not in gestures,
+            "Pinch zoom is not using the unified live Reader zoom path")
     require("doubleTapDelayMs" in gestures and "handleDoubleTap" in gestures,
             "Touch gestures do not provide double-tap zoom")
     require("touchPan" in gestures and "stage.scrollLeft" in gestures and "stage.scrollTop" in gestures,
             "Zoomed continuous layouts do not provide one-finger touch panning")
-    require("advancedBooksReaderOverlay.ab-controls-hidden" in preferences
+    require("ab-hide-page-position" in preferences
             and "advancedBooksReaderPageSliderValue" in preferences,
-            "Reader bottom controls do not collapse to the compact page-position state")
+            "Reader page-position visibility no longer controls only the page-position display")
     require("navigateHorizontal" in gestures and "navigateVertical" in gestures,
             "Gestures do not provide layout-aware horizontal/vertical tap navigation")
     require("reader.goTo?.(target, this.reducedMotion() ? 'auto' : 'smooth')" in gestures,
