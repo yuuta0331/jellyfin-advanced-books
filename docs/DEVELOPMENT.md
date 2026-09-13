@@ -277,7 +277,7 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 28. rotate a phone or resize the desktop window while paged zoom/pan is active. Pan must be re-clamped to the new viewport without resetting valid position unnecessarily;
 29. in Vertical and Webtoon, test all four Fit modes with + / − / 0, Ctrl+wheel, double-tap, and pinch. Fit Screen must visibly grow/shrink tall images rather than leaving their height capped at the original viewport;
 30. in Vertical/Webtoon, pinch over actual image detail and over surrounding whitespace. Image detail should use the image as the focal anchor; whitespace may fall back to the page slot;
-31. with Vertical/Webtoon zoomed above 100%, move both pinch fingers together while keeping their distance nearly constant. The canvas must follow the moving midpoint. Then use one-finger pan;
+31. with Vertical/Webtoon zoomed above 100%, move both pinch fingers together while keeping their distance nearly constant. The canvas must follow the moving midpoint. Then use one-finger pan. Repeat on a book with hundreds of pages and confirm live pinch remains responsive; unloaded page placeholders must be reconciled on commit rather than rewritten every animation frame;
 32. turn **Touch gestures** Off while zoomed. Native two-axis browser pan must become available immediately; turn it back On and confirm custom pinch/pan resumes;
 33. change Side padding/Page gap, long metadata/autoscroll fields, Fullscreen/F key, and language settings; reopen and verify persistence without chrome-layout changes;
 34. close/reopen after zooming and navigating and verify there are no stale overlays, stale pointer capture, duplicate images, or broken Blob URLs.
