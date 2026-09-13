@@ -66,7 +66,7 @@ This is a compatibility mapping, not yet a full emulation of Komga's dedicated `
 
 ## Direct Komga metadata synchronization
 
-The direct synchronization path is separate from archive parsing and does not inspect `ComicInfo.xml`. When enabled, `KomgaApiClient` reads Komga's database-backed REST resources using either `X-API-Key` (preferred) or Basic authentication.
+The direct synchronization path is separate from archive parsing and does not inspect `ComicInfo.xml`. When enabled, `KomgaApiClient` reads Komga's database-backed REST resources using either `X-API-Key` (preferred) or Basic authentication. Path matching requires Komga administrator credentials because Komga intentionally reduces Book `url` to a filename for non-admin users; the connection test detects that restricted response.
 
 Books and Series are retrieved through Komga's paginated POST list endpoints. Series are loaded in a bounded paginated pass rather than one HTTP request per matched Book. Concurrent synchronization passes are serialized.
 
@@ -79,7 +79,7 @@ Identity is filesystem-based rather than title-based:
 
 There is deliberately no fuzzy-title fallback, because a false positive would overwrite metadata on the wrong Jellyfin item.
 
-Supported Komga metadata is mapped only where Jellyfin has a compatible concept: Book title/summary/release date/number/tags/ISBN/authors, and Series title/genres/publisher/language/tags. Komga Book/Series IDs are retained in Jellyfin provider IDs, and the Series ID supplies a stable presentation key. Fields such as Komga reading direction, status and age rating are not written into unrelated Jellyfin properties.
+Supported Komga metadata is mapped only where Jellyfin has a compatible concept: Book title/summary/release date/number/tags/ISBN/authors, and Series title/genres/publisher/tags. Komga Book/Series IDs are retained in Jellyfin provider IDs, and the Series ID supplies a stable presentation key. Fields such as Komga content language, reading direction, status and age rating are not written into unrelated Jellyfin properties. In particular, Jellyfin's `PreferredMetadataLanguage` controls metadata-provider behavior and is not a content-language field.
 
 Synchronization is exposed as a Jellyfin Scheduled Task and can optionally run after a library scan. Administrative Test/Sync HTTP endpoints require the authenticated Jellyfin Administrator role. Configuration secrets are never returned by the sync endpoints or included in logs.
 
