@@ -247,7 +247,7 @@ A source file passing `node --check` is not sufficient evidence if the bytes emb
 
 After Advanced Books and JavaScript Injector are both installed and Jellyfin has restarted:
 
-1. confirm the Jellyfin log reports that **Zoom Geometry** and **Reader Core** are registered, with Zoom Geometry registered before Core;
+1. confirm the Jellyfin log reports that both **Zoom Geometry** and **Reader Core** are registered. Do not infer browser execution order from the registration log: JavaScript Injector preserves existing entry positions during plugin upgrades;
 2. open a supported CBZ Book detail page and confirm **Advanced Reader** appears once in the main detail actions;
 3. compare the chrome against **v0.16.1.0**: desktop must use the centered compact bottom pill; narrow/mobile must use the floating rounded top/bottom chrome; mobile must expose the **…** More menu for Fullscreen/Help; inactivity must collapse the bottom controls to the page/range pill plus the thin progress rail;
 4. on the first Reader open after a full browser refresh, repeat the previous UI check. The result must already match v0.16.1.0—there must be no first-open mixture of Core full-width styles and Preferences pill styles. Inspect the document styles if needed and confirm `advancedBooksReaderHelpStyles` is ordered after `advancedBooksReaderStyles`;
