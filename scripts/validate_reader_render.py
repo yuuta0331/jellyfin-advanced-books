@@ -8,6 +8,7 @@ READER = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksReader.js")
 ZOOM = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksZoom.js")
 GESTURES = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksGestures.js")
 PREFERENCES = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksPreferences.js")
+NAVIGATOR = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksNavigator.js")
 INTEGRATION = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksIntegration.js")
 REGISTRATION = Path("src/Jellyfin.Plugin.AdvancedBooks/Services/JavaScriptInjectorRegistrationService.cs")
 
@@ -17,6 +18,7 @@ def main() -> int:
     zoom = ZOOM.read_text(encoding="utf-8")
     gestures = GESTURES.read_text(encoding="utf-8")
     preferences = PREFERENCES.read_text(encoding="utf-8")
+    navigator = NAVIGATOR.read_text(encoding="utf-8")
     integration = INTEGRATION.read_text(encoding="utf-8")
     registration = REGISTRATION.read_text(encoding="utf-8")
 
@@ -34,6 +36,9 @@ def main() -> int:
         "direct reader launch implementation": "async function openReaderItem(itemId, startMode = 'resume')",
         "public direct reader API": "openItem: openReaderItem",
         "public support probe API": "supportsItem: supportsReaderItem",
+        "desktop metadata uses remaining chrome width": ".advancedBooksReaderMetadata{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;max-width:none",
+        "desktop top spacer removed": ".advancedBooksReaderTopSpacer{display:none}",
+        "pointer scrub releases range focus": "this.pageSlider.blur();",
     }
     forbidden = {
         "append-based continuous page insertion": "slot.appendChild(image)",
@@ -64,6 +69,14 @@ def main() -> int:
         "legacy zoom monkey patch": "installAnchoredZoom",
         "temporary pinch preview transform": "previewRatio = this.targetZoom",
         "split live-paged pinch path": "livePagedPinch",
+    }
+    navigator_required = {
+        "all-path Reader opening trigger": "document.addEventListener('advancedbooks:reader-opening'",
+        "opening event item id": "const itemId = event.detail?.itemId;",
+        "navigator host button": "advancedBooksNavigatorButton advancedBooksReaderIconButton",
+    }
+    navigator_forbidden = {
+        "dedicated-button-only navigator trigger": "event.target?.closest?.('.advancedBooksReaderButton')",
     }
     preference_required = {
         "v0.16.1 desktop bottom pill": ".advancedBooksReaderChromeBottom{left:50%;right:auto;width:min(58rem,calc(100vw - 1.5rem))",
@@ -107,6 +120,14 @@ def main() -> int:
         failures.append("forbidden gesture setZoom replacement")
     if re.search(r"reader\.applyTransform\s*=(?!=)", gestures):
         failures.append("forbidden gesture applyTransform replacement")
+
+    for label, needle in navigator_required.items():
+        if needle not in navigator:
+            failures.append(f"missing navigator {label}: {needle!r}")
+
+    for label, needle in navigator_forbidden.items():
+        if needle in navigator:
+            failures.append(f"forbidden navigator {label}: {needle!r}")
 
     for label, needle in preference_required.items():
         if needle not in preferences:
