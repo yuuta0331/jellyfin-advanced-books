@@ -448,7 +448,13 @@
         });
       };
 
-      AdvancedBooksConfig.applyKomgaFields = function (config) {
+      AdvancedBooksConfig.applyConfigurationFields = function (config) {
+        config.EnableAdvancedReader = document.querySelector('#EnableAdvancedReader').checked;
+        config.ReplaceNativeReader = document.querySelector('#ReplaceNativeReader').checked;
+        config.EnableKomgaOneShots = document.querySelector('#EnableKomgaOneShots').checked;
+        config.OneShotDirectory = document.querySelector('#OneShotDirectory').value.trim() || '_oneshots';
+        config.OneShotMatchCaseSensitive = document.querySelector('#OneShotMatchCaseSensitive').checked;
+        config.OneShotSeriesMode = document.querySelector('#OneShotSeriesMode').value;
         config.EnableKomgaMetadataSync = document.querySelector('#EnableKomgaMetadataSync').checked;
         config.KomgaServerUrl = document.querySelector('#KomgaServerUrl').value.trim();
         config.KomgaApiKey = document.querySelector('#KomgaApiKey').value.trim();
@@ -462,7 +468,7 @@
 
       AdvancedBooksConfig.saveForKomgaAction = function () {
         return ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
-          AdvancedBooksConfig.applyKomgaFields(config);
+          AdvancedBooksConfig.applyConfigurationFields(config);
           return ApiClient.updatePluginConfiguration(AdvancedBooksConfig.pluginUniqueId, config);
         });
       };
@@ -544,13 +550,7 @@
           Dashboard.showLoadingMsg();
 
           ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
-            config.EnableAdvancedReader = document.querySelector('#EnableAdvancedReader').checked;
-            config.ReplaceNativeReader = document.querySelector('#ReplaceNativeReader').checked;
-            config.EnableKomgaOneShots = document.querySelector('#EnableKomgaOneShots').checked;
-            config.OneShotDirectory = document.querySelector('#OneShotDirectory').value.trim() || '_oneshots';
-            config.OneShotMatchCaseSensitive = document.querySelector('#OneShotMatchCaseSensitive').checked;
-            config.OneShotSeriesMode = document.querySelector('#OneShotSeriesMode').value;
-            AdvancedBooksConfig.applyKomgaFields(config);
+            AdvancedBooksConfig.applyConfigurationFields(config);
 
             ApiClient.updatePluginConfiguration(AdvancedBooksConfig.pluginUniqueId, config).then(function (result) {
               Dashboard.processPluginConfigurationUpdateResult(result);
