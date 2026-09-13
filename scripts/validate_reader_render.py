@@ -120,6 +120,8 @@ def main() -> int:
 
     if "stageHeight * this.zoom" not in text or "image.style.maxHeight" not in text:
         failures.append("continuous Fit Screen height does not scale with Reader zoom")
+    if "this.applyTransform(options?.snap === false)" not in text or "else if (slot && !loadedOnly)" not in text:
+        failures.append("live continuous pinch rewrites unloaded placeholders instead of deferring them to commit")
     if "this.clampPagedPan();" not in text:
         failures.append("paged drag/zoom does not use the Core-owned pan clamp")
     if "this.syncTouchAction();" not in text or "pan-x pan-y" not in text:
