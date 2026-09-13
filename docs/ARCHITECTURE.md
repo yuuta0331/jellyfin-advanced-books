@@ -41,6 +41,7 @@ The Jellyfin server plugin contains these integration layers:
 - `Reader/advancedBooksPreferences.js` for display-preference synchronization;
 - `Reader/advancedBooksNavigator.js` for the lazy thumbnail page navigator; and
 - `Reader/advancedBooksGestures.js` for isolated paged multi-touch handling.
+- `Reader/advancedBooksIntegration.js` for Jellyfin-native Book actions, browser history and host-UI icon adaptation.
 
 Only items in a Jellyfin Books library are considered by the One-Shot resolver. Normal book paths are left to Jellyfin's built-in resolver.
 
@@ -178,7 +179,7 @@ Selecting a thumbnail reuses the continuous page-slot model to reach a distant p
 
 Jellyfin does not currently expose a stable general-purpose server-plugin API for replacing arbitrary Web UI components. Web integration is therefore kept replaceable.
 
-For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. Localization, Core, Progress, Preferences, Navigator and Gestures are registered as six independent entries; Core is required while optional bridges fail soft, and each embedded resource is validated before registration.
+For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. Localization, Core, Progress, Preferences, Navigator, Gestures and Jellyfin Integration are registered as seven independent entries; Core is required while optional bridges fail soft, and each embedded resource is validated before registration. The Integration entry receives the server-side `ReplaceNativeReader` configuration as a tiny injected bootstrap value so ordinary Jellyfin users do not need permission to read plugin configuration.
 
 Full-page responses use `Cache-Control: private, no-store` and include `X-AdvancedBooks-Page-Index`; the browser includes an archive-version query key and verifies the returned index before caching the page Blob. If Jellyfin changes its item-detail route, `.mainDetailButtons` container, reader DOM or legacy `window.ApiClient`, only the Web adapter/bridges should require changes; archive and storage code remain independent.
 
