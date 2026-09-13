@@ -41,6 +41,23 @@ assert.ok(zoom, 'AdvancedBooksZoom was not installed');
 }
 
 {
+    const reader = { zoom: 3, panX: 100, panY: -40 };
+    zoom.reanchorPagedPan(
+        reader,
+        { localX: 300, localY: 250, centerX: 500, centerY: 400 },
+        { localX: 350, localY: 300, centerX: 500, centerY: 400 },
+        2
+    );
+    assert.equal(reader.panX, 300, 'paged focal X follows source-to-target mapping');
+    assert.equal(reader.panY, 65, 'paged focal Y follows source-to-target mapping');
+
+    reader.zoom = 1;
+    zoom.reanchorPagedPan(reader, {}, {}, 3);
+    assert.equal(reader.panX, 0, 'paged focal pan resets at 100%');
+    assert.equal(reader.panY, 0, 'paged focal pan resets at 100%');
+}
+
+{
     const image = {
         offsetLeft: 200,
         offsetTop: 100,
