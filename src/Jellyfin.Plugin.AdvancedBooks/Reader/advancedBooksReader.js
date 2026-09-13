@@ -1009,6 +1009,7 @@
             if (this.backgroundSelect && this.backgroundSelect.value !== this.background) this.backgroundSelect.value = this.background;
             if (this.transitionSelect && this.transitionSelect.value !== String(this.animateTransitions)) this.transitionSelect.value = String(this.animateTransitions);
             if (this.gestureSelect && this.gestureSelect.value !== String(this.touchGestures)) this.gestureSelect.value = String(this.touchGestures);
+            this.syncGestureInput?.();
             this.updateFullscreenButton();
         }
 
