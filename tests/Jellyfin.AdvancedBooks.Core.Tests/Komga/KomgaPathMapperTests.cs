@@ -84,6 +84,29 @@ public sealed class KomgaPathMapperTests
         Assert.Equal("Z:/Books/Books/A.cbz", mapped);
     }
 
+    [Theory]
+    [InlineData("/data/A.cbz", "/ => G:/Books", "G:/Books/data/A.cbz")]
+    [InlineData("G:/A.cbz", "G:/ => /books", "/books/A.cbz")]
+    [InlineData("file://server/share/A.cbz", "//server/share => Z:/Mirror", "Z:/Mirror/A.cbz")]
+    public void MapsFilesystemRootsWithoutDroppingSeparators(string input, string mappings, string expected)
+    {
+        Assert.True(KomgaPathMapper.TryMapBookUrl(
+            input,
+            mappings,
+            false,
+            out var mapped));
+        Assert.Equal(expected, mapped);
+    }
+
+    [Theory]
+    [InlineData("G:/", "G:/")]
+    [InlineData(@"G:\\", "G:/")]
+    [InlineData("//server/share//Books/A.cbz", "//server/share/Books/A.cbz")]
+    public void NormalizesDriveAndUncPathsWithoutDestroyingRoots(string input, string expected)
+    {
+        Assert.Equal(expected, KomgaPathMapper.NormalizeComparablePath(input));
+    }
+
     [Fact]
     public void RejectsNonFileUrl()
     {
