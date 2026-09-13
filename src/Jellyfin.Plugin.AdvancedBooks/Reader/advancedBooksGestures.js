@@ -13,6 +13,9 @@
     const tapMovementTolerance = 12;
     const tapMaximumDurationMs = 360;
     const doubleTapZoom = 2;
+    const navigationZoneEdge = 0.32;
+    const mouseDragThreshold = 6;
+    const pageMotionDurationMs = 220;
     let activeSession = null;
 
     function clampZoom(value) {
@@ -39,6 +42,26 @@
 
     function distance(first, second) {
         return Math.hypot(second.x - first.x, second.y - first.y);
+    }
+
+    function ensureInteractionStyles() {
+        if (document.getElementById('advancedBooksReaderGestureStyles')) return;
+        const style = document.createElement('style');
+        style.id = 'advancedBooksReaderGestureStyles';
+        style.textContent = `
+@media (pointer:fine){
+    .advancedBooksReaderStage.ab-grab-scroll,.advancedBooksReaderPages.ab-grab-page{cursor:grab}
+    .advancedBooksReaderStage.ab-grab-scroll.ab-grabbing,.advancedBooksReaderPages.ab-grab-page.ab-grabbing{cursor:grabbing}
+}
+.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous)[data-ab-page-motion="left"] img{animation:advancedBooksPageFromLeft .2s cubic-bezier(.2,.75,.25,1)}
+.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous)[data-ab-page-motion="right"] img{animation:advancedBooksPageFromRight .2s cubic-bezier(.2,.75,.25,1)}
+@keyframes advancedBooksPageFromLeft{from{opacity:.35;transform:translateX(-18px) scale(.995)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes advancedBooksPageFromRight{from{opacity:.35;transform:translateX(18px) scale(.995)}to{opacity:1;transform:translateX(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){
+    .advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous)[data-ab-page-motion] img{animation:none!important}
+}
+`;
+        document.head.appendChild(style);
     }
 
     function normalizeAnchor(stage, anchor) {
@@ -190,6 +213,10 @@
             this.tapTimer = null;
             this.doubleTapBaseZoom = 1;
             this.doubleTapZoomed = false;
+            this.mouseDrag = null;
+            this.pendingPageMotion = null;
+            this.pageMotionTimer = null;
+            this.pageMutationObserver = null;
             this.removalObserver = null;
 
             this.onPointerDown = event => this.pointerDown(event);
@@ -204,7 +231,11 @@
 
         attach() {
             if (!this.stage || !this.pages) return false;
+            ensureInteractionStyles();
             installAnchoredZoom(this);
+            this.updateGrabCursor();
+            this.pageMutationObserver = new MutationObserver(() => this.applyPendingPageMotion());
+            this.pageMutationObserver.observe(this.pages, { childList: true });
             this.stage.addEventListener('pointerdown', this.onPointerDown, true);
             this.stage.addEventListener('pointermove', this.onPointerMove, true);
             this.stage.addEventListener('pointerup', this.onPointerEnd, true);
@@ -231,7 +262,140 @@
             if (clearLastTap) this.lastTap = null;
         }
 
+        updateGrabCursor() {
+            if (!this.stage || !this.pages) return;
+            const overflow = this.stage.scrollWidth > this.stage.clientWidth + 2
+                || this.stage.scrollHeight > this.stage.clientHeight + 2;
+            this.stage.classList.toggle('ab-grab-scroll', this.isContinuous() || overflow);
+            this.pages.classList.toggle('ab-grab-page', !this.isContinuous() && currentZoom(this.overlay) > 1);
+        }
+
+        reducedMotion() {
+            return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+        }
+
+        markPageMotion(side) {
+            this.pendingPageMotion = side;
+            window.clearTimeout(this.pageMotionTimer);
+            this.pageMotionTimer = window.setTimeout(() => {
+                this.pendingPageMotion = null;
+                delete this.pages.dataset.abPageMotion;
+            }, 1500);
+        }
+
+        applyPendingPageMotion() {
+            if (!this.pendingPageMotion || this.isContinuous()) return;
+            const motion = this.pendingPageMotion;
+            this.pendingPageMotion = null;
+            this.pages.dataset.abPageMotion = motion;
+            window.clearTimeout(this.pageMotionTimer);
+            this.pageMotionTimer = window.setTimeout(() => {
+                if (this.pages.dataset.abPageMotion === motion) delete this.pages.dataset.abPageMotion;
+            }, pageMotionDurationMs + 80);
+        }
+
+        navigateHorizontal(leftSide) {
+            const reader = this.reader;
+            if (!reader) return;
+            this.markPageMotion(leftSide ? 'left' : 'right');
+            if (reader.direction === 'rtl') leftSide ? reader.next?.() : reader.previous?.();
+            else leftSide ? reader.previous?.() : reader.next?.();
+        }
+
+        navigateVertical(topSide) {
+            const reader = this.reader;
+            if (!reader) return;
+            const delta = topSide ? -1 : 1;
+            const target = Math.max(0, Math.min((reader.pageCount ?? 1) - 1, (reader.currentPage ?? 0) + delta));
+            reader.goTo?.(target, this.reducedMotion() ? 'auto' : 'smooth');
+        }
+
+        handleMousePointerDown(event) {
+            if ((event.button ?? 0) !== 0) return false;
+            const zoom = currentZoom(this.overlay);
+            const overflow = this.stage.scrollWidth > this.stage.clientWidth + 2
+                || this.stage.scrollHeight > this.stage.clientHeight + 2;
+            const scrollPan = this.isContinuous() || (zoom <= 1 && overflow);
+            this.mouseDrag = {
+                id: event.pointerId,
+                x: event.clientX,
+                y: event.clientY,
+                scrollLeft: this.stage.scrollLeft,
+                scrollTop: this.stage.scrollTop,
+                moved: false,
+                scrollPan
+            };
+            if (scrollPan) {
+                this.stage.setPointerCapture?.(event.pointerId);
+                this.stage.classList.add('ab-grabbing');
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return true;
+            }
+            return false;
+        }
+
+        handleMousePointerMove(event) {
+            const drag = this.mouseDrag;
+            if (!drag || drag.id !== event.pointerId) return false;
+            if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > mouseDragThreshold) drag.moved = true;
+            if (!drag.scrollPan) return false;
+            this.stage.scrollLeft = drag.scrollLeft - (event.clientX - drag.x);
+            this.stage.scrollTop = drag.scrollTop - (event.clientY - drag.y);
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return true;
+        }
+
+        handleMousePointerEnd(event) {
+            const drag = this.mouseDrag;
+            if (!drag || drag.id !== event.pointerId) return false;
+            this.mouseDrag = null;
+
+            if (drag.scrollPan) {
+                try { this.stage.releasePointerCapture?.(event.pointerId); } catch {}
+                this.stage.classList.remove('ab-grabbing');
+                if (drag.moved) {
+                    if (this.reader) this.reader.suppressNextStageClick = true;
+                } else {
+                    this.handleMouseClick(event.clientX, event.clientY);
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return true;
+            }
+
+            if (!drag.moved && !this.isContinuous() && currentZoom(this.overlay) <= 1) {
+                const rect = this.stage.getBoundingClientRect();
+                const ratio = (event.clientX - rect.left) / Math.max(1, rect.width);
+                if (ratio < navigationZoneEdge || ratio > 1 - navigationZoneEdge) {
+                    this.markPageMotion(ratio < navigationZoneEdge ? 'left' : 'right');
+                }
+            }
+            return false;
+        }
+
+        handleMouseClick(clientX, clientY) {
+            const reader = this.reader;
+            if (!reader) return;
+            const rect = this.stage.getBoundingClientRect();
+            if (this.isContinuous()) {
+                const ratio = (clientY - rect.top) / Math.max(1, rect.height);
+                if (ratio >= navigationZoneEdge && ratio <= 1 - navigationZoneEdge) reader.toggleControls?.();
+                else this.navigateVertical(ratio < navigationZoneEdge);
+                return;
+            }
+
+            const ratio = (clientX - rect.left) / Math.max(1, rect.width);
+            if (ratio >= navigationZoneEdge && ratio <= 1 - navigationZoneEdge) reader.toggleControls?.();
+            else this.navigateHorizontal(ratio < navigationZoneEdge);
+        }
+
         pointerDown(event) {
+            if (event.pointerType === 'mouse') {
+                this.handleMousePointerDown(event);
+                return;
+            }
             if (event.pointerType !== 'touch') return;
             if (this.reader?.touchGestures === false) return;
 
@@ -314,6 +478,10 @@
         }
 
         pointerMove(event) {
+            if (event.pointerType === 'mouse') {
+                this.handleMousePointerMove(event);
+                return;
+            }
             if (event.pointerType !== 'touch') return;
 
             const pointer = this.pointers.get(event.pointerId);
@@ -383,6 +551,10 @@
         }
 
         pointerEnd(event) {
+            if (event.pointerType === 'mouse') {
+                this.handleMousePointerEnd(event);
+                return;
+            }
             if (event.pointerType !== 'touch') return;
 
             const tapStart = this.tapStarts.get(event.pointerId);
@@ -488,21 +660,29 @@
             const reader = this.reader;
             if (!reader || !this.overlay.isConnected) return;
 
-            if (this.isContinuous() || currentZoom(this.overlay) > 1) {
-                reader.toggleControls?.();
-                return;
-            }
-
             const rect = this.stage.getBoundingClientRect();
-            const ratio = (clientX - rect.left) / Math.max(1, rect.width);
-            if (ratio >= 0.32 && ratio <= 0.68) {
+            if (this.isContinuous()) {
+                const ratio = (clientY - rect.top) / Math.max(1, rect.height);
+                if (ratio >= navigationZoneEdge && ratio <= 1 - navigationZoneEdge) {
+                    reader.toggleControls?.();
+                    return;
+                }
+                this.navigateVertical(ratio < navigationZoneEdge);
+                return;
+            }
+
+            if (currentZoom(this.overlay) > 1) {
                 reader.toggleControls?.();
                 return;
             }
 
-            const leftSide = ratio < 0.32;
-            if (reader.direction === 'rtl') leftSide ? reader.next?.() : reader.previous?.();
-            else leftSide ? reader.previous?.() : reader.next?.();
+            const ratio = (clientX - rect.left) / Math.max(1, rect.width);
+            if (ratio >= navigationZoneEdge && ratio <= 1 - navigationZoneEdge) {
+                reader.toggleControls?.();
+                return;
+            }
+
+            this.navigateHorizontal(ratio < navigationZoneEdge);
         }
 
         wheel(event) {
@@ -552,11 +732,14 @@
             this.stage?.removeEventListener('pointerup', this.onPointerEnd, true);
             this.stage?.removeEventListener('pointercancel', this.onPointerEnd, true);
             this.stage?.removeEventListener('wheel', this.onWheel, true);
+            this.pageMutationObserver?.disconnect();
             this.removalObserver?.disconnect();
             this.pointers.clear();
             this.tapStarts.clear();
             this.pinchPointerIds = [];
             this.touchPan = null;
+            this.mouseDrag = null;
+            window.clearTimeout(this.pageMotionTimer);
             this.pinching = false;
             this.suppressUntilRelease = false;
             this.reader?.endExternalPinch?.();
