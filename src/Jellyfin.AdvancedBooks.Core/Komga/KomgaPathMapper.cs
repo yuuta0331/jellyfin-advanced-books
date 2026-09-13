@@ -22,7 +22,7 @@ public static class KomgaPathMapper
             normalized = normalized.Replace("//", "/", StringComparison.Ordinal);
         }
 
-        if (normalized.Length > 1 && normalized.EndsWith('/', StringComparison.Ordinal))
+        if (normalized.Length > 1 && normalized.EndsWith("/", StringComparison.Ordinal))
         {
             normalized = normalized.TrimEnd('/');
         }
