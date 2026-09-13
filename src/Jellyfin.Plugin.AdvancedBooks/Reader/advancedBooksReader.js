@@ -1752,10 +1752,8 @@
             this.applyTransform();
             this.syncControlState();
         }
-
         resetPan() { this.panX = 0; this.panY = 0; }
         resetTransform() { this.zoom = 1; this.resetPan(); }
-
         applyTransform() {
             if (this.isContinuous()) {
                 this.pagesElement.className = `advancedBooksReaderPages ab-continuous ab-layout-${this.layout} ab-fit-${this.fit}`;
