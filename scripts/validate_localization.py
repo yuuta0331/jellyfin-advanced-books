@@ -11,6 +11,7 @@ READER = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksLocalizat
 CONFIG = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Configuration/configPage.html"
 PREFERENCES = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksPreferences.js"
 GESTURES = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksGestures.js"
+INTEGRATION = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksIntegration.js"
 
 LOCALES = ("en", "ja", "de", "fr", "es", "zh-CN")
 REQUIRED_READER_KEYS = (
@@ -46,6 +47,8 @@ REQUIRED_CONFIG_KEYS = (
     "readerHeading",
     "enableReader",
     "enableReaderDescription",
+    "replaceNativeReader",
+    "replaceNativeReaderDescription",
     "komgaHeading",
     "enableOneShots",
     "oneShotDirectory",
@@ -78,6 +81,7 @@ def main() -> int:
     config = CONFIG.read_text(encoding="utf-8")
     preferences = PREFERENCES.read_text(encoding="utf-8")
     gestures = GESTURES.read_text(encoding="utf-8")
+    integration = INTEGRATION.read_text(encoding="utf-8")
 
     supported_literal = "['en', 'ja', 'de', 'fr', 'es', 'zh-CN']"
     require(supported_literal in reader, "Reader supportedLocales list is incomplete")
@@ -129,6 +133,14 @@ def main() -> int:
             "Localization bridge no longer protects navigator page filenames")
     require("value.split(' · ')" in reader,
             "Metadata localization must translate only structured metadata segments")
+    require("history.pushState" in integration and "popstate" in integration,
+            "Reader integration does not provide browser/mobile back navigation")
+    require("btnPlay" in integration and "btnReplay" in integration,
+            "Reader integration does not bridge Jellyfin Resume/Start actions")
+    require("advancedBooksStartMode" in integration,
+            "Native Jellyfin actions do not preserve resume/start-over semantics")
+    require("createElementNS" in integration and "advancedBooksReaderNavButton" in integration,
+            "Reader navigation still lacks stable SVG icon replacement")
 
     print("Validated Advanced Books localization: " + ", ".join(LOCALES))
     return 0
