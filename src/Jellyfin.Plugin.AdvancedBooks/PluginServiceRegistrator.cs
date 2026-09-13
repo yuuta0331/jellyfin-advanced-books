@@ -1,6 +1,7 @@
 using Jellyfin.AdvancedBooks.Core.Archives;
 using Jellyfin.Plugin.AdvancedBooks.Resolvers;
 using Jellyfin.Plugin.AdvancedBooks.Services;
+using Jellyfin.Plugin.AdvancedBooks.Services.Komga;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Controller.Resolvers;
@@ -19,6 +20,8 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<IItemResolver, OneShotBookResolver>();
         serviceCollection.AddSingleton<IZipBookArchiveReader, ZipBookArchiveReader>();
         serviceCollection.AddSingleton<IReaderThumbnailService, ReaderThumbnailService>();
+        serviceCollection.AddSingleton<IKomgaApiClient, KomgaApiClient>();
+        serviceCollection.AddSingleton<IKomgaMetadataSyncService, KomgaMetadataSyncService>();
         serviceCollection.AddHostedService<JavaScriptInjectorRegistrationService>();
     }
 }

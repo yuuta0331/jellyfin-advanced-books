@@ -21,6 +21,7 @@ Advanced comic, manga, magazine and book support for **Jellyfin 12**.
 - Browser/mobile Back closes the Advanced Reader and returns to the underlying Jellyfin screen
 - Optional replacement of Jellyfin Book Play/Resume/Start-over actions across details, Home/Library cards, lists, commands and context menus
 - Komga-compatible `_oneshots` handling without reorganizing the media library
+- Optional direct Komga API metadata synchronization (no ComicInfo dependency), with exact file-path mapping for Docker/host path differences
 - Read-only archive access with bounded extraction, traversal checks and other safety limits
 
 ## Requirements
@@ -67,6 +68,21 @@ Books/
 ```
 
 The default matcher is `_oneshots`. Use `/_oneshots` when you want segment-prefix matching.
+
+## Direct Komga metadata synchronization
+
+Advanced Books can import metadata that is stored **directly in Komga's database** through the Komga API. It does not require or read `ComicInfo.xml` for this synchronization.
+
+In **Dashboard -> Plugins -> Advanced Books**, enable **Import metadata directly from Komga**, then configure:
+
+- the Komga server URL;
+- a Komga **administrator** API key (recommended), or administrator username/password for Basic authentication; Komga hides full Book file paths from non-admin users;
+- optional path mappings when Komga and Jellyfin see the same files under different paths, for example `/data/manga => G:/Manga`;
+- whether synchronization should run automatically after Jellyfin library scans.
+
+Matching is intentionally strict: Komga's Book file URL is converted to a filesystem path, path mappings are applied, and the result must exactly match a Jellyfin Book path. Advanced Books does not guess by title.
+
+The sync imports supported Book/Series metadata such as title, summary, series, release date/year, issue number, genres, publisher, tags, ISBN and authors/roles. It also records stable Komga Book/Series provider IDs. Use **Save & test connection**, **Save & sync now**, or Jellyfin's **Dashboard -> Scheduled Tasks -> Sync metadata from Komga**.
 
 ## Languages
 

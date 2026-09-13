@@ -73,6 +73,77 @@
             </div>
           </div>
 
+          <h2 data-i18n="komgaMetadataHeading">Direct Komga metadata sync</h2>
+
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="EnableKomgaMetadataSync" type="checkbox" is="emby-checkbox">
+              <span data-i18n="enableKomgaMetadataSync">Import metadata directly from Komga</span>
+            </label>
+            <div class="fieldDescription" data-i18n="enableKomgaMetadataSyncDescription">
+              Reads metadata stored in Komga's database through its API. ComicInfo.xml is not used. Matching is based on the Komga book file URL and Jellyfin Book path.
+            </div>
+          </div>
+
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="KomgaServerUrl" data-i18n="komgaServerUrl">Komga server URL</label>
+            <input id="KomgaServerUrl" type="url" is="emby-input" placeholder="http://komga:25600/">
+          </div>
+
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="KomgaApiKey" data-i18n="komgaApiKey">Komga API key</label>
+            <input id="KomgaApiKey" type="password" is="emby-input" autocomplete="new-password">
+            <div class="fieldDescription" data-i18n="komgaApiKeyDescription">
+              Recommended. Use a Komga administrator API key so full Book file paths are available. If configured, it is preferred over Basic authentication.
+            </div>
+          </div>
+
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="KomgaUsername" data-i18n="komgaUsername">Komga username</label>
+            <input id="KomgaUsername" type="text" is="emby-input" autocomplete="username">
+          </div>
+
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="KomgaPassword" data-i18n="komgaPassword">Komga password</label>
+            <input id="KomgaPassword" type="password" is="emby-input" autocomplete="new-password">
+            <div class="fieldDescription" data-i18n="komgaBasicDescription">Used only when no API key is configured. The Komga account must be an administrator so Book file paths are visible.</div>
+          </div>
+
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="KomgaPathMappings" data-i18n="komgaPathMappings">Komga → Jellyfin path mappings</label>
+            <textarea id="KomgaPathMappings" class="emby-input" rows="4" placeholder="/data/manga => G:/Manga"></textarea>
+            <div class="fieldDescription" data-i18n="komgaPathMappingsDescription">
+              Optional, one mapping per line. Use this when Komga and Jellyfin see the same files through different container/host paths. The longest matching source prefix wins. No title-based fuzzy matching is used.
+            </div>
+          </div>
+
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="KomgaPathMatchCaseSensitive" type="checkbox" is="emby-checkbox">
+              <span data-i18n="komgaPathCaseSensitive">Komga path matching is case-sensitive</span>
+            </label>
+          </div>
+
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="KomgaSyncAfterLibraryScan" type="checkbox" is="emby-checkbox">
+              <span data-i18n="komgaSyncAfterScan">Sync after Jellyfin library scans</span>
+            </label>
+            <div class="fieldDescription" data-i18n="komgaSyncAfterScanDescription">
+              You can also run “Sync metadata from Komga” manually from Dashboard → Scheduled Tasks.
+            </div>
+          </div>
+
+          <div style="display:flex;gap:.6em;flex-wrap:wrap;margin:.8em 0;">
+            <button id="KomgaTestConnection" is="emby-button" type="button" class="raised emby-button">
+              <span data-i18n="komgaTestConnection">Save &amp; test connection</span>
+            </button>
+            <button id="KomgaSyncNow" is="emby-button" type="button" class="raised emby-button">
+              <span data-i18n="komgaSyncNow">Save &amp; sync now</span>
+            </button>
+          </div>
+          <div id="KomgaSyncStatus" class="fieldDescription" aria-live="polite"></div>
+
           <div class="fieldDescription" data-i18n="restartRescan">
             Restart Jellyfin and rescan the affected Books library after changing resolver settings.
           </div>
@@ -105,6 +176,27 @@
             seriesParsed: 'Series parsed from filename',
             seriesNone: 'No series name',
             seriesModeDescription: 'Komga models a One-Shot as a one-book series. "Book title" approximates that model in Jellyfin.',
+            komgaMetadataHeading: 'Direct Komga metadata sync',
+            enableKomgaMetadataSync: 'Import metadata directly from Komga',
+            enableKomgaMetadataSyncDescription: 'Reads metadata stored in Komga\'s database through its API. ComicInfo.xml is not used. Matching uses the Komga book file URL and Jellyfin Book path.',
+            komgaServerUrl: 'Komga server URL',
+            komgaApiKey: 'Komga API key',
+            komgaApiKeyDescription: 'Recommended. Use a Komga administrator API key so full Book file paths are available. If configured, it is preferred over Basic authentication.',
+            komgaUsername: 'Komga username',
+            komgaPassword: 'Komga password',
+            komgaBasicDescription: 'Used only when no API key is configured. The Komga account must be an administrator so Book file paths are visible.',
+            komgaPathMappings: 'Komga → Jellyfin path mappings',
+            komgaPathMappingsDescription: 'Optional, one mapping per line, for example /data/manga => G:/Manga. Use this when Komga and Jellyfin see the same files through different paths. No title-based fuzzy matching is used.',
+            komgaPathCaseSensitive: 'Komga path matching is case-sensitive',
+            komgaSyncAfterScan: 'Sync after Jellyfin library scans',
+            komgaSyncAfterScanDescription: 'You can also run “Sync metadata from Komga” manually from Dashboard → Scheduled Tasks.',
+            komgaTestConnection: 'Save & test connection',
+            komgaSyncNow: 'Save & sync now',
+            komgaTesting: 'Testing Komga connection…',
+            komgaTestSuccess: 'Komga connection succeeded.',
+            komgaSyncing: 'Synchronizing metadata from Komga…',
+            komgaSyncSuccess: 'Komga sync complete: {updated} updated, {unchanged} unchanged, {unmatched} unmatched, {errors} errors.',
+            komgaRequestFailed: 'Komga operation failed: {message}',
             restartRescan: 'Restart Jellyfin and rescan the affected Books library after changing resolver settings.',
             save: 'Save'
           },
@@ -125,6 +217,27 @@
             seriesParsed: 'ファイル名から解析したシリーズ',
             seriesNone: 'シリーズ名なし',
             seriesModeDescription: 'KomgaではOne-Shotを1冊だけのシリーズとして扱います。「本のタイトル」はJellyfin上でそのモデルに近い動作を再現します。',
+            komgaMetadataHeading: 'Komgaメタデータ直接同期',
+            enableKomgaMetadataSync: 'Komgaからメタデータを直接取得・同期する',
+            enableKomgaMetadataSyncDescription: 'Komgaのデータベースに保存されたメタデータをAPI経由で直接読み込みます。ComicInfo.xmlは使用しません。Komgaの本のファイルURLとJellyfinのBookパスを照合します。',
+            komgaServerUrl: 'KomgaサーバーURL',
+            komgaApiKey: 'Komga APIキー',
+            komgaApiKeyDescription: '推奨です。Bookの完全なファイルパスを取得するため、Komga管理者のAPIキーを使用してください。設定時はBasic認証より優先します。',
+            komgaUsername: 'Komgaユーザー名',
+            komgaPassword: 'Komgaパスワード',
+            komgaBasicDescription: 'APIキーが設定されていない場合のみ使用します。Bookのファイルパスを取得するためKomga管理者アカウントが必要です。',
+            komgaPathMappings: 'Komga → Jellyfin パスマッピング',
+            komgaPathMappingsDescription: '任意。1行につき1件、例: /data/manga => G:/Manga。Docker/ホストなどで同じファイルが異なるパスに見える場合に使用します。タイトルによる曖昧一致は行いません。',
+            komgaPathCaseSensitive: 'Komgaパス照合で大文字・小文字を区別する',
+            komgaSyncAfterScan: 'Jellyfinのライブラリスキャン後に同期する',
+            komgaSyncAfterScanDescription: 'Dashboard → Scheduled Tasks の「Sync metadata from Komga」から手動実行することもできます。',
+            komgaTestConnection: '保存して接続テスト',
+            komgaSyncNow: '保存して今すぐ同期',
+            komgaTesting: 'Komgaへの接続を確認しています…',
+            komgaTestSuccess: 'Komgaへの接続に成功しました。',
+            komgaSyncing: 'Komgaからメタデータを同期しています…',
+            komgaSyncSuccess: 'Komga同期完了: 更新 {updated}、変更なし {unchanged}、未一致 {unmatched}、エラー {errors}。',
+            komgaRequestFailed: 'Komga操作に失敗しました: {message}',
             restartRescan: 'リゾルバー設定を変更した後はJellyfinを再起動し、対象のBooksライブラリを再スキャンしてください。',
             save: '保存'
           },
@@ -145,6 +258,27 @@
             seriesParsed: 'Aus Dateiname erkannte Serie',
             seriesNone: 'Kein Serienname',
             seriesModeDescription: 'Komga modelliert einen One-Shot als Serie mit genau einem Buch. „Buchtitel“ bildet dieses Modell in Jellyfin am ehesten nach.',
+            komgaMetadataHeading: 'Direkte Komga-Metadatensynchronisierung',
+            enableKomgaMetadataSync: 'Metadaten direkt aus Komga importieren',
+            enableKomgaMetadataSyncDescription: 'Liest in Komgas Datenbank gespeicherte Metadaten direkt über die API. ComicInfo.xml wird nicht verwendet. Die Zuordnung erfolgt über Datei-URL und Jellyfin-Pfad.',
+            komgaServerUrl: 'Komga-Server-URL',
+            komgaApiKey: 'Komga-API-Schlüssel',
+            komgaApiKeyDescription: 'Empfohlen. Verwenden Sie einen API-Schlüssel eines Komga-Administrators, damit vollständige Buchpfade verfügbar sind. Er wird gegenüber Basic Auth bevorzugt.',
+            komgaUsername: 'Komga-Benutzername',
+            komgaPassword: 'Komga-Passwort',
+            komgaBasicDescription: 'Wird nur ohne API-Schlüssel verwendet. Das Komga-Konto muss Administrator sein, damit Buchpfade sichtbar sind.',
+            komgaPathMappings: 'Komga → Jellyfin Pfadzuordnungen',
+            komgaPathMappingsDescription: 'Optional, eine Zuordnung pro Zeile, z. B. /data/manga => G:/Manga. Für unterschiedliche Container-/Host-Pfade. Keine unscharfe Titelzuordnung.',
+            komgaPathCaseSensitive: 'Groß-/Kleinschreibung bei Komga-Pfaden beachten',
+            komgaSyncAfterScan: 'Nach Jellyfin-Bibliotheksscans synchronisieren',
+            komgaSyncAfterScanDescription: 'Die Aufgabe „Sync metadata from Komga“ kann auch unter Dashboard → Scheduled Tasks manuell gestartet werden.',
+            komgaTestConnection: 'Speichern & Verbindung testen',
+            komgaSyncNow: 'Speichern & jetzt synchronisieren',
+            komgaTesting: 'Komga-Verbindung wird getestet…',
+            komgaTestSuccess: 'Komga-Verbindung erfolgreich.',
+            komgaSyncing: 'Metadaten werden aus Komga synchronisiert…',
+            komgaSyncSuccess: 'Komga-Synchronisierung abgeschlossen: {updated} aktualisiert, {unchanged} unverändert, {unmatched} ohne Zuordnung, {errors} Fehler.',
+            komgaRequestFailed: 'Komga-Vorgang fehlgeschlagen: {message}',
             restartRescan: 'Starten Sie Jellyfin neu und scannen Sie die betroffene Bücherbibliothek nach Änderungen an den Resolver-Einstellungen erneut.',
             save: 'Speichern'
           },
@@ -165,6 +299,27 @@
             seriesParsed: 'Série analysée depuis le nom de fichier',
             seriesNone: 'Aucun nom de série',
             seriesModeDescription: 'Komga modélise un One-Shot comme une série d’un seul livre. « Titre du livre » reproduit au mieux ce modèle dans Jellyfin.',
+            komgaMetadataHeading: 'Synchronisation directe des métadonnées Komga',
+            enableKomgaMetadataSync: 'Importer les métadonnées directement depuis Komga',
+            enableKomgaMetadataSyncDescription: 'Lit directement via l’API les métadonnées stockées dans la base Komga. ComicInfo.xml n’est pas utilisé. La correspondance utilise l’URL de fichier Komga et le chemin Jellyfin.',
+            komgaServerUrl: 'URL du serveur Komga',
+            komgaApiKey: 'Clé API Komga',
+            komgaApiKeyDescription: 'Recommandé. Utilisez une clé API d’administrateur Komga afin d’obtenir les chemins complets des livres. Elle est prioritaire sur l’authentification Basic.',
+            komgaUsername: 'Nom d’utilisateur Komga',
+            komgaPassword: 'Mot de passe Komga',
+            komgaBasicDescription: 'Utilisé uniquement si aucune clé API n’est configurée. Le compte Komga doit être administrateur pour exposer les chemins des livres.',
+            komgaPathMappings: 'Mappages de chemin Komga → Jellyfin',
+            komgaPathMappingsDescription: 'Optionnel, un mappage par ligne, ex. /data/manga => G:/Manga. Pour les chemins différents entre conteneur et hôte. Aucune correspondance floue par titre.',
+            komgaPathCaseSensitive: 'Respecter la casse pour les chemins Komga',
+            komgaSyncAfterScan: 'Synchroniser après les analyses de bibliothèque Jellyfin',
+            komgaSyncAfterScanDescription: 'La tâche « Sync metadata from Komga » peut aussi être exécutée manuellement dans Dashboard → Scheduled Tasks.',
+            komgaTestConnection: 'Enregistrer et tester la connexion',
+            komgaSyncNow: 'Enregistrer et synchroniser',
+            komgaTesting: 'Test de la connexion Komga…',
+            komgaTestSuccess: 'Connexion Komga réussie.',
+            komgaSyncing: 'Synchronisation des métadonnées Komga…',
+            komgaSyncSuccess: 'Synchronisation Komga terminée : {updated} mis à jour, {unchanged} inchangés, {unmatched} non associés, {errors} erreurs.',
+            komgaRequestFailed: 'Échec de l’opération Komga : {message}',
             restartRescan: 'Redémarrez Jellyfin et relancez l’analyse de la bibliothèque Livres concernée après modification des paramètres du résolveur.',
             save: 'Enregistrer'
           },
@@ -185,6 +340,27 @@
             seriesParsed: 'Serie analizada desde el nombre de archivo',
             seriesNone: 'Sin nombre de serie',
             seriesModeDescription: 'Komga modela un One-Shot como una serie de un solo libro. «Título del libro» aproxima ese modelo en Jellyfin.',
+            komgaMetadataHeading: 'Sincronización directa de metadatos de Komga',
+            enableKomgaMetadataSync: 'Importar metadatos directamente desde Komga',
+            enableKomgaMetadataSyncDescription: 'Lee por API los metadatos guardados en la base de datos de Komga. No usa ComicInfo.xml. La coincidencia usa la URL del archivo de Komga y la ruta del Book en Jellyfin.',
+            komgaServerUrl: 'URL del servidor Komga',
+            komgaApiKey: 'Clave API de Komga',
+            komgaApiKeyDescription: 'Recomendado. Use una clave API de administrador de Komga para disponer de las rutas completas de los libros. Tiene prioridad sobre Basic Auth.',
+            komgaUsername: 'Usuario de Komga',
+            komgaPassword: 'Contraseña de Komga',
+            komgaBasicDescription: 'Solo se usa cuando no hay una clave API. La cuenta de Komga debe ser administradora para exponer las rutas de los libros.',
+            komgaPathMappings: 'Mapeos de ruta Komga → Jellyfin',
+            komgaPathMappingsDescription: 'Opcional, un mapeo por línea, p. ej. /data/manga => G:/Manga. Para rutas distintas entre contenedor y host. No se usa coincidencia difusa por título.',
+            komgaPathCaseSensitive: 'Distinguir mayúsculas en rutas de Komga',
+            komgaSyncAfterScan: 'Sincronizar tras los escaneos de biblioteca de Jellyfin',
+            komgaSyncAfterScanDescription: 'También puede ejecutar «Sync metadata from Komga» manualmente desde Dashboard → Scheduled Tasks.',
+            komgaTestConnection: 'Guardar y probar conexión',
+            komgaSyncNow: 'Guardar y sincronizar ahora',
+            komgaTesting: 'Probando conexión con Komga…',
+            komgaTestSuccess: 'Conexión con Komga correcta.',
+            komgaSyncing: 'Sincronizando metadatos desde Komga…',
+            komgaSyncSuccess: 'Sincronización Komga completada: {updated} actualizados, {unchanged} sin cambios, {unmatched} sin coincidencia, {errors} errores.',
+            komgaRequestFailed: 'Falló la operación de Komga: {message}',
             restartRescan: 'Reinicie Jellyfin y vuelva a escanear la biblioteca de Libros afectada después de cambiar los ajustes del resolvedor.',
             save: 'Guardar'
           },
@@ -205,6 +381,27 @@
             seriesParsed: '从文件名解析系列',
             seriesNone: '无系列名称',
             seriesModeDescription: 'Komga 将 One-Shot 建模为仅含一本书的系列。“图书标题”是在 Jellyfin 中最接近该模型的方式。',
+            komgaMetadataHeading: 'Komga 元数据直接同步',
+            enableKomgaMetadataSync: '直接从 Komga 导入元数据',
+            enableKomgaMetadataSyncDescription: '通过 API 直接读取存储在 Komga 数据库中的元数据，不使用 ComicInfo.xml。按 Komga 图书文件 URL 与 Jellyfin Book 路径匹配。',
+            komgaServerUrl: 'Komga 服务器 URL',
+            komgaApiKey: 'Komga API 密钥',
+            komgaApiKeyDescription: '推荐。请使用 Komga 管理员 API 密钥，以便获取完整的图书文件路径；配置后优先于 Basic 认证。',
+            komgaUsername: 'Komga 用户名',
+            komgaPassword: 'Komga 密码',
+            komgaBasicDescription: '仅在未配置 API 密钥时使用。Komga 账户必须具有管理员权限，才能获取图书文件路径。',
+            komgaPathMappings: 'Komga → Jellyfin 路径映射',
+            komgaPathMappingsDescription: '可选，每行一个映射，例如 /data/manga => G:/Manga。用于容器与主机看到不同路径的情况。不使用标题模糊匹配。',
+            komgaPathCaseSensitive: 'Komga 路径匹配区分大小写',
+            komgaSyncAfterScan: 'Jellyfin 媒体库扫描后同步',
+            komgaSyncAfterScanDescription: '也可以在 Dashboard → Scheduled Tasks 中手动运行“Sync metadata from Komga”。',
+            komgaTestConnection: '保存并测试连接',
+            komgaSyncNow: '保存并立即同步',
+            komgaTesting: '正在测试 Komga 连接…',
+            komgaTestSuccess: 'Komga 连接成功。',
+            komgaSyncing: '正在从 Komga 同步元数据…',
+            komgaSyncSuccess: 'Komga 同步完成：更新 {updated}，未更改 {unchanged}，未匹配 {unmatched}，错误 {errors}。',
+            komgaRequestFailed: 'Komga 操作失败：{message}',
             restartRescan: '更改解析器设置后，请重启 Jellyfin 并重新扫描受影响的图书库。',
             save: '保存'
           }
@@ -235,6 +432,96 @@
         });
       };
 
+      AdvancedBooksConfig.getStrings = function () {
+        var locale = AdvancedBooksConfig.normalizeLocale(
+          document.documentElement.lang
+          || (navigator.languages && navigator.languages[0])
+          || navigator.language
+          || 'en'
+        );
+        return AdvancedBooksConfig.strings[locale] || AdvancedBooksConfig.strings.en;
+      };
+
+      AdvancedBooksConfig.format = function (value, replacements) {
+        return String(value || '').replace(/\{(\w+)\}/g, function (_, key) {
+          return Object.prototype.hasOwnProperty.call(replacements || {}, key) ? replacements[key] : '';
+        });
+      };
+
+      AdvancedBooksConfig.applyConfigurationFields = function (config) {
+        config.EnableAdvancedReader = document.querySelector('#EnableAdvancedReader').checked;
+        config.ReplaceNativeReader = document.querySelector('#ReplaceNativeReader').checked;
+        config.EnableKomgaOneShots = document.querySelector('#EnableKomgaOneShots').checked;
+        config.OneShotDirectory = document.querySelector('#OneShotDirectory').value.trim() || '_oneshots';
+        config.OneShotMatchCaseSensitive = document.querySelector('#OneShotMatchCaseSensitive').checked;
+        config.OneShotSeriesMode = document.querySelector('#OneShotSeriesMode').value;
+        config.EnableKomgaMetadataSync = document.querySelector('#EnableKomgaMetadataSync').checked;
+        config.KomgaServerUrl = document.querySelector('#KomgaServerUrl').value.trim();
+        config.KomgaApiKey = document.querySelector('#KomgaApiKey').value.trim();
+        config.KomgaUsername = document.querySelector('#KomgaUsername').value.trim();
+        config.KomgaPassword = document.querySelector('#KomgaPassword').value;
+        config.KomgaPathMappings = document.querySelector('#KomgaPathMappings').value;
+        config.KomgaPathMatchCaseSensitive = document.querySelector('#KomgaPathMatchCaseSensitive').checked;
+        config.KomgaSyncAfterLibraryScan = document.querySelector('#KomgaSyncAfterLibraryScan').checked;
+        return config;
+      };
+
+      AdvancedBooksConfig.saveForKomgaAction = function () {
+        return ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
+          AdvancedBooksConfig.applyConfigurationFields(config);
+          return ApiClient.updatePluginConfiguration(AdvancedBooksConfig.pluginUniqueId, config);
+        });
+      };
+
+      AdvancedBooksConfig.setKomgaStatus = function (message) {
+        document.querySelector('#KomgaSyncStatus').textContent = message || '';
+      };
+
+      AdvancedBooksConfig.runKomgaAction = function (kind) {
+        var strings = AdvancedBooksConfig.getStrings();
+        var isSync = kind === 'Sync';
+        AdvancedBooksConfig.setKomgaStatus(isSync ? strings.komgaSyncing : strings.komgaTesting);
+        Dashboard.showLoadingMsg();
+
+        return AdvancedBooksConfig.saveForKomgaAction()
+          .then(function () {
+            return ApiClient.ajax({
+              type: 'POST',
+              dataType: isSync ? 'json' : undefined,
+              url: ApiClient.getUrl('AdvancedBooks/Komga/' + kind)
+            });
+          })
+          .then(function (result) {
+            if (isSync) {
+              AdvancedBooksConfig.setKomgaStatus(AdvancedBooksConfig.format(strings.komgaSyncSuccess, {
+                updated: result.Updated != null ? result.Updated : result.updated,
+                unchanged: result.Unchanged != null ? result.Unchanged : result.unchanged,
+                unmatched: result.Unmatched != null ? result.Unmatched : result.unmatched,
+                errors: result.Errors != null ? result.Errors : result.errors
+              }));
+            } else {
+              AdvancedBooksConfig.setKomgaStatus(strings.komgaTestSuccess);
+            }
+          })
+          .catch(function (error) {
+            var detail = error && (error.message || error.statusText || error.responseText);
+            AdvancedBooksConfig.setKomgaStatus(AdvancedBooksConfig.format(strings.komgaRequestFailed, {
+              message: detail || 'Unknown error'
+            }));
+          })
+          .finally(function () {
+            Dashboard.hideLoadingMsg();
+          });
+      };
+
+      document.querySelector('#KomgaTestConnection').addEventListener('click', function () {
+        AdvancedBooksConfig.runKomgaAction('Test');
+      });
+
+      document.querySelector('#KomgaSyncNow').addEventListener('click', function () {
+        AdvancedBooksConfig.runKomgaAction('Sync');
+      });
+
       document.querySelector('#AdvancedBooksConfigPage')
         .addEventListener('pageshow', function () {
           AdvancedBooksConfig.localize();
@@ -246,6 +533,14 @@
             document.querySelector('#OneShotDirectory').value = config.OneShotDirectory || '_oneshots';
             document.querySelector('#OneShotMatchCaseSensitive').checked = config.OneShotMatchCaseSensitive;
             document.querySelector('#OneShotSeriesMode').value = config.OneShotSeriesMode || 'BookTitle';
+            document.querySelector('#EnableKomgaMetadataSync').checked = config.EnableKomgaMetadataSync === true;
+            document.querySelector('#KomgaServerUrl').value = config.KomgaServerUrl || '';
+            document.querySelector('#KomgaApiKey').value = config.KomgaApiKey || '';
+            document.querySelector('#KomgaUsername').value = config.KomgaUsername || '';
+            document.querySelector('#KomgaPassword').value = config.KomgaPassword || '';
+            document.querySelector('#KomgaPathMappings').value = config.KomgaPathMappings || '';
+            document.querySelector('#KomgaPathMatchCaseSensitive').checked = config.KomgaPathMatchCaseSensitive === true;
+            document.querySelector('#KomgaSyncAfterLibraryScan').checked = config.KomgaSyncAfterLibraryScan !== false;
             Dashboard.hideLoadingMsg();
           });
         });
@@ -255,12 +550,7 @@
           Dashboard.showLoadingMsg();
 
           ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
-            config.EnableAdvancedReader = document.querySelector('#EnableAdvancedReader').checked;
-            config.ReplaceNativeReader = document.querySelector('#ReplaceNativeReader').checked;
-            config.EnableKomgaOneShots = document.querySelector('#EnableKomgaOneShots').checked;
-            config.OneShotDirectory = document.querySelector('#OneShotDirectory').value.trim() || '_oneshots';
-            config.OneShotMatchCaseSensitive = document.querySelector('#OneShotMatchCaseSensitive').checked;
-            config.OneShotSeriesMode = document.querySelector('#OneShotSeriesMode').value;
+            AdvancedBooksConfig.applyConfigurationFields(config);
 
             ApiClient.updatePluginConfiguration(AdvancedBooksConfig.pluginUniqueId, config).then(function (result) {
               Dashboard.processPluginConfigurationUpdateResult(result);

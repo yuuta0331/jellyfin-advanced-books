@@ -50,6 +50,46 @@ public sealed class PluginConfiguration : BasePluginConfiguration
     public OneShotSeriesMode OneShotSeriesMode { get; set; } = OneShotSeriesMode.BookTitle;
 
     /// <summary>
+    /// Gets or sets a value indicating whether metadata should be imported directly from the Komga API.
+    /// </summary>
+    public bool EnableKomgaMetadataSync { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Komga server base URL.
+    /// </summary>
+    public string KomgaServerUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the preferred Komga API key.
+    /// </summary>
+    public string KomgaApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Komga username used when no API key is configured.
+    /// </summary>
+    public string KomgaUsername { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Komga password used when no API key is configured.
+    /// </summary>
+    public string KomgaPassword { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets newline-delimited Komga-to-Jellyfin path prefix mappings.
+    /// </summary>
+    public string KomgaPathMappings { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether path matching is case-sensitive.
+    /// </summary>
+    public bool KomgaPathMatchCaseSensitive { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether Komga metadata is synchronized after a Jellyfin library scan.
+    /// </summary>
+    public bool KomgaSyncAfterLibraryScan { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets a value indicating whether the Advanced Reader Web integration should be enabled.
     /// </summary>
     public bool EnableAdvancedReader { get; set; } = true;

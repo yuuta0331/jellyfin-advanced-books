@@ -16,7 +16,10 @@ The roadmap is ordered to keep the media library safe while progressively replac
 
 - [ ] Integration-test One-Shots against a real Jellyfin 12 scanner
 - [ ] Ensure single-file and multi-file One-Shots directories behave consistently
-- [ ] Preserve/merge ComicInfo metadata without re-grouping One-Shots
+- [x] Import metadata stored directly in Komga through its API without requiring ComicInfo
+- [x] Exact Komga Book URL -> Jellyfin Book path matching with configurable container/host path mapping
+- [x] Scheduled/manual and optional post-scan Komga metadata synchronization
+- [ ] Evaluate optional ComicInfo import separately without making it a dependency of Komga synchronization
 - [ ] Add explicit One-Shot identification usable by the future reader UI
 - [ ] Add diagnostics for why a path matched or did not match
 - [ ] Test large libraries and scanner performance

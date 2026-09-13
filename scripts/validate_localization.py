@@ -68,6 +68,19 @@ REQUIRED_CONFIG_KEYS = (
     "oneShotDirectory",
     "caseSensitive",
     "seriesMode",
+    "komgaMetadataHeading",
+    "enableKomgaMetadataSync",
+    "enableKomgaMetadataSyncDescription",
+    "komgaServerUrl",
+    "komgaApiKey",
+    "komgaUsername",
+    "komgaPassword",
+    "komgaPathMappings",
+    "komgaPathCaseSensitive",
+    "komgaSyncAfterScan",
+    "komgaTestConnection",
+    "komgaSyncNow",
+    "komgaSyncSuccess",
     "restartRescan",
     "save",
 )
@@ -116,7 +129,7 @@ def main() -> int:
         for key in REQUIRED_CONFIG_KEYS:
             require(re.search(rf"\b{re.escape(key)}\s*:", config_block) is not None,
                     f"Config locale {locale} is missing {key!r}")
-        require(config_block.count(":") >= 14, f"Config locale {locale} appears incomplete")
+        require(config_block.count(":") >= 32, f"Config locale {locale} appears incomplete")
 
     require("document.documentElement.lang" in reader, "Reader locale does not follow Jellyfin document language")
     require("navigator.language" in reader, "Reader locale has no browser fallback")
