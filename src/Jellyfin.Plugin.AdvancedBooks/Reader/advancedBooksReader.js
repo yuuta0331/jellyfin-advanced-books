@@ -781,6 +781,12 @@
                         }
                     });
                 }
+            } else {
+                requestAnimationFrame(() => {
+                    if (this.closed || !this.overlay?.isConnected) return;
+                    this.clampPan?.();
+                    this.applyTransform();
+                });
             }
         }
 
@@ -1738,6 +1744,7 @@
                 this.stage.style.touchAction = 'pan-y';
                 this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
                 this.refreshContinuousImageSizing();
+                this.syncGestureInput?.();
                 return;
             }
             this.pagesElement.style.width = '';
@@ -1750,6 +1757,7 @@
             this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
             this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
             this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
+            this.syncGestureInput?.();
         }
 
         onKeyDown(event) {
