@@ -47,11 +47,11 @@ def main() -> int:
     }
     gesture_required = {
         "single zoom controller": "installZoomController(this)",
-        "live pinch through reader zoom": "{ snap: false }",
+        "live pinch through reader zoom": "snap: false",
+        "pinch source-to-target anchor tracking": "fromAnchor: pending.from",
         "paged content-bound clamp": "pagedContentBounds",
         "continuous touch-action resync": "syncTouchAction()",
         "drag-time paged pan clamp": "reader.clampPan =",
-        "pinch midpoint tracking": "fromAnchor: pending.from",
         "reader input resync hook": "reader.syncGestureInput =",
     }
     gesture_forbidden = {
