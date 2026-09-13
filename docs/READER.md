@@ -33,11 +33,13 @@ The reader UI is optimized to disappear while reading. A compact top chrome and 
 
 The bottom strip is available in Single, Double, Vertical Continuous and Webtoon modes. It contains Previous/Next controls, the current page/range, and a range scrubber for direct jumps across long books. Pressing or dragging the scrubber opens a compact thumbnail preview anchored to the actual pointer/finger position rather than an approximate track position. Loading is shown as a centered spinner inside the preview image frame; error text is contained in the same frame. Requests use a short debounce, stale requests are aborted, 128px previews are used for faster first display, and a small bounded browser cache avoids repeatedly generating the same preview. The Pages grid and scrub preview now both request 128px variants so they share the same server cache immediately; the server can still reuse a compatible larger cached variant when one already exists. A thin progress rail remains visible at the bottom edge even when the larger controls are hidden.
 
-The top chrome shows Jellyfin book metadata: title plus available authors, series, issue/index and production year. The metadata header can be disabled entirely or configured field-by-field. When enabled text is wider than the available header space, optional auto-scroll pans that line horizontally between both ends so the entire value becomes visible. Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Layout, paged direction, fit, zoom, black/gray/white background, page-transition animation and touch gestures are available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome, and the contextual **?** help panel lists keyboard and gesture controls.
+The top chrome shows Jellyfin book metadata: title plus available authors, series, issue/index and production year. The metadata header can be disabled entirely or configured field-by-field. When enabled text is wider than the available header space, optional auto-scroll pauses at the start, moves in one direction, pauses at the end, then fades and resets invisibly instead of visibly reversing direction. Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Reader settings are grouped into Reading, Appearance, Behavior, Metadata and Language sections. Layout, paged direction, fit, zoom, black/gray/white background, page-transition animation and touch gestures are available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls. Supported browsers/wrappers also get a fullscreen toggle in the top chrome, and the contextual **?** help panel lists keyboard and gesture controls.
+
+On narrow screens, the top and bottom chrome use compact floating surfaces instead of full-width bands. The duplicate top page counter is hidden so the title receives more room, while the bottom scrubber remains the single page-position display.
 
 ## Localization
 
-The Advanced Reader follows Jellyfin Web's document language, with the browser language as a fallback. Advanced Books 0.14.0.0 supports English, Japanese, German, French, Spanish and Simplified Chinese. Unsupported locales fall back to English.
+The Advanced Reader follows Jellyfin Web's document language by default, with the browser language as a fallback. Users can override that automatic choice from Reader Settings and persist Auto, English, Japanese, German, French, Spanish or Simplified Chinese per Jellyfin user. Unsupported automatic locales fall back to English.
 
 Localization is isolated in `Reader/advancedBooksLocalization.js` so the already size-constrained Core reader does not grow with translation tables. The bridge translates Advanced Books-owned controls, labels, tooltips and accessibility labels while preserving user-provided book metadata. Stable `data-ab-action` identifiers keep Preferences and Gestures functional even after visible titles are translated.
 
@@ -63,7 +65,8 @@ The following settings are persisted for the current authenticated Jellyfin user
 - touch gestures: On / Off;
 - metadata header: Show / Hide;
 - title, authors, series, issue/index and year: individually Show / Hide; and
-- metadata auto-scroll: On / Off.
+- metadata auto-scroll: On / Off; and
+- reader UI language: Auto (Jellyfin), English, Japanese, German, French, Spanish or Simplified Chinese.
 
 Preferences use a fixed Advanced Books display-preference namespace, so the same Jellyfin user receives the same reader controls in another Jellyfin Web browser/client. Different Jellyfin users remain isolated.
 
