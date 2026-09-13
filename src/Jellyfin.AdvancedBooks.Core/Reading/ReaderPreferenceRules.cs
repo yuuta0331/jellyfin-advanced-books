@@ -15,7 +15,7 @@ public static class ReaderPreferenceRules
     public const string DefaultFit = "screen";
 
     /// <summary>Current persisted reader-preference schema version.</summary>
-    public const int CurrentPreferenceSchemaVersion = 5;
+    public const int CurrentPreferenceSchemaVersion = 6;
 
     /// <summary>Default reader UI language mode.</summary>
     public const string DefaultLanguage = "auto";
@@ -52,6 +52,9 @@ public static class ReaderPreferenceRules
 
     /// <summary>Whether overflowing reader metadata scrolls automatically by default.</summary>
     public const bool DefaultAutoScrollMetadata = true;
+
+    /// <summary>Whether the current page/range is shown in the bottom reader chrome by default.</summary>
+    public const bool DefaultShowPagePosition = true;
 
     /// <summary>Default continuous-reader side padding percentage.</summary>
     public const int DefaultSidePadding = 0;

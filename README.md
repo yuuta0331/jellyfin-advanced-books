@@ -15,11 +15,11 @@ Advanced comic, manga, magazine and book support for **Jellyfin 12**.
 - Fit Screen / Width / Height / Original sizing and 50%-400% zoom
 - Mode-aware click/tap navigation, mouse grab-to-pan, touch swipe/pan, focal-point pinch/wheel zoom and double-tap zoom
 - Thumbnail page navigator and direct page scrubber
-- Per-user reading progress and reader preferences stored in Jellyfin
+- Per-user reading progress shared with Jellyfin's built-in ComicsPlayer, plus reader preferences stored in Jellyfin
 - Jellyfin title, author, series, issue and year display with visibility controls
 - English, Japanese, German, French, Spanish and Simplified Chinese UI with automatic detection or a per-user language override
 - Browser/mobile Back closes the Advanced Reader and returns to the underlying Jellyfin screen
-- Optional replacement of Jellyfin's built-in Book Play/Resume/Start-over actions with Advanced Reader
+- Optional replacement of Jellyfin Book Play/Resume/Start-over actions across details, Home/Library cards, lists, commands and context menus
 - Komga-compatible `_oneshots` handling without reorganizing the media library
 - Read-only archive access with bounded extraction, traversal checks and other safety limits
 

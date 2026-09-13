@@ -15,6 +15,20 @@ public sealed class ReaderProgressMathTests
     }
 
     [Theory]
+    [InlineData(0, 100)]
+    [InlineData(1, 100)]
+    [InlineData(37, 100)]
+    [InlineData(99, 100)]
+    public void SharedJellyfinComicPosition_RoundTripsBetweenReaders(int pageIndex, int pageCount)
+    {
+        var ticks = ReaderProgressMath.ToPlaybackPositionTicks(pageIndex);
+
+        // Jellyfin Web ComicsPlayer restores with startPositionTicks / 10000.
+        Assert.Equal((long)pageIndex, ticks / ReaderProgressMath.TicksPerPage);
+        Assert.Equal(pageIndex, ReaderProgressMath.FromPlaybackPositionTicks(ticks, pageCount));
+    }
+
+    [Theory]
     [InlineData(0L, 100, 0)]
     [InlineData(10_000L, 100, 1)]
     [InlineData(990_000L, 100, 99)]

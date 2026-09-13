@@ -104,7 +104,9 @@ The mapping deliberately matches Jellyfin Web's built-in ComicsPlayer:
 PlaybackPositionTicks = zeroBasedPageIndex * 10,000
 ```
 
-That allows the built-in and Advanced readers to interpret the same stored resume position. Progress writes update `PlaybackPositionTicks` and `LastPlayedDate`. Reaching the final page additionally sets `Played=true` and uses `UserDataSaveReason.PlaybackFinished`; intermediate saves use `PlaybackProgress` and do not force `Played=false`, preserving completed state during rereads.
+That allows the built-in and Advanced readers to interpret the same stored resume position in both directions. Progress writes update `PlaybackPositionTicks` and `LastPlayedDate`. Reaching the final page additionally sets `Played=true` and uses `UserDataSaveReason.PlaybackFinished`; intermediate saves use `PlaybackProgress` and do not force `Played=false`, preserving completed state during rereads.
+
+The Web integration treats Jellyfin's server-side `UserItemData` as authoritative for generic Home/Library/list/remote Play. It deliberately does not decide resume-vs-start from a card's `data-positionticks`, because a card can remain mounted with stale attributes after another reader/client updates progress. Generic Play therefore asks the progress bridge to resume; an item with no stored progress still resolves to page 1. Only explicit Replay/Start-over actions bypass restore.
 
 The server validates a submitted page index against the archive's current page count before saving it. Progress is therefore associated with a real page in the accessible Book rather than trusting client-supplied range metadata.
 
