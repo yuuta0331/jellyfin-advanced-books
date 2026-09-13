@@ -1325,7 +1325,7 @@
 
             if (this.fit === 'height') return stageHeight * this.zoom;
             if (this.fit === 'original') return slotWidth * ratio * this.zoom;
-            if (this.fit === 'screen') return Math.min(stageHeight, slotWidth * ratio);
+            if (this.fit === 'screen') return Math.min(stageHeight * this.zoom, slotWidth * ratio);
             return slotWidth * ratio;
         }
 
@@ -1527,7 +1527,7 @@
             } else if (this.fit === 'original') {
                 expectedHeight = image.naturalHeight * this.zoom;
             } else if (this.fit === 'screen') {
-                expectedHeight = Math.min(stageHeight, slotWidth * aspectHeight);
+                expectedHeight = Math.min(stageHeight * this.zoom, slotWidth * aspectHeight);
             } else {
                 expectedHeight = slotWidth * aspectHeight;
             }
@@ -1547,6 +1547,12 @@
             image.style.height = '';
             image.style.maxWidth = '';
             image.style.maxHeight = '';
+
+            if (this.fit === 'screen') {
+                const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
+                image.style.maxHeight = `${Math.max(1, Math.round(viewportHeight * this.zoom))}px`;
+                return;
+            }
 
             if (this.fit === 'height') {
                 const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
