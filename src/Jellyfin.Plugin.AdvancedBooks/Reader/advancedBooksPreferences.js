@@ -51,7 +51,8 @@
                 ShowMetadataSeries: preferences.showMetadataSeries,
                 ShowMetadataIssue: preferences.showMetadataIssue,
                 ShowMetadataYear: preferences.showMetadataYear,
-                AutoScrollMetadata: preferences.autoScrollMetadata
+                AutoScrollMetadata: preferences.autoScrollMetadata,
+                Language: preferences.language
             }),
             url: getPreferencesUrl(apiClient)
         });
@@ -67,6 +68,7 @@
         const background = String(raw?.Background ?? raw?.background ?? 'black');
         const animateTransitions = raw?.AnimateTransitions ?? raw?.animateTransitions ?? true;
         const touchGestures = raw?.TouchGestures ?? raw?.touchGestures ?? true;
+        const language = String(raw?.Language ?? raw?.language ?? 'auto');
         const boolValue = (upper, lower, fallback = true) => {
             const value = raw?.[upper] ?? raw?.[lower] ?? fallback;
             return value !== false && String(value).toLowerCase() !== 'false';
@@ -89,7 +91,8 @@
             showMetadataSeries: boolValue('ShowMetadataSeries', 'showMetadataSeries'),
             showMetadataIssue: boolValue('ShowMetadataIssue', 'showMetadataIssue'),
             showMetadataYear: boolValue('ShowMetadataYear', 'showMetadataYear'),
-            autoScrollMetadata: boolValue('AutoScrollMetadata', 'autoScrollMetadata')
+            autoScrollMetadata: boolValue('AutoScrollMetadata', 'autoScrollMetadata'),
+            language: ['auto', 'en', 'ja', 'de', 'fr', 'es', 'zh-CN'].includes(language) ? language : 'auto'
         };
     }
 
@@ -154,6 +157,7 @@
             showMetadataIssue: overlay.querySelector('[data-ab-control="showMetadataIssue"]'),
             showMetadataYear: overlay.querySelector('[data-ab-control="showMetadataYear"]'),
             autoScrollMetadata: overlay.querySelector('[data-ab-control="autoScrollMetadata"]'),
+            language: overlay.querySelector('[data-ab-control="language"]'),
             zoomOut: toolbar.querySelector('button[data-ab-action="zoom-out"],button[title="Zoom out"]'),
             zoomReset: toolbar.querySelector('button[data-ab-action="zoom-reset"],button[title="Reset zoom"]'),
             zoomIn: toolbar.querySelector('button[data-ab-action="zoom-in"],button[title="Zoom in"]'),
@@ -171,14 +175,33 @@
 .advancedBooksReaderHelpHeader{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem;font-size:1.05rem;font-weight:600}
 .advancedBooksReaderHelpGrid{display:grid;grid-template-columns:minmax(7rem,.8fr) minmax(10rem,1.4fr);gap:.45rem .9rem;font-size:.9rem;line-height:1.35}
 .advancedBooksReaderHelpKey{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.8}
-.advancedBooksReaderSettingsSectionTitle{font-weight:600;padding-top:.2rem;border-top:1px solid rgba(255,255,255,.12)}
+.advancedBooksReaderSettingsSections{display:grid;gap:.75rem}
+.advancedBooksReaderSettingsSection{display:grid;gap:.58rem;padding:.78rem;border:1px solid rgba(255,255,255,.1);border-radius:.72rem;background:rgba(255,255,255,.035)}
+.advancedBooksReaderSettingsSectionTitle{font-size:.82rem;font-weight:700;letter-spacing:.02em;text-transform:none;opacity:.76}
+.advancedBooksReaderSettingsSection .advancedBooksReaderSettingRow{padding:.08rem 0}
+.advancedBooksReaderSettingsHeader{position:sticky;top:-1rem;z-index:2;margin:-1rem -1rem 0;padding:1rem;background:linear-gradient(to bottom,rgba(20,20,20,.99) 75%,rgba(20,20,20,0));backdrop-filter:blur(12px)}
 .advancedBooksReaderMetadata{overflow:hidden}
 .advancedBooksReaderMetadataLine{min-width:0;overflow:hidden;white-space:nowrap}
 .advancedBooksReaderMetadataText{display:inline-block;min-width:max-content;white-space:nowrap;will-change:transform}
-.advancedBooksReaderMetadataLine.ab-metadata-marquee .advancedBooksReaderMetadataText{animation:advancedBooksMetadataMarquee var(--ab-metadata-duration,8s) ease-in-out 1s infinite alternate}
-@keyframes advancedBooksMetadataMarquee{from{transform:translateX(0)}to{transform:translateX(var(--ab-metadata-shift,0px))}}
-@media(prefers-reduced-motion:reduce){.advancedBooksReaderMetadataLine.ab-metadata-marquee .advancedBooksReaderMetadataText{animation:none!important}}
-@media(max-width:700px){.advancedBooksReaderHelpPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(72dvh,38rem);border-radius:1rem 1rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}.advancedBooksReaderHelpGrid{grid-template-columns:1fr;gap:.18rem}.advancedBooksReaderHelpKey{margin-top:.5rem}}
+.advancedBooksReaderMetadataLine.ab-metadata-marquee{mask-image:linear-gradient(to right,transparent 0,#000 .45rem,#000 calc(100% - .45rem),transparent 100%)}
+.advancedBooksReaderMetadataLine.ab-metadata-marquee .advancedBooksReaderMetadataText{animation:advancedBooksMetadataMarquee var(--ab-metadata-duration,9s) linear 1s infinite}
+@keyframes advancedBooksMetadataMarquee{
+    0%,16%{transform:translateX(0);opacity:1}
+    72%,86%{transform:translateX(var(--ab-metadata-shift,0px));opacity:1}
+    91%{transform:translateX(var(--ab-metadata-shift,0px));opacity:0}
+    92%{transform:translateX(0);opacity:0}
+    100%{transform:translateX(0);opacity:1}
+}
+@media(prefers-reduced-motion:reduce){.advancedBooksReaderMetadataLine.ab-metadata-marquee .advancedBooksReaderMetadataText{animation:none!important}.advancedBooksReaderMetadataLine.ab-metadata-marquee{mask-image:none}}
+@media(max-width:700px){
+    .advancedBooksReaderHelpPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(84dvh,46rem);border-radius:1.25rem 1.25rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
+    .advancedBooksReaderHelpGrid{grid-template-columns:1fr;gap:.18rem}
+    .advancedBooksReaderHelpKey{margin-top:.5rem}
+    .advancedBooksReaderSettingsSections{gap:.65rem}
+    .advancedBooksReaderSettingsSection{padding:.7rem;border-radius:.82rem}
+    .advancedBooksReaderSettingsPanel::before{content:"";display:block;width:2.5rem;height:.25rem;margin:-.3rem auto .35rem;border-radius:999px;background:rgba(255,255,255,.28)}
+    .advancedBooksReaderSettingsHeader{top:-1rem}
+}
 `;
         document.head.appendChild(style);
     }
@@ -201,6 +224,7 @@
         const makeRow = (labelText, control) => {
             const row = document.createElement('div');
             row.className = 'advancedBooksReaderSettingRow';
+            row.dataset.abSetting = control.dataset.abControl;
             const label = document.createElement('label');
             label.textContent = labelText;
             control.id = `advancedBooksReader-${control.dataset.abControl}`;
@@ -209,12 +233,26 @@
             return row;
         };
 
-        const title = document.createElement('div');
-        title.className = 'advancedBooksReaderSettingsSectionTitle';
-        title.textContent = 'Metadata';
+        const language = document.createElement('select');
+        language.dataset.abControl = 'language';
+        for (const [value, label] of [
+            ['auto', 'Automatic (Jellyfin)'],
+            ['en', 'English'],
+            ['ja', '日本語'],
+            ['de', 'Deutsch'],
+            ['fr', 'Français'],
+            ['es', 'Español'],
+            ['zh-CN', '简体中文']
+        ]) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            language.appendChild(option);
+        }
+
         const fragment = document.createDocumentFragment();
         fragment.append(
-            title,
+            makeRow('Language', language),
             makeRow('Metadata header', makeSelect('showMetadata')),
             makeRow('Title', makeSelect('showMetadataTitle')),
             makeRow('Authors', makeSelect('showMetadataAuthors')),
@@ -225,6 +263,52 @@
         );
         const hint = toolbar.querySelector('.advancedBooksReaderSettingsHint');
         toolbar.insertBefore(fragment, hint);
+    }
+
+    function organizeSettings(overlay) {
+        const toolbar = overlay.querySelector('.advancedBooksReaderToolbar');
+        if (!toolbar || toolbar.querySelector('.advancedBooksReaderSettingsSections')) return;
+
+        const header = toolbar.querySelector('.advancedBooksReaderSettingsHeader');
+        const hint = toolbar.querySelector('.advancedBooksReaderSettingsHint');
+        const host = document.createElement('div');
+        host.className = 'advancedBooksReaderSettingsSections';
+
+        const sectionDefinitions = [
+            ['Reading', ['layout', 'direction']],
+            ['Appearance', ['fit', 'zoom', 'background', 'sidePadding', 'pageGap']],
+            ['Behavior', ['transitions', 'gestures']],
+            ['Metadata', ['showMetadata', 'showMetadataTitle', 'showMetadataAuthors', 'showMetadataSeries', 'showMetadataIssue', 'showMetadataYear', 'autoScrollMetadata']],
+            ['Language', ['language']]
+        ];
+
+        for (const [titleText, controls] of sectionDefinitions) {
+            const section = document.createElement('section');
+            section.className = 'advancedBooksReaderSettingsSection';
+            section.dataset.abSettingsSection = titleText.toLowerCase();
+
+            const title = document.createElement('div');
+            title.className = 'advancedBooksReaderSettingsSectionTitle';
+            title.textContent = titleText;
+            section.appendChild(title);
+
+            for (const control of controls) {
+                const row = toolbar.querySelector(`[data-ab-setting="${control}"]`);
+                if (row) section.appendChild(row);
+            }
+
+            if (titleText === 'Appearance' && hint) section.appendChild(hint);
+            if (section.children.length > 1) host.appendChild(section);
+        }
+
+        for (const row of Array.from(toolbar.querySelectorAll('.advancedBooksReaderSettingRow'))) {
+            if (!row.closest('.advancedBooksReaderSettingsSection')) {
+                host.querySelector('[data-ab-settings-section="behavior"]')?.appendChild(row);
+            }
+        }
+
+        if (header) header.insertAdjacentElement('afterend', host);
+        else toolbar.prepend(host);
     }
 
     function refreshMetadataMarquee(session, enabled) {
@@ -239,7 +323,7 @@
             const distance = Math.ceil((text?.scrollWidth ?? 0) - line.clientWidth);
             if (distance <= 4) continue;
             line.style.setProperty('--ab-metadata-shift', `-${distance}px`);
-            line.style.setProperty('--ab-metadata-duration', `${Math.min(22, Math.max(7, 4 + distance / 32)).toFixed(1)}s`);
+            line.style.setProperty('--ab-metadata-duration', `${Math.min(24, Math.max(9, 6 + distance / 28)).toFixed(1)}s`);
             line.classList.add('ab-metadata-marquee');
         }
     }
@@ -441,6 +525,8 @@
         const controls = session.controls;
         session.suppressSave = true;
         try {
+            setSelect(controls.language, preferences.language);
+            window.AdvancedBooksI18n?.setLocale?.(preferences.language);
             setSelect(controls.layout, preferences.layout);
             setSelect(controls.direction, preferences.direction);
             setSelect(controls.fit, preferences.fit);
@@ -483,12 +569,13 @@
             showMetadataSeries: controls.showMetadataSeries?.value !== 'false',
             showMetadataIssue: controls.showMetadataIssue?.value !== 'false',
             showMetadataYear: controls.showMetadataYear?.value !== 'false',
-            autoScrollMetadata: controls.autoScrollMetadata?.value !== 'false'
+            autoScrollMetadata: controls.autoScrollMetadata?.value !== 'false',
+            language: controls.language?.value ?? 'auto'
         });
     }
 
     function serialize(preferences) {
-        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}|${preferences.background}|${preferences.animateTransitions}|${preferences.touchGestures}|${preferences.showMetadata}|${preferences.showMetadataTitle}|${preferences.showMetadataAuthors}|${preferences.showMetadataSeries}|${preferences.showMetadataIssue}|${preferences.showMetadataYear}|${preferences.autoScrollMetadata}`;
+        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}|${preferences.background}|${preferences.animateTransitions}|${preferences.touchGestures}|${preferences.showMetadata}|${preferences.showMetadataTitle}|${preferences.showMetadataAuthors}|${preferences.showMetadataSeries}|${preferences.showMetadataIssue}|${preferences.showMetadataYear}|${preferences.autoScrollMetadata}|${preferences.language}`;
     }
 
     function capturePreferences(session) {
@@ -571,6 +658,7 @@
 
         ensureHelpStyles();
         ensureMetadataControls(overlay);
+        organizeSettings(overlay);
         const controls = getControls(overlay);
         if (!controls) return;
 
@@ -602,8 +690,11 @@
         session.lastSaved = serialize(session.latestPreferences);
         attachHelp(session);
 
-        session.onControlChange = () => {
+        session.onControlChange = event => {
             const current = readPreferences(session);
+            if (event?.target?.dataset?.abControl === 'language') {
+                window.AdvancedBooksI18n?.setLocale?.(current.language);
+            }
             renderMetadata(session, current);
             scheduleSave(session);
         };
