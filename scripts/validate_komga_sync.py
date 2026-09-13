@@ -47,6 +47,10 @@ def main() -> int:
             "Komga Series list must use the current POST /api/v1/series/list API")
     require('"X-API-Key"' in client and 'AuthenticationHeaderValue("Basic"' in client,
             "Komga client must support API-key and Basic authentication")
+    require("IsLikelyRestrictedBookUrl" in client and "administrator access" in client,
+            "Komga connection test does not detect non-admin path redaction")
+    require("sort=createdDate,asc&sort=name,asc" in client,
+            "Komga Series pagination does not use a stable supported sort")
     require("MaximumPages" in client and "PageSize" in client,
             "Komga API pagination is not bounded")
     require("http/https URL without embedded credentials" in client,
@@ -61,6 +65,10 @@ def main() -> int:
             "Komga path comparison does not support explicit case policy")
     require("SemaphoreSlim" in sync,
             "Concurrent Komga synchronization passes are not serialized")
+    require("ambiguousJellyfinPaths" in sync and "ambiguousKomgaPaths" in sync,
+            "Duplicate filesystem paths are not rejected as ambiguous")
+    require("PreferredMetadataLanguage" not in sync,
+            "Komga content language must not overwrite Jellyfin metadata-provider language")
     require("UpdateItemAsync" in sync and "ItemUpdateType.MetadataEdit" in sync,
             "Komga metadata changes are not persisted through Jellyfin")
     require("UpdatePeopleAsync" in sync,
