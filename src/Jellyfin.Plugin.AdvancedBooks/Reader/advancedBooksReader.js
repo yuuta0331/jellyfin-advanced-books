@@ -1577,7 +1577,7 @@
             }
         }
 
-        refreshContinuousImageSizing() {
+        refreshContinuousImageSizing(loadedOnly = false) {
             if (!this.isContinuous()) return;
             for (let index = 0; index < this.continuousElements.length; index++) {
                 const slot = this.continuousElements[index];
@@ -1585,7 +1585,7 @@
                 if (image) {
                     this.stabilizeContinuousSlot(index, slot, image);
                     this.applyContinuousImageSizing(image);
-                } else if (slot) {
+                } else if (slot && !loadedOnly) {
                     this.applyEstimatedContinuousSlot(index, slot);
                 }
             }
@@ -1725,7 +1725,7 @@
             if (this.isContinuous()) {
                 const captured = g.captureContinuousAnchor(this, source);
                 this.zoom = next;
-                this.applyTransform();
+                this.applyTransform(options?.snap === false);
                 this.syncControlState();
                 g.restoreContinuousAnchor(this.stage, captured, target);
                 return;
@@ -1739,7 +1739,7 @@
         }
         resetPan() { this.panX = 0; this.panY = 0; }
         resetTransform() { this.zoom = 1; this.resetPan(); }
-        applyTransform() {
+        applyTransform(liveContinuousZoom = false) {
             if (this.isContinuous()) {
                 this.pagesElement.className = `advancedBooksReaderPages ab-continuous ab-layout-${this.layout} ab-fit-${this.fit}`;
                 this.pagesElement.style.transform = 'none';
@@ -1752,7 +1752,7 @@
                     : '0';
                 this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
                 this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
-                this.refreshContinuousImageSizing();
+                this.refreshContinuousImageSizing(liveContinuousZoom);
                 this.syncTouchAction();
                 return;
             }
