@@ -17,9 +17,9 @@ artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: |
-  - Restore the original full-width desktop/mobile Reader chrome and remove the floating pill/More-menu replacement.
-  - Rebuild buttons, Ctrl+wheel, double-tap and pinch around one Reader-owned focal zoom state.
-  - Track two-finger midpoint movement live and clamp paged drag pan to the rendered page/spread bounds.
-  - Fix Vertical/Webtoon Fit Screen scaling, image-point anchoring and native scrolling when touch gestures are disabled.
-  - Restore the original Jellyfin Catalog artwork while preserving v0.17 progress and native-action interoperability.
-  - Add regression guards that prevent Preferences from restyling the Reader shell or reviving layered zoom transforms.
+  - Preserve the v0.16.1 compact pill and mobile More UI by fixing Preferences/Core stylesheet cascade order.
+  - Route toolbar, keyboard, Ctrl+wheel, double-tap and pinch through one Reader-owned zoom state.
+  - Track live two-finger midpoint movement and clamp paged zoom/drag to the rendered page or spread.
+  - Fix Vertical/Webtoon Fit Screen height scaling, image-point anchoring and native pan when touch gestures are off.
+  - Split reusable zoom geometry into a required pre-Core bridge while keeping every injected script below 96 KiB.
+  - Restore the earlier Jellyfin Catalog artwork and retain v0.17 progress/native-action interoperability.
