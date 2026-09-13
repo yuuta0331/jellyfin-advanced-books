@@ -16,13 +16,18 @@ public static class KomgaPathMapper
         }
 
         var normalized = path.Trim().Replace('\\', '/');
+        var isUnc = normalized.StartsWith("//", StringComparison.Ordinal);
+        var body = isUnc ? normalized[2..] : normalized;
 
-        while (normalized.Contains("//", StringComparison.Ordinal))
+        while (body.Contains("//", StringComparison.Ordinal))
         {
-            normalized = normalized.Replace("//", "/", StringComparison.Ordinal);
+            body = body.Replace("//", "/", StringComparison.Ordinal);
         }
 
-        if (normalized.Length > 1 && normalized.EndsWith("/", StringComparison.Ordinal))
+        normalized = isUnc ? "//" + body : body;
+
+        if (normalized.EndsWith("/", StringComparison.Ordinal)
+            && !IsFilesystemRoot(normalized))
         {
             normalized = normalized.TrimEnd('/');
         }
@@ -62,7 +67,7 @@ public static class KomgaPathMapper
                 ? string.Empty
                 : sourcePath[mapping.Source.Length..];
 
-            mappedPath = NormalizeComparablePath(mapping.Target + remainder);
+            mappedPath = NormalizeComparablePath(JoinMappedPath(mapping.Target, remainder));
             return mappedPath.Length > 0;
         }
 
@@ -180,6 +185,22 @@ public static class KomgaPathMapper
             && value[1] == ':'
             && (value[2] == '/' || value[2] == '\\');
 
+    private static string JoinMappedPath(string target, string remainder)
+    {
+        if (remainder.Length == 0)
+        {
+            return target;
+        }
+
+        if (target.EndsWith("/", StringComparison.Ordinal)
+            || remainder.StartsWith("/", StringComparison.Ordinal))
+        {
+            return target + remainder;
+        }
+
+        return target + "/" + remainder;
+    }
+
     private static bool HasPrefixBoundary(string path, string prefix, StringComparison comparison)
     {
         if (!path.StartsWith(prefix, comparison))
@@ -188,7 +209,14 @@ public static class KomgaPathMapper
         }
 
         return path.Length == prefix.Length
-            || prefix == "/"
+            || prefix.EndsWith("/", StringComparison.Ordinal)
             || path[prefix.Length] == '/';
     }
+
+    private static bool IsFilesystemRoot(string path)
+        => path == "/"
+            || (path.Length == 3
+                && char.IsAsciiLetter(path[0])
+                && path[1] == ':'
+                && path[2] == '/');
 }
