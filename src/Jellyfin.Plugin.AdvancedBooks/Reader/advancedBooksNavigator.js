@@ -777,12 +777,10 @@
         activeNavigator.attach();
     }
 
-    document.addEventListener('click', event => {
-        const readerButton = event.target?.closest?.('.advancedBooksReaderButton');
-        if (!readerButton) return;
-        const itemId = readerButton.dataset.advancedBooksItemId;
+    document.addEventListener('advancedbooks:reader-opening', event => {
+        const itemId = event.detail?.itemId;
         if (!itemId) return;
         const token = ++navigatorToken;
         attachNavigator(itemId, token).catch(() => {});
-    }, true);
+    });
 }());
