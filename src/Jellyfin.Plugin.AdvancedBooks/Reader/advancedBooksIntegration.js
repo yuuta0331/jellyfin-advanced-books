@@ -54,12 +54,9 @@
     }
 
     function decorateNavigation(overlay) {
-        const previous = overlay.querySelector('button[data-ab-action="previous"]')
-            ?? Array.from(overlay.querySelectorAll('.advancedBooksReaderNavButton'))
-                .find(button => /previous/i.test(button.getAttribute('aria-label') || ''));
-        const next = overlay.querySelector('button[data-ab-action="next"]')
-            ?? Array.from(overlay.querySelectorAll('.advancedBooksReaderNavButton'))
-                .find(button => /next/i.test(button.getAttribute('aria-label') || ''));
+        const navigationButtons = Array.from(overlay.querySelectorAll('.advancedBooksReaderNavButton'));
+        const previous = overlay.querySelector('button[data-ab-action="previous"]') ?? navigationButtons[0] ?? null;
+        const next = overlay.querySelector('button[data-ab-action="next"]') ?? navigationButtons.at(-1) ?? null;
 
         if (previous && previous.dataset.abSvgIcon !== 'true') {
             previous.replaceChildren(makeChevron('left'));
