@@ -1731,18 +1731,9 @@
                 return;
             }
 
-            const px = Number.isFinite(this.panX) ? this.panX : 0;
-            const py = Number.isFinite(this.panY) ? this.panY : 0;
             this.zoom = next;
-            if (next <= 1) this.resetPan();
-            else {
-                const ratio = next / old;
-                this.panX = px * ratio + target.localX - target.centerX
-                    - ratio * (source.localX - source.centerX);
-                this.panY = py * ratio + target.localY - target.centerY
-                    - ratio * (source.localY - source.centerY);
-                this.clampPagedPan();
-            }
+            g.reanchorPagedPan(this, source, target, old);
+            this.clampPagedPan();
             this.applyTransform();
             this.syncControlState();
         }
