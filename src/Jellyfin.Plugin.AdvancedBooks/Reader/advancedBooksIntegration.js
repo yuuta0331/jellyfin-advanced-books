@@ -58,6 +58,12 @@
         return detailAction(element) ? getCurrentItemId() : null;
     }
 
+    function isKnownNonBook(element) {
+        const carrier = findItemCarrier(element);
+        const type = carrier?.getAttribute('data-type') ?? carrier?.getAttribute('data-itemtype');
+        return Boolean(type && type.toLowerCase() !== 'book');
+    }
+
     function readPositionTicks(element) {
         const carrier = findItemCarrier(element);
         const value = element?.getAttribute?.('data-positionticks')
@@ -109,6 +115,10 @@
     }
 
     function rememberContextTarget(element) {
+        if (isKnownNonBook(element)) {
+            contextTarget = null;
+            return;
+        }
         const itemId = resolveItemId(element);
         if (!itemId) {
             contextTarget = null;
@@ -162,6 +172,7 @@
         const nativeAction = target.closest(nativePlaybackSelector);
         if (!nativeAction || bypassClicks.has(nativeAction)) return;
 
+        if (isKnownNonBook(nativeAction)) return;
         const itemId = resolveItemId(nativeAction);
         if (!itemId) return;
 
@@ -189,6 +200,7 @@
             return;
         }
 
+        if (isKnownNonBook(target)) return;
         const itemId = resolveItemId(target);
         if (!itemId) return;
 
