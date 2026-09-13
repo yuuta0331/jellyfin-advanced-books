@@ -126,9 +126,12 @@ def main() -> int:
         failures.append("Reader does not resync touch-action for touch-gesture changes")
 
     zoom_registration = registration.find("jellyfin-advanced-books-reader-zoom")
+    zoom_resource = registration.find("Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksZoom.js", zoom_registration)
+    zoom_required = registration.find("Required: true", zoom_resource, zoom_resource + 256)
     core_registration = registration.find("jellyfin-advanced-books-reader-core")
-    if not (zoom_registration >= 0 and core_registration > zoom_registration):
-        failures.append("required zoom geometry script is not registered before Reader Core")
+    if not (zoom_registration >= 0 and zoom_resource > zoom_registration and zoom_required > zoom_resource
+            and core_registration >= 0):
+        failures.append("required zoom geometry script or Reader Core registration is missing")
 
     if failures:
         for failure in failures:
