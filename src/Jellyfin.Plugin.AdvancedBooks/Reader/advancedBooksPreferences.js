@@ -52,6 +52,7 @@
                 ShowMetadataIssue: preferences.showMetadataIssue,
                 ShowMetadataYear: preferences.showMetadataYear,
                 AutoScrollMetadata: preferences.autoScrollMetadata,
+                ShowPagePosition: preferences.showPagePosition,
                 Language: preferences.language
             }),
             url: getPreferencesUrl(apiClient)
@@ -92,6 +93,7 @@
             showMetadataIssue: boolValue('ShowMetadataIssue', 'showMetadataIssue'),
             showMetadataYear: boolValue('ShowMetadataYear', 'showMetadataYear'),
             autoScrollMetadata: boolValue('AutoScrollMetadata', 'autoScrollMetadata'),
+            showPagePosition: boolValue('ShowPagePosition', 'showPagePosition'),
             language: ['auto', 'en', 'ja', 'de', 'fr', 'es', 'zh-CN'].includes(language) ? language : 'auto'
         };
     }
@@ -157,6 +159,7 @@
             showMetadataIssue: overlay.querySelector('[data-ab-control="showMetadataIssue"]'),
             showMetadataYear: overlay.querySelector('[data-ab-control="showMetadataYear"]'),
             autoScrollMetadata: overlay.querySelector('[data-ab-control="autoScrollMetadata"]'),
+            showPagePosition: overlay.querySelector('[data-ab-control="showPagePosition"]'),
             language: overlay.querySelector('[data-ab-control="language"]'),
             zoomOut: toolbar.querySelector('button[data-ab-action="zoom-out"],button[title="Zoom out"]'),
             zoomReset: toolbar.querySelector('button[data-ab-action="zoom-reset"],button[title="Reset zoom"]'),
@@ -290,7 +293,8 @@
             makeRow('Series', makeSelect('showMetadataSeries')),
             makeRow('Issue / number', makeSelect('showMetadataIssue')),
             makeRow('Year', makeSelect('showMetadataYear')),
-            makeRow('Auto-scroll', makeSelect('autoScrollMetadata', 'On', 'Off'))
+            makeRow('Auto-scroll', makeSelect('autoScrollMetadata', 'On', 'Off')),
+            makeRow('Page position', makeSelect('showPagePosition'))
         );
         const hint = toolbar.querySelector('.advancedBooksReaderSettingsHint');
         toolbar.insertBefore(fragment, hint);
@@ -307,7 +311,7 @@
 
         const sectionDefinitions = [
             ['Reading', ['layout', 'direction']],
-            ['Appearance', ['fit', 'zoom', 'background', 'sidePadding', 'pageGap']],
+            ['Appearance', ['fit', 'zoom', 'background', 'sidePadding', 'pageGap', 'showPagePosition']],
             ['Behavior', ['transitions', 'gestures']],
             ['Metadata', ['showMetadata', 'showMetadataTitle', 'showMetadataAuthors', 'showMetadataSeries', 'showMetadataIssue', 'showMetadataYear', 'autoScrollMetadata']],
             ['Language', ['language']]
@@ -716,6 +720,8 @@
             setSelect(controls.showMetadataIssue, String(preferences.showMetadataIssue));
             setSelect(controls.showMetadataYear, String(preferences.showMetadataYear));
             setSelect(controls.autoScrollMetadata, String(preferences.autoScrollMetadata));
+            setSelect(controls.showPagePosition, String(preferences.showPagePosition));
+            session.overlay.classList.toggle('ab-hide-page-position', !preferences.showPagePosition);
             applyZoom(controls, preferences.zoom, session.overlay);
             renderMetadata(session, preferences);
         } finally {
@@ -744,12 +750,13 @@
             showMetadataIssue: controls.showMetadataIssue?.value !== 'false',
             showMetadataYear: controls.showMetadataYear?.value !== 'false',
             autoScrollMetadata: controls.autoScrollMetadata?.value !== 'false',
+            showPagePosition: controls.showPagePosition?.value !== 'false',
             language: controls.language?.value ?? 'auto'
         });
     }
 
     function serialize(preferences) {
-        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}|${preferences.background}|${preferences.animateTransitions}|${preferences.touchGestures}|${preferences.showMetadata}|${preferences.showMetadataTitle}|${preferences.showMetadataAuthors}|${preferences.showMetadataSeries}|${preferences.showMetadataIssue}|${preferences.showMetadataYear}|${preferences.autoScrollMetadata}|${preferences.language}`;
+        return `${preferences.layout}|${preferences.direction}|${preferences.fit}|${preferences.zoom.toFixed(2)}|${preferences.sidePadding}|${preferences.pageGap}|${preferences.background}|${preferences.animateTransitions}|${preferences.touchGestures}|${preferences.showMetadata}|${preferences.showMetadataTitle}|${preferences.showMetadataAuthors}|${preferences.showMetadataSeries}|${preferences.showMetadataIssue}|${preferences.showMetadataYear}|${preferences.autoScrollMetadata}|${preferences.showPagePosition}|${preferences.language}`;
     }
 
     function capturePreferences(session) {
@@ -885,6 +892,7 @@
             if (event?.target?.dataset?.abControl === 'language') {
                 window.AdvancedBooksI18n?.setLocale?.(current.language);
             }
+            session.overlay.classList.toggle('ab-hide-page-position', !current.showPagePosition);
             renderMetadata(session, current);
             scheduleSave(session);
         };
