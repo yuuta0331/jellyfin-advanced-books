@@ -56,6 +56,34 @@ public sealed class KomgaPathMapperTests
         Assert.Equal("C:/Books/A.cbz", mapped);
     }
 
+    [Theory]
+    [InlineData("file:/data/manga/A%20B.cbz", "/data/manga/A B.cbz")]
+    [InlineData("file:///data/manga/A%20B.cbz", "/data/manga/A B.cbz")]
+    [InlineData("file:/G:/Books/A%20B.cbz", "G:/Books/A B.cbz")]
+    [InlineData("file:///G:/Books/A%20B.cbz", "G:/Books/A B.cbz")]
+    [InlineData("G:/Books/A%20B.cbz", "G:/Books/A B.cbz")]
+    [InlineData(@"G:\\Books\\A%20B.cbz", "G:/Books/A B.cbz")]
+    public void ParsesFilePathsIndependentlyOfHostOperatingSystem(string input, string expected)
+    {
+        Assert.True(KomgaPathMapper.TryMapBookUrl(
+            input,
+            string.Empty,
+            false,
+            out var mapped));
+        Assert.Equal(expected, mapped);
+    }
+
+    [Fact]
+    public void PreservesUncFileUri()
+    {
+        Assert.True(KomgaPathMapper.TryMapBookUrl(
+            "file://server/share/Books/A.cbz",
+            "//server/share => Z:/Books",
+            false,
+            out var mapped));
+        Assert.Equal("Z:/Books/Books/A.cbz", mapped);
+    }
+
     [Fact]
     public void RejectsNonFileUrl()
     {
