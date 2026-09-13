@@ -269,7 +269,7 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
         }
 
         var index = ParseIndexNumber(bookMetadata.Number, bookMetadata.NumberSort);
-        if (index.HasValue && target.IndexNumber != index)
+        if (target.IndexNumber != index)
         {
             target.IndexNumber = index;
             changed = true;
@@ -403,7 +403,13 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
 
     private static int? ParseIndexNumber(string number, double numberSort)
     {
-        if (int.TryParse(number?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        var cleaned = Clean(number);
+        if (cleaned.Length == 0)
+        {
+            return null;
+        }
+
+        if (int.TryParse(cleaned, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
         {
             return parsed;
         }
