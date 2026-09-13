@@ -89,18 +89,25 @@ jobs:
           VERSION: ${{ steps.release_meta.outputs.version }}
           TARGET_ABI: ${{ steps.release_meta.outputs.target_abi }}
         run: |
+          NOTES_FILE="release-notes/v${VERSION}.md"
+          if [ ! -f "$NOTES_FILE" ]; then
+            echo "::error file=$NOTES_FILE::Add structured release notes for v${VERSION} before publishing."
+            exit 1
+          fi
+
           {
-            echo "## Advanced Books v${VERSION}"
+            cat "$NOTES_FILE"
             echo
-            cat artifacts/changelog.txt
+            echo "## Compatibility"
             echo
-            echo "### Compatibility"
+            echo "- **Jellyfin Server target ABI:** ${TARGET_ABI}"
+            echo "- **Runtime:** .NET 10"
+            echo "- **Advanced Reader formats:** CBZ / ZIP"
             echo
-            echo "- Jellyfin Server target ABI: ${TARGET_ABI}"
-            echo "- .NET 10"
-            echo "- Current Advanced Reader preview targets CBZ/ZIP"
+            echo "## Preview status"
             echo
-            echo "This is a development preview release. Test it on a backed-up or disposable Jellyfin instance before production use."
+            echo "- This is a development preview release."
+            echo "- Test on a backed-up or disposable Jellyfin instance before production use."
           } > artifacts/release-notes.md
 
       - name: Create GitHub prerelease when missing
@@ -132,6 +139,15 @@ jobs:
             exit 1
           fi
           echo "timestamp=$RELEASE_TIMESTAMP" >> "$GITHUB_OUTPUT"
+
+      - name: Refresh GitHub release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release_meta.outputs.tag }}
+        run: >-
+          gh release edit "$TAG"
+          --repo "$GITHUB_REPOSITORY"
+          --notes-file artifacts/release-notes.md
 
       - name: Download published package for manifest checksum
         env:
