@@ -1002,6 +1002,28 @@
         if (session.onMoreOutside) document.removeEventListener('pointerdown', session.onMoreOutside, true);
         if (session.onFullscreenChange) document.removeEventListener('fullscreenchange', session.onFullscreenChange);
         if (session.onLocaleChanged) document.removeEventListener('advancedbooks:locale-changed', session.onLocaleChanged);
+        if (session.sheetHandle) {
+            session.sheetHandle.removeEventListener('pointerdown', session.onSheetPointerDown);
+            session.sheetHandle.removeEventListener('pointermove', session.onSheetPointerMove);
+            session.sheetHandle.removeEventListener('pointerup', session.onSheetPointerUp);
+            session.sheetHandle.removeEventListener('pointercancel', session.onSheetPointerUp);
+            session.sheetHandle.removeEventListener('keydown', session.onSheetKeyDown);
+        }
+        if (session.onInteractionPointerDown) session.overlay.removeEventListener('pointerdown', session.onInteractionPointerDown, true);
+        if (session.onInteractionPointerEnd) {
+            window.removeEventListener('pointerup', session.onInteractionPointerEnd, true);
+            window.removeEventListener('pointercancel', session.onInteractionPointerEnd, true);
+        }
+        if (session.onInteractionFocusIn) session.overlay.removeEventListener('focusin', session.onInteractionFocusIn, true);
+        if (session.onInteractionFocusOut) session.overlay.removeEventListener('focusout', session.onInteractionFocusOut, true);
+        if (session.onInteractionInput) {
+            session.overlay.removeEventListener('input', session.onInteractionInput, true);
+            session.overlay.removeEventListener('change', session.onInteractionInput, true);
+            session.overlay.removeEventListener('wheel', session.onInteractionInput, true);
+        }
+        const reader = session.overlay.__advancedBooksReaderSession;
+        if (reader && session.originalHideControls) reader.hideControls = session.originalHideControls;
+        session.overlay.classList.remove('ab-help-open', 'ab-more-open');
         session.helpButton?.classList.remove('advancedBooksReaderMoreSource');
         session.moreButton?.remove();
         session.moreMenu?.remove();
@@ -1050,7 +1072,19 @@
             openHelp: null,
             closeHelp: null,
             moreButton: null,
-            moreMenu: null
+            moreMenu: null,
+            sheetHandle: null,
+            onSheetPointerDown: null,
+            onSheetPointerMove: null,
+            onSheetPointerUp: null,
+            onSheetKeyDown: null,
+            interactionPointers: null,
+            originalHideControls: null,
+            onInteractionPointerDown: null,
+            onInteractionPointerEnd: null,
+            onInteractionFocusIn: null,
+            onInteractionFocusOut: null,
+            onInteractionInput: null
         };
         currentSession = session;
 
@@ -1058,8 +1092,10 @@
         applyPreferences(session, preferences);
         session.latestPreferences = readPreferences(session);
         session.lastSaved = serialize(session.latestPreferences);
+        attachSettingsSheet(session);
         attachHelp(session);
         attachMoreMenu(session);
+        installInteractionGuard(session);
 
         session.onControlChange = event => {
             const current = readPreferences(session);
