@@ -1708,10 +1708,8 @@
 
         syncTouchAction() {
             if (!this.stage) return;
-            this.stage.style.touchAction = this.externalPinchActive
-                ? 'none'
-                : !this.touchGestures
-                    ? (this.isContinuous() ? 'pan-x pan-y' : 'pan-y')
+            this.stage.style.touchAction = this.externalPinchActive ? 'none'
+                : !this.touchGestures ? (this.isContinuous() ? 'pan-x pan-y' : 'pan-y')
                     : (this.zoom > 1 ? 'none' : 'pan-y');
         }
 
