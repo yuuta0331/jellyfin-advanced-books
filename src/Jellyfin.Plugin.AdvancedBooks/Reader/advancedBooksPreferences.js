@@ -1136,6 +1136,10 @@
     }
 
     document.addEventListener('advancedbooks:reader-opening', () => {
+        // Core intentionally leaves Settings/Help presentation to this bridge.
+        // Inject those styles before the reader DOM opens so an immediate Settings
+        // click cannot race progress/preference restoration and briefly render raw UI.
+        ensureHelpStyles();
         const token = ++sessionToken;
         const preferencesPromise = getPreferences();
         attachPreferenceSession(preferencesPromise, token).catch(() => {});
