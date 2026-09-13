@@ -24,7 +24,7 @@ public sealed class ReaderProgressMathTests
         var ticks = ReaderProgressMath.ToPlaybackPositionTicks(pageIndex);
 
         // Jellyfin Web ComicsPlayer restores with startPositionTicks / 10000.
-        Assert.Equal(pageIndex, ticks / 10_000);
+        Assert.Equal((long)pageIndex, ticks / ReaderProgressMath.TicksPerPage);
         Assert.Equal(pageIndex, ReaderProgressMath.FromPlaybackPositionTicks(ticks, pageCount));
     }
 
