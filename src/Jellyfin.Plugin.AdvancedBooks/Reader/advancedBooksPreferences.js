@@ -1126,13 +1126,11 @@
         session.removalObserver.observe(document.body, { childList: true, subtree: true });
     }
 
-    document.addEventListener('click', event => {
-        const button = event.target?.closest?.('.advancedBooksReaderButton');
-        if (!button) return;
+    document.addEventListener('advancedbooks:reader-opening', () => {
         const token = ++sessionToken;
         const preferencesPromise = getPreferences();
         attachPreferenceSession(preferencesPromise, token).catch(() => {});
-    }, true);
+    });
 
     window.addEventListener('beforeunload', () => {
         if (!currentSession) return;
