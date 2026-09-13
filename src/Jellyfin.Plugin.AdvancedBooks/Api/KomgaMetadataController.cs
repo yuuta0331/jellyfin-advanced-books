@@ -1,6 +1,4 @@
-using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.AdvancedBooks.Services.Komga;
-using MediaBrowser.Controller.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,14 +13,10 @@ namespace Jellyfin.Plugin.AdvancedBooks.Api;
 [Authorize]
 public sealed class KomgaMetadataController : ControllerBase
 {
-    private readonly IAuthorizationContext _authorizationContext;
     private readonly IKomgaMetadataSyncService _syncService;
 
-    public KomgaMetadataController(
-        IAuthorizationContext authorizationContext,
-        IKomgaMetadataSyncService syncService)
+    public KomgaMetadataController(IKomgaMetadataSyncService syncService)
     {
-        _authorizationContext = authorizationContext;
         _syncService = syncService;
     }
 
@@ -35,7 +29,7 @@ public sealed class KomgaMetadataController : ControllerBase
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> Test(CancellationToken cancellationToken)
     {
-        if (!await IsAdministrator().ConfigureAwait(false))
+        if (!User.IsInRole("Administrator"))
         {
             return Forbid();
         }
@@ -90,12 +84,4 @@ public sealed class KomgaMetadataController : ControllerBase
         }
     }
 
-    private async Task<bool> IsAdministrator()
-    {
-        var authorizationInfo = await _authorizationContext
-            .GetAuthorizationInfo(HttpContext)
-            .ConfigureAwait(false);
-
-        return authorizationInfo.User?.HasPermission(PermissionKind.IsAdministrator) == true;
-    }
 }
