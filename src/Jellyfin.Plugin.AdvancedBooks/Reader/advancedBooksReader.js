@@ -781,6 +781,12 @@
                         }
                     });
                 }
+            } else {
+                requestAnimationFrame(() => {
+                    if (this.closed || !this.overlay?.isConnected) return;
+                    this.clampPagedPan();
+                    this.applyTransform();
+                });
             }
         }
 
@@ -1009,6 +1015,7 @@
             if (this.backgroundSelect && this.backgroundSelect.value !== this.background) this.backgroundSelect.value = this.background;
             if (this.transitionSelect && this.transitionSelect.value !== String(this.animateTransitions)) this.transitionSelect.value = String(this.animateTransitions);
             if (this.gestureSelect && this.gestureSelect.value !== String(this.touchGestures)) this.gestureSelect.value = String(this.touchGestures);
+            this.syncTouchAction();
             this.updateFullscreenButton();
         }
 
@@ -1325,7 +1332,7 @@
 
             if (this.fit === 'height') return stageHeight * this.zoom;
             if (this.fit === 'original') return slotWidth * ratio * this.zoom;
-            if (this.fit === 'screen') return Math.min(stageHeight, slotWidth * ratio);
+            if (this.fit === 'screen') return Math.min(stageHeight * this.zoom, slotWidth * ratio);
             return slotWidth * ratio;
         }
 
@@ -1527,7 +1534,7 @@
             } else if (this.fit === 'original') {
                 expectedHeight = image.naturalHeight * this.zoom;
             } else if (this.fit === 'screen') {
-                expectedHeight = Math.min(stageHeight, slotWidth * aspectHeight);
+                expectedHeight = Math.min(stageHeight * this.zoom, slotWidth * aspectHeight);
             } else {
                 expectedHeight = slotWidth * aspectHeight;
             }
@@ -1548,6 +1555,12 @@
             image.style.maxWidth = '';
             image.style.maxHeight = '';
 
+            if (this.fit === 'screen') {
+                const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
+                image.style.maxHeight = `${Math.max(1, Math.round(viewportHeight * this.zoom))}px`;
+                return;
+            }
+
             if (this.fit === 'height') {
                 const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
                 image.style.height = `${Math.max(1, Math.round(viewportHeight * this.zoom))}px`;
@@ -1564,7 +1577,7 @@
             }
         }
 
-        refreshContinuousImageSizing() {
+        refreshContinuousImageSizing(loadedOnly = false) {
             if (!this.isContinuous()) return;
             for (let index = 0; index < this.continuousElements.length; index++) {
                 const slot = this.continuousElements[index];
@@ -1572,7 +1585,7 @@
                 if (image) {
                     this.stabilizeContinuousSlot(index, slot, image);
                     this.applyContinuousImageSizing(image);
-                } else if (slot) {
+                } else if (slot && !loadedOnly) {
                     this.applyEstimatedContinuousSlot(index, slot);
                 }
             }
@@ -1691,32 +1704,42 @@
             this.overlay?.style.setProperty('--ab-progress', `${Math.max(0, Math.min(100, progress))}%`);
         }
 
-        setZoom(value) {
-            const anchor = this.isContinuous() && this.continuousElements[this.currentPage]
-                ? {
-                    element: this.continuousElements[this.currentPage],
-                    viewportOffset: this.continuousElements[this.currentPage].offsetTop - this.stage.scrollTop
-                }
-                : null;
-
-            this.zoom = Math.min(4, Math.max(.5, Math.round(value * 20) / 20));
-            if (this.zoom <= 1) { this.panX = 0; this.panY = 0; }
-            this.applyTransform();
-            this.syncControlState();
-
-            if (anchor?.element?.isConnected) {
-                requestAnimationFrame(() => {
-                    if (!this.closed && anchor.element.isConnected) {
-                        this.stage.scrollTop = Math.max(0, anchor.element.offsetTop - anchor.viewportOffset);
-                    }
-                });
-            }
+        clampPagedPan() { window.AdvancedBooksZoom?.clampPagedPan(this, this.stage, this.pagesElement); }
+        syncTouchAction() {
+            if (!this.stage) return;
+            this.stage.style.touchAction = this.externalPinchActive ? 'none'
+                : !this.touchGestures ? 'pan-x pan-y'
+                    : (this.zoom > 1 ? 'none' : 'pan-y');
         }
 
+        setZoom(value, anchor = null, options = null) {
+            if (!Number.isFinite(value) || !this.stage) return;
+            const g = window.AdvancedBooksZoom;if (!g) return;
+            const next = options?.snap === false
+                ? Math.min(4, Math.max(.5, value))
+                : Math.round(Math.min(4, Math.max(.5, value)) * 20) / 20;
+            const old = Number.isFinite(this.zoom) && this.zoom > 0 ? this.zoom : 1;
+            const target = g.normalizeAnchor(this.stage, anchor);
+            const source = g.normalizeAnchor(this.stage, options?.fromAnchor ?? anchor);
+
+            if (this.isContinuous()) {
+                const captured = g.captureContinuousAnchor(this, source);
+                this.zoom = next;
+                this.applyTransform(options?.snap === false);
+                this.syncControlState();
+                g.restoreContinuousAnchor(this.stage, captured, target);
+                return;
+            }
+
+            this.zoom = next;
+            g.reanchorPagedPan(this, source, target, old);
+            this.clampPagedPan();
+            this.applyTransform();
+            this.syncControlState();
+        }
         resetPan() { this.panX = 0; this.panY = 0; }
         resetTransform() { this.zoom = 1; this.resetPan(); }
-
-        applyTransform() {
+        applyTransform(liveContinuousZoom = false) {
             if (this.isContinuous()) {
                 this.pagesElement.className = `advancedBooksReaderPages ab-continuous ab-layout-${this.layout} ab-fit-${this.fit}`;
                 this.pagesElement.style.transform = 'none';
@@ -1728,9 +1751,9 @@
                     ? `${Math.round(this.zoom * 100)}%`
                     : '0';
                 this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
-                this.stage.style.touchAction = 'pan-y';
                 this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
-                this.refreshContinuousImageSizing();
+                this.refreshContinuousImageSizing(liveContinuousZoom);
+                this.syncTouchAction();
                 return;
             }
             this.pagesElement.style.width = '';
@@ -1741,8 +1764,8 @@
             this.pagesElement.className = `advancedBooksReaderPages ab-layout-${this.layout} ab-fit-${this.fit}${spreadClass}`;
             this.pagesElement.style.transform = `translate(${this.panX}px,${this.panY}px) scale(${this.zoom})`;
             this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
-            this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
             this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
+            this.syncTouchAction();
         }
 
         onKeyDown(event) {
@@ -1844,6 +1867,7 @@
             event.preventDefault();
             this.panX = this.pointerStart.panX + event.clientX - this.pointerStart.x;
             this.panY = this.pointerStart.panY + event.clientY - this.pointerStart.y;
+            this.clampPagedPan();
             this.applyTransform();
             this.pagesElement.style.cursor = 'grabbing';
         }

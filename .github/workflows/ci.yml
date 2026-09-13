@@ -47,6 +47,9 @@ jobs:
       - name: Validate release helper syntax
         run: python -m compileall -q scripts tests/test_release_scripts.py
 
+      - name: Test reader zoom geometry
+        run: node scripts/test_reader_zoom.mjs
+
       - name: Validate reader render invariants
         run: python scripts/validate_reader_render.py
 

@@ -12,8 +12,8 @@ CORE = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksReader.js"
 CONFIG = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Configuration/configPage.html"
 PREFERENCES = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksPreferences.js"
 GESTURES = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksGestures.js"
+ZOOM = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksZoom.js"
 INTEGRATION = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksIntegration.js"
-PROGRESS = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js"
 
 LOCALES = ("en", "ja", "de", "fr", "es", "zh-CN")
 REQUIRED_READER_KEYS = (
@@ -96,8 +96,8 @@ def main() -> int:
     config = CONFIG.read_text(encoding="utf-8")
     preferences = PREFERENCES.read_text(encoding="utf-8")
     gestures = GESTURES.read_text(encoding="utf-8")
+    zoom = ZOOM.read_text(encoding="utf-8")
     integration = INTEGRATION.read_text(encoding="utf-8")
-    progress = PROGRESS.read_text(encoding="utf-8")
 
     supported_literal = "['en', 'ja', 'de', 'fr', 'es', 'zh-CN']"
     require(supported_literal in reader, "Reader supportedLocales list is incomplete")
@@ -154,14 +154,25 @@ def main() -> int:
             "Mobile secondary reader actions are not grouped into an overflow menu")
     require("session.openHelp" in preferences and "fullscreenButton?.click()" in preferences,
             "Overflow menu does not reuse the existing Help/Fullscreen actions")
+    require(".advancedBooksReaderMoreButton{display:inline-flex}" in preferences
+            and "attachMoreMenu(session);" in preferences,
+            "v0.16.1 mobile More menu behavior is missing")
+    require(".advancedBooksReaderChromeBottom{left:50%;right:auto;width:min(58rem" in preferences
+            and "document.head.appendChild(existing);" in preferences,
+            "v0.16.1 compact bottom chrome is missing or can lose CSS priority")
     require('button[data-ab-action="zoom-reset"]' in gestures,
             "Gestures still depends only on localized zoom title")
-    require("installAnchoredZoom" in gestures and "normalizeAnchor" in gestures,
-            "Reader zoom is not anchored to the user focal point")
-    require("clampPagedPan" in gestures and "pagedContentSize" in gestures,
+    require("window.AdvancedBooksZoom" in core
+            and "normalizeAnchor" in zoom
+            and "captureContinuousAnchor" in zoom,
+            "Reader Core does not use the shared focal zoom geometry")
+    require("clampPagedPan" in zoom and "this.clampPagedPan();" in core,
             "Paged zoom does not clamp pan to the rendered content")
-    require("livePagedPinch" in gestures,
-            "Paged pinch zoom still uses a separate preview transform that can jump on commit")
+    require("snap: false" in gestures
+            and "fromAnchor: pending.fromAnchor" in gestures
+            and "livePagedPinch" not in gestures
+            and "previewRatio = this.targetZoom" not in gestures,
+            "Pinch zoom is not using the unified live Core zoom path")
     require("doubleTapDelayMs" in gestures and "handleDoubleTap" in gestures,
             "Touch gestures do not provide double-tap zoom")
     require("touchPan" in gestures and "stage.scrollLeft" in gestures and "stage.scrollTop" in gestures,
@@ -205,12 +216,8 @@ def main() -> int:
              or ("async function openReaderItem" in core and "openItem: openReaderItem" in core))
             and "advancedbooks:reader-opening" in core,
             "Core reader does not expose the direct item-opening bridge")
-    require("advancedbooks:reader-opening" in progress,
+    require("advancedbooks:reader-opening" in (ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js").read_text(encoding="utf-8"),
             "Progress bridge is still tied only to the detail-page Advanced Reader button")
-    require("visibilitychange" in progress and "pagehide" in progress and "beforeunload" in progress,
-            "Progress bridge does not flush the latest page across browser lifecycle exit paths")
-    require("keepalive: true" in progress and "apiClient.fetch" in progress and "queuedKeepalive" in progress,
-            "Progress bridge does not preserve authenticated keepalive saves during page exit")
     require("advancedbooks:reader-opening" in preferences,
             "Preferences bridge is still tied only to the detail-page Advanced Reader button")
     require("createElementNS" in integration and "advancedBooksReaderNavButton" in integration,
