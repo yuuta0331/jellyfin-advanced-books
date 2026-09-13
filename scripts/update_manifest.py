@@ -46,6 +46,26 @@ def validate_timestamp(value: str) -> str:
     return value
 
 
+def validate_catalog_changelog(value: str) -> str:
+    lines = [line.rstrip() for line in value.splitlines() if line.strip()]
+    if not lines:
+        raise ValueError("Catalog changelog must not be empty")
+    if len(lines) > 8:
+        raise ValueError("Catalog changelog must contain at most 8 bullet items")
+    for line in lines:
+        if not line.startswith("- "):
+            raise ValueError(
+                "Catalog changelog must use a compact Markdown bullet list; "
+                f"invalid line: {line!r}"
+            )
+        if len(line) > 180:
+            raise ValueError(
+                "Catalog changelog bullet is too long for Jellyfin history display "
+                f"({len(line)} characters): {line!r}"
+            )
+    return "\n".join(lines)
+
+
 def load_manifest(path: Path) -> list[dict]:
     if not path.exists():
         return [{**PLUGIN_METADATA, "versions": []}]
@@ -87,7 +107,7 @@ def update_manifest(
 
     release = {
         "version": version,
-        "changelog": changelog.strip(),
+        "changelog": validate_catalog_changelog(changelog),
         "targetAbi": target_abi,
         "sourceUrl": source_url,
         "checksum": md5(package_path),

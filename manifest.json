@@ -9,7 +9,7 @@
     "versions": [
       {
         "version": "0.16.0.0",
-        "changelog": "Integrate Advanced Reader more deeply with Jellyfin and improve reading interaction. Add browser/mobile Back handling plus an optional replacement for Jellyfin Book Resume/Start-over actions, centered SVG navigation icons, focal-point pinch/wheel and double-tap zoom, one-finger pan after zoom, compact two-stage bottom navigation, layout-aware left/right and top/bottom click/tap navigation with smooth transitions, and desktop grab-to-pan/scroll behavior. Extend six-language help, integration guards and smoke-test documentation for the new controls.",
+        "changelog": "- Add browser/mobile Back handling and optional Jellyfin Resume/Start-over integration.\n- Add focal pinch, Ctrl+wheel and double-tap zoom with one-finger pan after zoom.\n- Add Komga-style left/right paged and top/bottom Vertical/Webtoon navigation.\n- Add smooth directional page transitions and reduced-motion-aware scrolling.\n- Add desktop grab-to-pan/scroll and centered SVG page-navigation icons.\n- Add compact two-stage bottom navigation and updated six-language interaction help.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.16.0.0/AdvancedBooks_0.16.0.0.zip",
         "checksum": "a8b31b61a4277dc18c33e637de2616da",
@@ -17,7 +17,7 @@
       },
       {
         "version": "0.15.0.0",
-        "changelog": "Improve Advanced Reader UI/UX on mobile and desktop. Add a per-user reader language override for Auto, English, Japanese, German, French, Spanish and Simplified Chinese while preserving Jellyfin/browser automatic detection. Replace ping-pong metadata scrolling with one-direction motion and an invisible reset, reorganize Reader Settings into collapsible Reading, Appearance, Behavior, Metadata and Language sections, and use mobile accordion behavior. Reduce mobile chrome clutter with compact floating controls, hide duplicate page-position information, and move secondary Fullscreen and Help actions into a localized overflow menu with accessible focus handling. Extend preference-schema, localization and UI regression validation for the new behavior.",
+        "changelog": "- Add a per-user Reader language override while keeping automatic Jellyfin/browser detection.\n- Reorganize Reader Settings into collapsible Reading, Appearance, Behavior, Metadata and Language sections.\n- Replace ping-pong metadata scrolling with one-way motion and an invisible reset.\n- Reduce mobile chrome clutter with compact floating controls and a localized overflow menu.\n- Improve mobile accessibility, focus handling and UI regression validation.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.15.0.0/AdvancedBooks_0.15.0.0.zip",
         "checksum": "7e4962d177044d9c05f4650565faefe4",
@@ -25,7 +25,7 @@
       },
       {
         "version": "0.14.0.0",
-        "changelog": "Add six-language localization for the Advanced Reader and plugin configuration: English, Japanese, German, French, Spanish and Simplified Chinese. Reader UI follows the Jellyfin/browser language automatically and keeps localized controls addressable through stable action identifiers. Add a repository-owned catalog icon and project banner, publish imageUrl and Books-category metadata in the Jellyfin repository manifest, and document repository-based installation and Catalog-discovered updates. Extend embedded-resource verification to the new localization bridge and add release validation for catalog metadata.",
+        "changelog": "- Add six-language localization for the Advanced Reader and plugin configuration.\n- Follow Jellyfin/browser language automatically with stable localized control identifiers.\n- Add repository-owned Catalog icon/banner and Books-category manifest metadata.\n- Add repository-first installation/update documentation and localization/catalog validation.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.14.0.0/AdvancedBooks_0.14.0.0.zip",
         "checksum": "662cb2ca500104f53ff2b0d4d555a125",
@@ -33,7 +33,7 @@
       },
       {
         "version": "0.13.0.0",
-        "changelog": "Fix a critical Continuous/Webtoon rendering race that could append duplicate page images to the same slot and display them side by side. Enforce a strict one-image-per-page DOM invariant with generation guards so stale asynchronous loads cannot resurrect evicted images. Make double-page spreads stable by determining page orientation before rendering instead of displaying a guessed spread and correcting it afterward. Ignore __MACOSX and AppleDouble image-like entries in CBZ/ZIP archives, disable browser caching for full-page responses, and verify the served page index in the Web reader. Add configurable reader metadata visibility for title, authors, series, issue and year, plus automatic overflow scrolling that can be enabled or disabled per Jellyfin user.",
+        "changelog": "- Fix duplicate images in Continuous/Webtoon caused by overlapping async page loads.\n- Enforce one-image-per-page slots with stale-load generation guards.\n- Make smart double-page spreads deterministic before rendering.\n- Ignore __MACOSX/AppleDouble archive metadata entries and verify served page identity.\n- Add configurable reader metadata visibility and optional overflow auto-scroll.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.13.0.0/AdvancedBooks_0.13.0.0.zip",
         "checksum": "0c6b5b8a9393d2e19b77877031962da8",
@@ -41,7 +41,7 @@
       },
       {
         "version": "0.12.0.0",
-        "changelog": "Show Jellyfin book title, authors, series and year in the Advanced Reader. Fix progress resume for played books and close-time/in-flight save races so the latest reached page is queued and synchronized reliably. Replace the desktop scrubber resize cursor with a normal pointer. Add Komga-style smart double-page spreads with first/last and landscape pages shown singly, persisted black/gray/ white backgrounds, optional page-transition animation, optional touch gestures, and contextual keyboard/gesture help. Keep the Core JavaScript below the JavaScript Injector size limit and extend preference schema migration/tests.",
+        "changelog": "- Show Jellyfin title, authors, series and year in Advanced Reader.\n- Fix resume for played books and close-time/in-flight progress save races.\n- Add Komga-style smart double-page spreads and persisted reader backgrounds.\n- Add optional page transitions, touch gestures and contextual keyboard/gesture help.\n- Keep the Core reader below the JavaScript Injector size limit and extend preference migration tests.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.12.0.0/AdvancedBooks_0.12.0.0.zip",
         "checksum": "f5455da9b79b485ee84f2f6bba6ff752",
@@ -49,7 +49,7 @@
       },
       {
         "version": "0.11.2.0",
-        "changelog": "Harden JavaScript Injector startup recovery. Validate all embedded reader assets before replacing existing registrations, keep the required Core transactional, and allow optional Progress/Preferences/Navigator/Gestures bridges to fail soft without removing the rest of the reader. Log the actual loaded Advanced Books assembly version, informational version, and DLL path at startup. CI and release workflows now validate the five reader resources from the built plugin DLL itself with strict UTF-8 and size checks, in addition to source JavaScript checks.",
+        "changelog": "- Harden JavaScript Injector startup recovery and validate embedded reader assets before registration.\n- Keep Core registration transactional while optional reader bridges fail soft.\n- Log the loaded Advanced Books assembly version, informational version and DLL path.\n- Validate built DLL reader resources with strict UTF-8 and size checks in CI and Release.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.11.2.0/AdvancedBooks_0.11.2.0.zip",
         "checksum": "d850dab7415b6b0f263f53f774203f03",
@@ -57,7 +57,7 @@
       },
       {
         "version": "0.11.1.0",
-        "changelog": "Fix Page-grid thumbnails that could remain permanently unloaded after scrolling. Visible cards now use direct viewport scanning plus a watchdog, timeout recovery, 128px shared thumbnail caching, and a bounded two-request full-page fallback. Fix the scrub-preview loading layout so the spinner/error stays inside the thumbnail frame, replace the Advanced Reader launch glyph with a dedicated reader-mode icon, and improve mixed-size Vertical/Webtoon books with learned page aspect ratios, viewport-marker current-page tracking, explicit scroll anchoring, and preserved geometry across page eviction and viewport changes.",
+        "changelog": "- Fix page-grid thumbnails that could remain permanently unloaded after scrolling.\n- Add viewport scanning, watchdog recovery, shared thumbnail caching and bounded fallback loading.\n- Improve scrub-preview loading/error containment and use a dedicated Reader launch icon.\n- Improve mixed-size Vertical/Webtoon current-page tracking and scroll geometry stability.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.11.1.0/AdvancedBooks_0.11.1.0.zip",
         "checksum": "484bcbd3bb8cefe5a2e3b60c2f1c1d42",
@@ -65,7 +65,7 @@
       },
       {
         "version": "0.11.0.0",
-        "changelog": "Improve desktop and mobile reader responsiveness. Use measured viewport sizing for Fit modes and migrate the legacy Fit Height default to Fit Screen, keep mobile controls square, anchor scrub previews to the active finger/pointer, reduce preview latency, cache archive metadata, and reuse compatible larger thumbnail cache entries. Stabilize Webtoon/Vertical scrolling with earlier and directional prefetch, decoded page geometry, and scroll-anchor compensation. Fix Pages-grid lazy loading with a viewport-priority queue and explicit scroll fallback, and isolate two-finger pinch zoom from page pan/scroll movement.",
+        "changelog": "- Improve desktop/mobile Reader responsiveness and measured viewport Fit sizing.\n- Migrate the legacy Fit Height default to Fit Screen and keep mobile controls square.\n- Improve scrub previews, archive metadata caching and thumbnail cache reuse.\n- Stabilize Vertical/Webtoon scrolling with directional prefetch and scroll-anchor compensation.\n- Isolate two-finger pinch zoom from page pan/scroll movement.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.11.0.0/AdvancedBooks_0.11.0.0.zip",
         "checksum": "4238fd6584c3f265ed97d4849f932987",
@@ -73,7 +73,7 @@
       },
       {
         "version": "0.10.1.0",
-        "changelog": "Fix Advanced Reader integration disappearing when the JavaScript Injector registration becomes corrupted. Register the reader core, progress, preferences, navigator, and gestures as five independent bounded scripts instead of one large combined payload. Remove the legacy combined entry on startup, validate embedded UTF-8/control characters, roll back partial registrations, and guard per-script size in CI and release validation.",
+        "changelog": "- Fix Advanced Reader integration disappearing after corrupted JavaScript Injector registration.\n- Split Core, Progress, Preferences, Navigator and Gestures into bounded independent scripts.\n- Remove the legacy combined registration and roll back partial registrations safely.\n- Add strict UTF-8/control-character and per-script size validation.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.10.1.0/AdvancedBooks_0.10.1.0.zip",
         "checksum": "0e4e09e555cb7666152fd008905f0b79",
@@ -81,7 +81,7 @@
       },
       {
         "version": "0.10.0.0",
-        "changelog": "Polish Advanced Reader interactions. Hidden chrome now ignores minor desktop pointer jitter, deliberate movement restores it, and hovering visible chrome pauses auto-hide. The page scrubber now shows a debounced authenticated thumbnail preview while dragging and stays pinned for long scrubs. Reduce GitHub Actions cost by deferring draft CI, cancelling stale PR runs, removing duplicate main CI builds, and triggering releases only from build.yaml changes.",
+        "changelog": "- Improve hidden reader chrome so small pointer jitter no longer reveals controls.\n- Add debounced authenticated thumbnail previews to the page scrubber.\n- Keep scrub previews pinned during long scrubs.\n- Reduce duplicate/stale GitHub Actions work and tighten release triggers.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.10.0.0/AdvancedBooks_0.10.0.0.zip",
         "checksum": "06a36f7dde33cee6e532cf7c60ade17c",
@@ -89,7 +89,7 @@
       },
       {
         "version": "0.9.0.0",
-        "changelog": "Redesign the Advanced Reader UI for desktop and mobile. Add auto-hiding reader chrome, a direct page scrubber in every layout, responsive settings sheets, corrected Jellyfin detail-button markup, and an optional fullscreen toggle. Vertical Continuous and Webtoon now support fit controls, persisted zoom, side padding, page gaps, Ctrl+wheel zoom, two-finger pinch zoom, and desktop drag panning while retaining native one-finger scrolling.",
+        "changelog": "- Redesign Advanced Reader UI for desktop and mobile.\n- Add auto-hiding chrome, a page scrubber, responsive settings sheets and fullscreen support.\n- Add Fit/zoom/side-padding/page-gap controls to Vertical Continuous and Webtoon.\n- Add Ctrl+wheel zoom, two-finger pinch zoom and desktop drag panning.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.9.0.0/AdvancedBooks_0.9.0.0.zip",
         "checksum": "c858042941cc2095f168fc5c7de89438",
@@ -97,7 +97,7 @@
       },
       {
         "version": "0.8.0.0",
-        "changelog": "Add dedicated two-finger pinch-to-zoom for paged Advanced Reader modes. Pinch gestures render a smooth live preview, suppress accidental page-turn swipes, and commit the final zoom through the reader's existing controls so persisted per-user zoom stays synchronized.",
+        "changelog": "- Add dedicated two-finger pinch-to-zoom for paged Advanced Reader modes.\n- Suppress accidental page turns during pinch and persist the committed zoom through existing Reader controls.",
         "targetAbi": "12.0.0.0",
         "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.8.0.0/AdvancedBooks_0.8.0.0.zip",
         "checksum": "3ae9c58fd76d34e9c04f97b12cd86a2a",

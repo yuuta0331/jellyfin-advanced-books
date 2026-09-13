@@ -20,26 +20,60 @@ def read_yaml_scalar(path: Path, key: str) -> str:
     return match.group(1)
 
 
-def read_yaml_folded_block(path: Path, key: str) -> str:
+def read_yaml_block(path: Path, key: str) -> str:
     lines = path.read_text(encoding="utf-8").splitlines()
     start = None
+    style = None
     for index, line in enumerate(lines):
-        if re.match(rf"^{re.escape(key)}\s*:\s*>\s*$", line):
+        match = re.match(rf"^{re.escape(key)}\s*:\s*([>|])\s*$", line)
+        if match:
             start = index + 1
+            style = match.group(1)
             break
-    if start is None:
-        raise ValueError(f"Could not find folded block {key!r} in {path}")
+    if start is None or style is None:
+        raise ValueError(f"Could not find block scalar {key!r} in {path}")
 
-    parts: list[str] = []
+    raw: list[str] = []
     for line in lines[start:]:
         if line and not line[0].isspace():
             break
-        stripped = line.strip()
-        if stripped:
-            parts.append(stripped)
-    if not parts:
-        raise ValueError(f"Folded block {key!r} in {path} is empty")
-    return " ".join(parts)
+        raw.append(line)
+
+    while raw and not raw[0].strip():
+        raw.pop(0)
+    while raw and not raw[-1].strip():
+        raw.pop()
+    if not raw:
+        raise ValueError(f"Block scalar {key!r} in {path} is empty")
+
+    if style == ">":
+        parts = [line.strip() for line in raw if line.strip()]
+        return " ".join(parts)
+
+    non_empty = [line for line in raw if line.strip()]
+    indentation = min(len(line) - len(line.lstrip()) for line in non_empty)
+    literal = "\n".join(line[indentation:].rstrip() if line.strip() else "" for line in raw)
+    return literal.strip()
+
+
+def validate_catalog_changelog(value: str) -> str:
+    lines = [line.rstrip() for line in value.splitlines() if line.strip()]
+    if not lines:
+        raise ValueError("Catalog changelog must not be empty")
+    if len(lines) > 8:
+        raise ValueError("Catalog changelog must contain at most 8 bullet items")
+    for line in lines:
+        if not line.startswith("- "):
+            raise ValueError(
+                "Catalog changelog must use a compact Markdown bullet list; "
+                f"invalid line: {line!r}"
+            )
+        if len(line) > 180:
+            raise ValueError(
+                "Catalog changelog bullet is too long for Jellyfin history display "
+                f"({len(line)} characters): {line!r}"
+            )
+    return "\n".join(lines)
 
 
 def normalize_version(value: str) -> str:
@@ -55,7 +89,7 @@ def load_metadata(build_yaml: Path, csproj: Path) -> dict[str, str]:
     guid = read_yaml_scalar(build_yaml, "guid")
     image_url = read_yaml_scalar(build_yaml, "imageUrl")
     category = read_yaml_scalar(build_yaml, "category")
-    changelog = read_yaml_folded_block(build_yaml, "changelog")
+    changelog = validate_catalog_changelog(read_yaml_block(build_yaml, "changelog"))
 
     root = ET.parse(csproj).getroot()
     csproj_version_node = root.find(".//Version")
