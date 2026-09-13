@@ -13,6 +13,7 @@ CONFIG = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Configuration/configPage.html
 PREFERENCES = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksPreferences.js"
 GESTURES = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksGestures.js"
 INTEGRATION = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksIntegration.js"
+PROGRESS = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js"
 
 LOCALES = ("en", "ja", "de", "fr", "es", "zh-CN")
 REQUIRED_READER_KEYS = (
@@ -96,6 +97,7 @@ def main() -> int:
     preferences = PREFERENCES.read_text(encoding="utf-8")
     gestures = GESTURES.read_text(encoding="utf-8")
     integration = INTEGRATION.read_text(encoding="utf-8")
+    progress = PROGRESS.read_text(encoding="utf-8")
 
     supported_literal = "['en', 'ja', 'de', 'fr', 'es', 'zh-CN']"
     require(supported_literal in reader, "Reader supportedLocales list is incomplete")
@@ -203,8 +205,12 @@ def main() -> int:
              or ("async function openReaderItem" in core and "openItem: openReaderItem" in core))
             and "advancedbooks:reader-opening" in core,
             "Core reader does not expose the direct item-opening bridge")
-    require("advancedbooks:reader-opening" in (ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js").read_text(encoding="utf-8"),
+    require("advancedbooks:reader-opening" in progress,
             "Progress bridge is still tied only to the detail-page Advanced Reader button")
+    require("visibilitychange" in progress and "pagehide" in progress and "beforeunload" in progress,
+            "Progress bridge does not flush the latest page across browser lifecycle exit paths")
+    require("keepalive: true" in progress and "apiClient.fetch" in progress and "queuedKeepalive" in progress,
+            "Progress bridge does not preserve authenticated keepalive saves during page exit")
     require("advancedbooks:reader-opening" in preferences,
             "Preferences bridge is still tied only to the detail-page Advanced Reader button")
     require("createElementNS" in integration and "advancedBooksReaderNavButton" in integration,

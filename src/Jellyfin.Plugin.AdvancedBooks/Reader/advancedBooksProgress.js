@@ -27,15 +27,33 @@
         });
     }
 
-    async function putProgress(itemId, pageIndex) {
+    async function putProgress(itemId, pageIndex, keepalive = false) {
         const apiClient = getApiClient();
-        if (!apiClient || typeof apiClient.ajax !== 'function') return null;
+        if (!apiClient) return null;
+
+        const payload = JSON.stringify({ PageIndex: pageIndex });
+        const url = getProgressUrl(apiClient, itemId);
+        if (keepalive && typeof apiClient.fetch === 'function') {
+            const response = await apiClient.fetch({
+                url,
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+                keepalive: true
+            }, true);
+            if (!response || response.ok === false) {
+                throw new Error(`HTTP ${response?.status ?? 'error'}`);
+            }
+            return typeof response.json === 'function' ? response.json() : null;
+        }
+
+        if (typeof apiClient.ajax !== 'function') return null;
         return apiClient.ajax({
             type: 'PUT',
             contentType: 'application/json',
             dataType: 'json',
-            data: JSON.stringify({ PageIndex: pageIndex }),
-            url: getProgressUrl(apiClient, itemId)
+            data: payload,
+            url
         });
     }
 
@@ -187,32 +205,43 @@
         session.saveTimer = window.setTimeout(() => flushProgress(session), saveDelayMs);
     }
 
-    function flushProgress(session, allowAfterCleanup = false) {
+    function flushProgress(session, allowAfterCleanup = false, keepalive = false) {
         if (!session || !session.lastPosition || (session.cleaned && !allowAfterCleanup)) return;
         const position = { ...session.lastPosition };
         if (session.lastSavedPage === position.pageIndex) return;
 
         if (session.saving) {
             session.queuedPosition = position;
+            session.queuedKeepalive = session.queuedKeepalive || keepalive;
             return;
         }
 
         session.saving = true;
-        putProgress(session.itemId, position.pageIndex).then(() => {
+        putProgress(session.itemId, position.pageIndex, keepalive).then(() => {
             session.lastSavedPage = position.pageIndex;
         }).catch(() => {
             // Keep reading usable when progress persistence is temporarily unavailable.
         }).finally(() => {
             session.saving = false;
             const queued = session.queuedPosition;
+            const queuedKeepalive = session.queuedKeepalive;
             session.queuedPosition = null;
+            session.queuedKeepalive = false;
             if (queued && queued.pageIndex !== session.lastSavedPage) {
                 session.lastPosition = queued;
-                flushProgress(session, session.cleaned);
+                flushProgress(session, session.cleaned, queuedKeepalive);
             } else if (session.lastPosition?.pageIndex !== session.lastSavedPage && !session.cleaned) {
                 scheduleSave(session);
             }
         });
+    }
+
+    function flushCurrentSessionForLifecycle() {
+        if (!currentSession) return;
+        const parsed = parseCounter(currentSession.counter);
+        if (parsed) currentSession.lastPosition = parsed;
+        window.clearTimeout(currentSession.saveTimer);
+        flushProgress(currentSession, true, true);
     }
 
     async function attachProgressSession(itemId, progressPromise, token, startMode) {
@@ -232,6 +261,7 @@
             saveTimer: null,
             saving: false,
             queuedPosition: null,
+            queuedKeepalive: false,
             lastSavedPage: null,
             lastPosition: null,
             cleaned: false,
@@ -286,10 +316,9 @@
         attachProgressSession(itemId, progressPromise, token, startMode).catch(() => {});
     });
 
-    window.addEventListener('beforeunload', () => {
-        if (!currentSession) return;
-        const parsed = parseCounter(currentSession.counter);
-        if (parsed) currentSession.lastPosition = parsed;
-        flushProgress(currentSession, true);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') flushCurrentSessionForLifecycle();
     });
+    window.addEventListener('pagehide', flushCurrentSessionForLifecycle);
+    window.addEventListener('beforeunload', flushCurrentSessionForLifecycle);
 })();
