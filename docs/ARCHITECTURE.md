@@ -36,11 +36,12 @@ The Jellyfin server plugin contains these integration layers:
 - `ReaderProgressController` for authenticated per-user reading progress;
 - `ReaderPreferencesController` for authenticated global per-user reader controls;
 - `JavaScriptInjectorRegistrationService` for optional Jellyfin Web script registration;
-- `Reader/advancedBooksReader.js` for the reader UI;
+- `Reader/advancedBooksZoom.js` for shared focal-point and pan-bound geometry;
+- `Reader/advancedBooksReader.js` for the reader UI and authoritative zoom/pan state;
 - `Reader/advancedBooksProgress.js` for resume/persistence integration;
 - `Reader/advancedBooksPreferences.js` for display-preference synchronization;
 - `Reader/advancedBooksNavigator.js` for the lazy thumbnail page navigator; and
-- `Reader/advancedBooksGestures.js` for isolated paged multi-touch handling.
+- `Reader/advancedBooksGestures.js` for isolated touch/pointer input handling; and
 - `Reader/advancedBooksIntegration.js` for Jellyfin-native Book actions, browser history and host-UI icon adaptation.
 
 Only items in a Jellyfin Books library are considered by the One-Shot resolver. Normal book paths are left to Jellyfin's built-in resolver.
@@ -175,13 +176,13 @@ Selecting a thumbnail reuses the continuous page-slot model to reach a distant p
 
 ### Touch gesture bridge
 
-`advancedBooksGestures.js` owns two-finger pinch handling across paged and continuous layouts. It tracks the original pinch pair, isolates multi-touch pointer events from the base reader's one-finger tap/swipe/pan state, respects the persisted touch-gesture toggle, renders only a temporary gesture preview, then commits a normalized zoom through the live reader session.
+`advancedBooksGestures.js` owns touch/pointer gesture interpretation across paged and continuous layouts. It tracks the original pinch pair and isolates multi-touch events from one-finger navigation, but it does not own zoom state or replace Reader methods. Live pinch frames call the Core Reader's `setZoom` API with the previous midpoint as the source anchor and the current midpoint as the target. `advancedBooksZoom.js` supplies shared focal geometry and rendered paged bounds.
 
 ### Replaceable Jellyfin Web adapter
 
 Jellyfin does not currently expose a stable general-purpose server-plugin API for replacing arbitrary Web UI components. Web integration is therefore kept replaceable.
 
-For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. Localization, Core, Progress, Preferences, Navigator, Gestures and Jellyfin Integration are registered as seven independent entries; Core is required while optional bridges fail soft, and each embedded resource is validated before registration. The Integration entry receives the server-side `ReplaceNativeReader` configuration as a tiny injected bootstrap value so ordinary Jellyfin users do not need permission to read plugin configuration.
+For the Jellyfin 12 preview, `JavaScriptInjectorRegistrationService` discovers the community JavaScript Injector assembly at runtime and calls its public registration contract by reflection. Advanced Books does not reference or ship JavaScript Injector or Newtonsoft.Json assemblies. Localization, Zoom Geometry, Core, Progress, Preferences, Navigator, Gestures and Jellyfin Integration are registered as eight independent entries. Zoom Geometry and Core are required, Zoom Geometry is registered before Core, optional bridges fail soft, and every embedded resource is validated before registration. The Integration entry receives the server-side `ReplaceNativeReader` configuration as a tiny injected bootstrap value so ordinary Jellyfin users do not need permission to read plugin configuration.
 
 Full-page responses use `Cache-Control: private, no-store` and include `X-AdvancedBooks-Page-Index`; the browser includes an archive-version query key and verifies the returned index before caching the page Blob. If Jellyfin changes its item-detail route, `.mainDetailButtons` container, reader DOM or legacy `window.ApiClient`, only the Web adapter/bridges should require changes; archive and storage code remain independent.
 
