@@ -49,6 +49,7 @@
         const style = document.createElement('style');
         style.id = 'advancedBooksReaderGestureStyles';
         style.textContent = `
+.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous) img{backface-visibility:hidden}
 @media (pointer:fine){
     .advancedBooksReaderStage.ab-grab-scroll,.advancedBooksReaderPages.ab-grab-page{cursor:grab}
     .advancedBooksReaderStage.ab-grab-scroll.ab-grabbing,.advancedBooksReaderPages.ab-grab-page.ab-grabbing{cursor:grabbing}
