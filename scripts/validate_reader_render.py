@@ -2,6 +2,7 @@
 """Validate source-level Advanced Reader render invariants that prevent duplicate pages."""
 
 from pathlib import Path
+import re
 
 READER = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksReader.js")
 INTEGRATION = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksIntegration.js")
@@ -50,7 +51,6 @@ def main() -> int:
     }
     gesture_forbidden = {
         "legacy layered zoom patch": "installAnchoredZoom",
-        "applyTransform monkey patch": "reader.applyTransform =",
         "temporary pinch preview scaling": "previewRatio = this.targetZoom",
     }
     preference_forbidden = {
@@ -86,6 +86,9 @@ def main() -> int:
     for label, needle in gesture_forbidden.items():
         if needle in gestures:
             failures.append(f"forbidden gesture {label}: {needle!r}")
+
+    if re.search(r"reader\.applyTransform\s*=(?!=)", gestures):
+        failures.append("forbidden gesture applyTransform monkey patch")
 
     for label, needle in preference_forbidden.items():
         if needle in preferences:
