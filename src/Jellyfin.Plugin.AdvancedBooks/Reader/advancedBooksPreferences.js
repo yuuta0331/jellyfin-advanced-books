@@ -706,6 +706,7 @@
                 session.closeHelp?.();
             }
             menu.hidden = !next;
+            session.overlay.classList.toggle('ab-more-open', next);
             button.setAttribute('aria-expanded', String(next));
             if (next) {
                 reader?.showControls?.(false);
@@ -749,6 +750,67 @@
         session.moreButton = button;
         session.moreMenu = menu;
         syncFullscreenLabel();
+    }
+
+    function installInteractionGuard(session) {
+        const reader = session.overlay.__advancedBooksReaderSession;
+        if (!reader || typeof reader.hideControls !== 'function') return;
+
+        const originalHideControls = reader.hideControls.bind(reader);
+        const interactiveSelector = '.advancedBooksReaderChrome,.advancedBooksReaderSettingsPanel,.advancedBooksReaderHelpPanel,.advancedBooksReaderMoreMenu,.advancedBooksNavigatorPanel';
+        const panelOpen = () => session.overlay.classList.contains('ab-help-open')
+            || session.overlay.classList.contains('ab-more-open')
+            || session.overlay.classList.contains('ab-settings-open')
+            || Boolean(session.overlay.querySelector('.advancedBooksNavigatorPanel:not([hidden])'));
+        const focusedInteractive = () => document.activeElement instanceof Element
+            && Boolean(document.activeElement.closest(interactiveSelector));
+
+        session.interactionPointers = new Set();
+        session.originalHideControls = reader.hideControls;
+        reader.hideControls = () => {
+            if (session.cleaned) {
+                originalHideControls();
+                return;
+            }
+            if (session.interactionPointers.size || panelOpen() || focusedInteractive()) {
+                window.clearTimeout(reader.controlsTimer);
+                return;
+            }
+            originalHideControls();
+        };
+
+        session.onInteractionPointerDown = event => {
+            if (session.overlay.classList.contains('ab-controls-hidden')) return;
+            session.interactionPointers.add(event.pointerId);
+            window.clearTimeout(reader.controlsTimer);
+        };
+        session.onInteractionPointerEnd = event => {
+            if (!session.interactionPointers.delete(event.pointerId)) return;
+            if (session.interactionPointers.size || panelOpen() || session.cleaned) return;
+            if (!session.overlay.classList.contains('ab-controls-hidden')) reader.showControls?.();
+        };
+        session.onInteractionFocusIn = event => {
+            if (!(event.target instanceof Element) || !event.target.closest(interactiveSelector)) return;
+            reader.showControls?.(false);
+        };
+        session.onInteractionFocusOut = () => {
+            window.setTimeout(() => {
+                if (session.cleaned || panelOpen() || focusedInteractive()) return;
+                if (!session.overlay.classList.contains('ab-controls-hidden')) reader.showControls?.();
+            }, 0);
+        };
+        session.onInteractionInput = () => {
+            if (!session.overlay.classList.contains('ab-controls-hidden')) reader.showControls?.(false);
+        };
+
+        session.overlay.addEventListener('pointerdown', session.onInteractionPointerDown, true);
+        window.addEventListener('pointerup', session.onInteractionPointerEnd, true);
+        window.addEventListener('pointercancel', session.onInteractionPointerEnd, true);
+        session.overlay.addEventListener('focusin', session.onInteractionFocusIn, true);
+        session.overlay.addEventListener('focusout', session.onInteractionFocusOut, true);
+        session.overlay.addEventListener('input', session.onInteractionInput, true);
+        session.overlay.addEventListener('change', session.onInteractionInput, true);
+        session.overlay.addEventListener('wheel', session.onInteractionInput, { capture: true, passive: true });
     }
 
     function setSelect(select, value) {
