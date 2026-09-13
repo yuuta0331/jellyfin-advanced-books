@@ -20,8 +20,13 @@ REQUIRED_READER_KEYS = (
     "Reader settings",
     "More options",
     "Reader language",
+    "Page position",
+    "Resize settings panel",
     "Reading",
     "Appearance",
+    "Navigation",
+    "Zoom & pan",
+    "Reader",
     "Behavior",
     "Language",
     "Automatic (Jellyfin)",
@@ -124,6 +129,19 @@ def main() -> int:
             "Reader preferences do not apply language changes live")
     require("advancedBooksReaderSettingsSections" in preferences,
             "Reader settings are not organized into sections")
+    require("advancedBooksReaderSettingsBody" in preferences
+            and "advancedBooksReaderSheetHandle" in preferences
+            and "attachSettingsSheet" in preferences,
+            "Reader settings are not split into a fixed shell and independently scrollable body")
+    require("installInteractionGuard" in preferences
+            and "interactionPointers" in preferences,
+            "Reader chrome does not pause auto-hide during active interaction")
+    require("advancedBooksReaderHelpSections" in preferences
+            and "advancedBooksReaderHelpSectionTitle" in preferences,
+            "Reader Help is not grouped into readable sections")
+    require("showPagePosition" in preferences
+            and "ab-hide-page-position" in preferences,
+            "Reader preferences do not expose page-position visibility")
     require("document.createElement('details')" in preferences
             and "document.createElement('summary')" in preferences,
             "Reader settings sections are not collapsible")
@@ -136,6 +154,10 @@ def main() -> int:
             "Gestures still depends only on localized zoom title")
     require("installAnchoredZoom" in gestures and "normalizeAnchor" in gestures,
             "Reader zoom is not anchored to the user focal point")
+    require("clampPagedPan" in gestures and "pagedContentSize" in gestures,
+            "Paged zoom does not clamp pan to the rendered content")
+    require("livePagedPinch" in gestures,
+            "Paged pinch zoom still uses a separate preview transform that can jump on commit")
     require("doubleTapDelayMs" in gestures and "handleDoubleTap" in gestures,
             "Touch gestures do not provide double-tap zoom")
     require("touchPan" in gestures and "stage.scrollLeft" in gestures and "stage.scrollTop" in gestures,
@@ -167,8 +189,8 @@ def main() -> int:
     require("btnPlay" in integration and "btnReplay" in integration
             and "btnPlayOrResume" in integration,
             "Reader integration does not bridge legacy and modern Jellyfin detail actions")
-    require("itemAction[data-action=\"play\"]" in integration
-            and "itemAction[data-action=\"resume\"]" in integration,
+    require("[data-action=\"play\"]" in integration
+            and "[data-action=\"resume\"]" in integration,
             "Reader integration does not bridge Jellyfin card/list Play/Resume actions")
     require("actionSheetMenuItem[data-id=\"play\"]" in integration
             and "actionSheetMenuItem[data-id=\"resume\"]" in integration,
@@ -180,6 +202,8 @@ def main() -> int:
             "Core reader does not expose the direct item-opening bridge")
     require("advancedbooks:reader-opening" in (ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js").read_text(encoding="utf-8"),
             "Progress bridge is still tied only to the detail-page Advanced Reader button")
+    require("advancedbooks:reader-opening" in preferences,
+            "Preferences bridge is still tied only to the detail-page Advanced Reader button")
     require("createElementNS" in integration and "advancedBooksReaderNavButton" in integration,
             "Reader navigation still lacks stable SVG icon replacement")
 
