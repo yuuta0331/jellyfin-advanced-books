@@ -8,6 +8,14 @@
     "category": "Books",
     "versions": [
       {
+        "version": "0.17.1.0",
+        "changelog": "- Preserve the v0.16.1 compact pill and mobile More UI by fixing Preferences/Core stylesheet cascade order.\n- Route toolbar, keyboard, Ctrl+wheel, double-tap and pinch through one Reader-owned zoom state.\n- Track live two-finger midpoint movement and clamp paged zoom/drag to the rendered page or spread.\n- Fix Vertical/Webtoon Fit Screen height scaling, image-point anchoring and native pan when touch gestures are off.\n- Split reusable zoom geometry into a required runtime bridge while keeping every injected script below 96 KiB.\n- Restore the earlier Jellyfin Catalog artwork and retain v0.17 progress/native-action interoperability.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.17.1.0/AdvancedBooks_0.17.1.0.zip",
+        "checksum": "34ae18820e58c11b3ea920362337bbf0",
+        "timestamp": "2026-09-13T14:41:30Z"
+      },
+      {
         "version": "0.17.0.0",
         "changelog": "- Harden final reading-position persistence on tab/app backgrounding and page exit with authenticated keepalive progress saves.\n- Mark the newest queued reading position for keepalive delivery when an earlier progress request is still in flight.\n- Keep two-way page and played-state interoperability with Jellyfin's built-in ComicsPlayer.\n- Retain complete Advanced Reader replacement across detail, Home/Library, list, remote and context-menu actions.\n- Include the Reader UI, zoom/pinch, page-position and Catalog icon improvements from the independently reviewed v0.16.1 line.\n- Expand lifecycle, integration, release and embedded-reader regression validation.",
         "targetAbi": "12.0.0.0",
@@ -120,6 +128,6 @@
         "timestamp": "2026-09-10T16:37:25Z"
       }
     ],
-    "imageUrl": "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-plugin-icon.png"
+    "imageUrl": "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.png"
   }
 ]
