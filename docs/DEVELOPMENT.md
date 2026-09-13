@@ -262,12 +262,12 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 22. confirm Previous/Next use centered SVG chevrons rather than baseline-sensitive text glyphs, and confirm the page position is shown only in the bottom controls while the hidden top counter still updates progress;
 23. open Advanced Reader, then use browser Back / Android back gesture; confirm the reader closes and the same Jellyfin detail page remains visible. Reopen it, use the reader Close button, and confirm the synthetic reader history entry is consumed without navigating away;
 24. enable **Use Advanced Reader for Jellyfin book actions**, restart Jellyfin, and confirm the separate Advanced Reader detail button is hidden when Jellyfin's native Book actions are available. Jellyfin Resume/Play must open Advanced Reader at saved progress, while Start from beginning must open page 1. Disable the option, restart, and confirm Jellyfin's built-in reader actions work normally again;
-22. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
-23. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
-24. use a book with a deliberately long title, authors and series name. Confirm overflowing metadata automatically scrolls far enough to reveal the complete text, then disable Auto-scroll and confirm it stops. Toggle the metadata header and each Title/Authors/Series/Issue/Year field independently, reopen the reader, and verify every choice restores for the same Jellyfin user;
-25. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
-26. zoom above 100% in a paged mode, drag to pan, then close with Escape;
-27. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+25. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
+26. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
+27. use a book with a deliberately long title, authors and series name. Confirm overflowing metadata automatically scrolls far enough to reveal the complete text, then disable Auto-scroll and confirm it stops. Toggle the metadata header and each Title/Authors/Series/Issue/Year field independently, reopen the reader, and verify every choice restores for the same Jellyfin user;
+28. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
+29. zoom above 100% in a paged mode, drag to pan, then close with Escape;
+30. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
 ### Mobile pinch smoke test
 
