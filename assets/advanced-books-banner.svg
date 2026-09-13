@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
   <title id="title">Jellyfin Advanced Books</title>
   <desc id="desc">Advanced comic, manga, magazine and book reading for Jellyfin 12.</desc>
   <defs>
-    <linearGradient id="bg" x1="80" y1="48" x2="1120" y2="582" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="80" y1="48" x2="1120" y2="500" gradientUnits="userSpaceOnUse">
       <stop stop-color="#161A31"/>
       <stop offset=".52" stop-color="#26285B"/>
       <stop offset="1" stop-color="#123C66"/>
@@ -12,18 +12,16 @@
       <stop offset="1" stop-color="#3B82F6"/>
     </linearGradient>
   </defs>
-  <rect width="1200" height="630" rx="44" fill="url(#bg)"/>
-  <circle cx="1030" cy="120" r="220" fill="#4F46E5" opacity=".12"/>
-  <circle cx="1060" cy="560" r="300" fill="#0EA5E9" opacity=".1"/>
-  <rect x="72" y="88" width="350" height="350" rx="88" fill="url(#accent)"/>
-  <path d="M137 185c45-18 91-12 110 6v173c-44-27-80-31-110-19V185Z" fill="#F9FAFF"/>
-  <path d="M357 185c-45-18-91-12-110 6v173c44-27 80-31 110-19V185Z" fill="#EEF2FF"/>
-  <path d="M247 191v173" stroke="#AFC0F8" stroke-width="10" stroke-linecap="round"/>
-  <path d="M158 228h61M158 265h61M158 302h61M276 228h61M276 265h61M276 302h61" stroke="#8FA6EA" stroke-width="10" stroke-linecap="round"/>
-  <path d="M352 130l9 22 22 9-22 9-9 22-9-22-22-9 22-9 9-22Z" fill="#FFF"/>
-  <text x="485" y="245" fill="#FFFFFF" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="72" font-weight="700">Advanced Books</text>
-  <text x="488" y="315" fill="#C9D5FF" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="32" font-weight="500">Comic · Manga · Magazine · Book Reader</text>
-  <text x="488" y="380" fill="#FFFFFF" opacity=".86" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="28">for Jellyfin 12</text>
-  <rect x="488" y="430" width="488" height="64" rx="32" fill="#FFFFFF" opacity=".1"/>
-  <text x="520" y="472" fill="#E8EEFF" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24">Smart spreads · Webtoon · Resume · 6 languages</text>
+  <rect width="1200" height="520" rx="44" fill="url(#bg)"/>
+  <circle cx="1030" cy="100" r="220" fill="#4F46E5" opacity=".12"/>
+  <circle cx="1060" cy="500" r="260" fill="#0EA5E9" opacity=".1"/>
+  <rect x="72" y="85" width="350" height="350" rx="88" fill="url(#accent)"/>
+  <path d="M137 182c45-18 91-12 110 6v173c-44-27-80-31-110-19V182Z" fill="#F9FAFF"/>
+  <path d="M357 182c-45-18-91-12-110 6v173c44-27 80-31 110-19V182Z" fill="#EEF2FF"/>
+  <path d="M247 188v173" stroke="#AFC0F8" stroke-width="10" stroke-linecap="round"/>
+  <path d="M158 225h61M158 262h61M158 299h61M276 225h61M276 262h61M276 299h61" stroke="#8FA6EA" stroke-width="10" stroke-linecap="round"/>
+  <path d="M352 127l9 22 22 9-22 9-9 22-9-22-22-9 22-9 9-22Z" fill="#FFF"/>
+  <text x="485" y="220" fill="#FFFFFF" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="72" font-weight="700">Advanced Books</text>
+  <text x="488" y="290" fill="#C9D5FF" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="32" font-weight="500">Comic · Manga · Magazine · Book Reader</text>
+  <text x="488" y="355" fill="#FFFFFF" opacity=".86" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="28">for Jellyfin 12</text>
 </svg>

@@ -1,0 +1,92 @@
+name: Public Repository Prep
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "assets/**"
+      - ".github/workflows/public-repo-prep.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "assets/**"
+      - ".github/workflows/public-repo-prep.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan current tree and history for high-confidence sensitive strings
+        shell: bash
+        run: |
+          set -euo pipefail
+          pattern='-----BEGIN ([A-Z0-9 ]+ )?PRIVATE KEY-----|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|C:\\Users\\[A-Za-z0-9._-]+|/Users/[A-Za-z0-9._-]+/|miyag'
+
+          if git grep -n -I -E "$pattern" -- .; then
+            echo "::error::Potential sensitive/local-machine string found in the current tree."
+            exit 1
+          fi
+
+          if git log -p --all --no-ext-diff -- . | grep -n -E "$pattern"; then
+            echo "::error::Potential sensitive/local-machine string found in Git history."
+            exit 1
+          fi
+
+          echo "Public-repository sensitive-string audit passed."
+
+  cleanup-merged-branches:
+    if: github.event_name == 'push'
+    needs: audit
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Delete merged development branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "docs/javascript-injector-link"
+            "docs/javascript-injector-link-2"
+            "feature/cbz-page-api"
+            "feature/continuous-reader"
+            "feature/initial-plugin-foundation"
+            "feature/pinch-zoom"
+            "feature/reader-foundation"
+            "feature/reader-interaction-polish"
+            "feature/reader-performance-polish"
+            "feature/reader-preferences"
+            "feature/reader-progress"
+            "feature/reader-ux-overhaul"
+            "feature/release-packaging"
+            "feature/thumbnail-navigator"
+            "feature/v0.12-reader-metadata-progress-komga-parity"
+            "feature/v0.14-localization-catalog-distribution"
+            "fix/js-injector-registration-corruption"
+            "fix/reader-grid-and-mixed-pages"
+            "fix/reader-registration-recovery"
+            "fix/v0.13-reader-render-integrity-metadata-controls"
+            "chore/public-repo-prep"
+          )
+
+          for branch in "${branches[@]}"; do
+            endpoint="repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}"
+            if gh api "$endpoint" >/dev/null 2>&1; then
+              echo "Deleting $branch"
+              gh api --method DELETE "$endpoint"
+            else
+              echo "Already absent: $branch"
+            fi
+          done
