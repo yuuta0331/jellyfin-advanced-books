@@ -310,6 +310,11 @@
     document.addEventListener('command', event => {
         handleNativeCommand(event).catch(() => {});
     }, true);
+    document.addEventListener('contextmenu', event => {
+        if (!replaceNativeReader) return;
+        const target = event.target instanceof Element ? event.target : null;
+        if (target) rememberContextTarget(target);
+    }, true);
 
     window.addEventListener('popstate', event => {
         const overlay = document.querySelector('.advancedBooksReaderOverlay');
