@@ -78,21 +78,26 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
             : StringComparer.OrdinalIgnoreCase;
 
         var jellyfinByPath = new Dictionary<string, Book>(comparer);
+        var ambiguousJellyfinPaths = new HashSet<string>(comparer);
         foreach (var book in jellyfinBooks.OrderBy(static item => item.Id))
         {
             var path = KomgaPathMapper.NormalizeComparablePath(book.Path);
-            if (path.Length == 0)
+            if (path.Length == 0 || ambiguousJellyfinPaths.Contains(path))
             {
                 continue;
             }
 
-            if (!jellyfinByPath.TryAdd(path, book))
+            if (jellyfinByPath.ContainsKey(path))
             {
+                jellyfinByPath.Remove(path);
+                ambiguousJellyfinPaths.Add(path);
                 _logger.LogWarning(
-                    "Multiple Jellyfin Books share normalized path {Path}; Komga sync will use item {ItemId}.",
-                    path,
-                    jellyfinByPath[path].Id);
+                    "Multiple Jellyfin Books share normalized path {Path}; Komga sync will skip this ambiguous path.",
+                    path);
+                continue;
             }
+
+            jellyfinByPath.Add(path, book);
         }
 
         var komgaBooks = await _apiClient.GetBooksAsync(configuration, cancellationToken).ConfigureAwait(false);
@@ -101,6 +106,31 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
             .Where(static series => !series.Deleted && !string.IsNullOrWhiteSpace(series.Id))
             .GroupBy(static series => series.Id, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
+
+        var komgaPathCounts = new Dictionary<string, int>(comparer);
+        foreach (var komgaBook in komgaBooks)
+        {
+            if (komgaBook.Deleted
+                || string.IsNullOrWhiteSpace(komgaBook.Id)
+                || !KomgaPathMapper.TryMapBookUrl(
+                    komgaBook.Url,
+                    configuration.KomgaPathMappings,
+                    configuration.KomgaPathMatchCaseSensitive,
+                    out var mappedPath))
+            {
+                continue;
+            }
+
+            komgaPathCounts[mappedPath] = komgaPathCounts.TryGetValue(mappedPath, out var count)
+                ? count + 1
+                : 1;
+        }
+
+        var ambiguousKomgaPaths = komgaPathCounts
+            .Where(static pair => pair.Value > 1)
+            .Select(static pair => pair.Key)
+            .ToHashSet(comparer);
+
         var matched = 0;
         var updated = 0;
         var unchanged = 0;
@@ -128,6 +158,21 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
                     continue;
                 }
 
+                if (ambiguousKomgaPaths.Contains(mappedPath))
+                {
+                    skipped++;
+                    _logger.LogWarning(
+                        "Multiple active Komga Books map to {MappedPath}; synchronization skipped to avoid an ambiguous overwrite.",
+                        mappedPath);
+                    continue;
+                }
+
+                if (ambiguousJellyfinPaths.Contains(mappedPath))
+                {
+                    skipped++;
+                    continue;
+                }
+
                 if (!jellyfinByPath.TryGetValue(mappedPath, out var jellyfinBook))
                 {
                     unmatched++;
@@ -139,7 +184,16 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
                 }
 
                 matched++;
-                seriesById.TryGetValue(komgaBook.SeriesId ?? string.Empty, out var series);
+                if (string.IsNullOrWhiteSpace(komgaBook.SeriesId)
+                    || !seriesById.TryGetValue(komgaBook.SeriesId, out var series))
+                {
+                    errors++;
+                    _logger.LogError(
+                        "Matched Komga book {KomgaBookId} has no available active Series metadata; item {ItemId} was left unchanged.",
+                        komgaBook.Id,
+                        jellyfinBook.Id);
+                    continue;
+                }
 
                 var itemChanged = ApplyMetadata(jellyfinBook, komgaBook, series);
                 var peopleChanged = await UpdatePeopleIfChanged(
@@ -215,11 +269,11 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
         return result;
     }
 
-    private bool ApplyMetadata(Book target, KomgaBookDto source, KomgaSeriesDto? series)
+    private bool ApplyMetadata(Book target, KomgaBookDto source, KomgaSeriesDto series)
     {
         var changed = false;
         var bookMetadata = source.Metadata ?? new KomgaBookMetadataDto();
-        var seriesMetadata = series?.Metadata;
+        var seriesMetadata = series.Metadata ?? new KomgaSeriesMetadataDto();
 
         var title = Clean(bookMetadata.Title);
         if (title.Length > 0)
@@ -230,7 +284,7 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
         var overview = Clean(bookMetadata.Summary);
         changed |= AssignString(target.Overview, overview, value => target.Overview = value);
 
-        var seriesTitle = Clean(seriesMetadata?.Title);
+        var seriesTitle = Clean(seriesMetadata.Title);
         if (seriesTitle.Length == 0)
         {
             seriesTitle = Clean(source.SeriesTitle);
@@ -279,23 +333,17 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
             changed = true;
         }
 
-        var genres = CleanDistinct(seriesMetadata?.Genres);
+        var genres = CleanDistinct(seriesMetadata.Genres);
         changed |= AssignArray(target.Genres, genres, value => target.Genres = value);
 
-        var publisher = Clean(seriesMetadata?.Publisher);
+        var publisher = Clean(seriesMetadata.Publisher);
         var studios = publisher.Length == 0 ? Array.Empty<string>() : [publisher];
         changed |= AssignArray(target.Studios, studios, value => target.Studios = value);
 
         var tags = CleanDistinct(
-            (seriesMetadata?.Tags ?? [])
+            (seriesMetadata.Tags ?? [])
             .Concat(bookMetadata.Tags ?? []));
         changed |= AssignArray(target.Tags, tags, value => target.Tags = value);
-
-        var language = Clean(seriesMetadata?.Language);
-        changed |= AssignString(
-            target.PreferredMetadataLanguage,
-            language,
-            value => target.PreferredMetadataLanguage = value);
 
         changed |= SetProviderId(target, KomgaBookProviderId, source.Id);
         changed |= SetProviderId(target, KomgaSeriesProviderId, source.SeriesId);
@@ -440,6 +488,8 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
             .Select(Clean)
             .Where(static value => value.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static value => value, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(static value => value, StringComparer.Ordinal)
             .ToArray();
     }
 
