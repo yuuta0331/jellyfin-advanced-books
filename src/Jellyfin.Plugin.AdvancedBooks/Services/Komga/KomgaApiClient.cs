@@ -13,9 +13,8 @@ internal interface IKomgaApiClient
         PluginConfiguration configuration,
         CancellationToken cancellationToken);
 
-    Task<KomgaSeriesDto?> GetSeriesAsync(
+    Task<IReadOnlyList<KomgaSeriesDto>> GetSeriesAsync(
         PluginConfiguration configuration,
-        string seriesId,
         CancellationToken cancellationToken);
 }
 
@@ -94,32 +93,49 @@ internal sealed class KomgaApiClient : IKomgaApiClient
         return result;
     }
 
-    public async Task<KomgaSeriesDto?> GetSeriesAsync(
+    public async Task<IReadOnlyList<KomgaSeriesDto>> GetSeriesAsync(
         PluginConfiguration configuration,
-        string seriesId,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(seriesId))
+        var result = new List<KomgaSeriesDto>();
+        for (var page = 0; page < MaximumPages; page++)
         {
-            return null;
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using var request = CreateRequest(
+                configuration,
+                HttpMethod.Post,
+                $"api/v1/series/list?page={page}&size={PageSize}");
+            request.Content = JsonContent();
+
+            using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            var payload = await JsonSerializer.DeserializeAsync<KomgaPage<KomgaSeriesDto>>(
+                stream,
+                JsonOptions,
+                cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidDataException("Komga returned an empty series response.");
+
+            if (payload.Content.Count == 0)
+            {
+                break;
+            }
+
+            result.AddRange(payload.Content);
+            if (payload.Last || payload.Content.Count < PageSize)
+            {
+                break;
+            }
+
+            if (page == MaximumPages - 1)
+            {
+                throw new InvalidDataException("Komga series pagination exceeded the safety limit.");
+            }
         }
 
-        using var request = CreateRequest(
-            configuration,
-            HttpMethod.Get,
-            $"api/v1/series/{Uri.EscapeDataString(seriesId)}");
-        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return null;
-        }
-
-        response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        return await JsonSerializer.DeserializeAsync<KomgaSeriesDto>(
-            stream,
-            JsonOptions,
-            cancellationToken).ConfigureAwait(false);
+        return result;
     }
 
     private async Task<HttpResponseMessage> SendAsync(
