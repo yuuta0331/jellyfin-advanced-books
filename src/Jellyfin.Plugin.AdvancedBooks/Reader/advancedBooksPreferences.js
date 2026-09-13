@@ -169,7 +169,14 @@
     }
 
     function ensureHelpStyles() {
-        if (document.getElementById('advancedBooksReaderHelpStyles')) return;
+        const existing = document.getElementById('advancedBooksReaderHelpStyles');
+        if (existing) {
+            // Core creates its stylesheet when the Reader session opens. Moving the
+            // v0.16.1 presentation sheet to the end keeps the intended compact chrome
+            // authoritative without changing any of its visual values.
+            document.head.appendChild(existing);
+            return;
+        }
         const style = document.createElement('style');
         style.id = 'advancedBooksReaderHelpStyles';
         style.textContent = `
@@ -1044,6 +1051,11 @@
     async function attachPreferenceSession(preferencesPromise, token) {
         const overlay = await waitFor('.advancedBooksReaderOverlay', document, 4000);
         if (!overlay || token !== sessionToken) return;
+
+        // reader-opening fires before Core calls ensureStyles(). Re-append the
+        // v0.16.1 presentation sheet now that the overlay exists so Core's base
+        // stylesheet cannot partially override the compact pill/mobile chrome.
+        ensureHelpStyles();
 
         cleanupSession(currentSession, true);
         await waitForProgressReady(overlay);
