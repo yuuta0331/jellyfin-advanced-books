@@ -88,24 +88,20 @@
         }
     }
 
-    async function openReaderItem(itemId, startMode = 'resume') {
+    window.AdvancedBooksReader = { openItem: async (itemId, startMode = 'resume') => {
         const metadata = await getMetadata(itemId);
         if (!metadata?.pages?.length) return false;
         activeReader?.close();
-        document.dispatchEvent(new CustomEvent('advancedbooks:reader-opening', {
-            detail: { itemId, startMode }
-        }));
+        document.dispatchEvent(new CustomEvent('advancedbooks:reader-opening', { detail: { itemId, startMode } }));
         await (activeReader = new AdvancedBooksReaderSession(getApiClient(), itemId, metadata)).open();
         return true;
-    }
-
-    window.AdvancedBooksReader = { openItem: openReaderItem };
+    } };
 
     function removeReaderButtons() {
         document.querySelectorAll('.advancedBooksReaderButton').forEach(button => button.remove());
     }
 
-    function createReaderButton(itemId, metadata) {
+    function createReaderButton(itemId) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'button-flat detailButton emby-button advancedBooksReaderButton';
@@ -161,7 +157,7 @@
                 ?? document.querySelector('.mainDetailButtons');
             if (!currentHost) return;
             currentHost.querySelector('.advancedBooksReaderButton')?.remove();
-            currentHost.appendChild(createReaderButton(itemId, metadata));
+            currentHost.appendChild(createReaderButton(itemId));
         } catch {
             // Unsupported, inaccessible and safety-rejected items intentionally get no button.
         }
@@ -372,7 +368,6 @@
 .advancedBooksReaderZoomRow button{min-width:2.7rem;min-height:2.7rem;border:1px solid rgba(255,255,255,.2);border-radius:.45rem;background:#252525;color:#fff;padding:.35rem .6rem;font:inherit}
 .advancedBooksReaderZoomRow button[title="Reset zoom"]{min-width:4.5rem;font-variant-numeric:tabular-nums}
 .advancedBooksReaderSettingsHint{margin:0;font-size:.85rem;line-height:1.35;opacity:.62}
-.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous) img{backface-visibility:hidden}
 @media(max-width:700px){
     .advancedBooksReaderChromeTop{min-height:3.25rem;padding-inline:.45rem;gap:.35rem}
     .advancedBooksReaderMetadata{max-width:28vw}
@@ -383,7 +378,6 @@
     .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.75rem;block-size:2.75rem;min-width:2.75rem;min-height:2.75rem;max-width:2.75rem;max-height:2.75rem;padding:0;flex:0 0 2.75rem}
     .advancedBooksReaderPageSliderValue{min-width:4.4rem;font-size:.88rem}
     .advancedBooksReaderSliderPreview{width:min(7.5rem,34vw)}
-    .advancedBooksReaderSettingsPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(72dvh,38rem);border-radius:1rem 1rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
     .advancedBooksReaderSettingRow{grid-template-columns:1fr;gap:.35rem}
     .advancedBooksReaderPageSlot{min-height:45vh}
 }
