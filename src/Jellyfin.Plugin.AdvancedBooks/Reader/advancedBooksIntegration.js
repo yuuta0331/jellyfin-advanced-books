@@ -66,12 +66,11 @@
 
     function startModeForAction(element, action) {
         if (element?.classList?.contains('btnReplay')) return 'start';
-        if (action === 'resume') return 'resume';
-        if (detailAction(element)) return 'start';
+        if (action === 'start' || action === 'restart' || action === 'replay') return 'start';
 
-        // Generic card/list/remote Play can outlive a UserData update in the DOM.
-        // Resume from Jellyfin's authoritative shared UserItemData instead; when no
-        // position is stored the progress bridge naturally opens page 1.
+        // Jellyfin's ComicsPlayer and Advanced Reader share UserItemData.PlaybackPositionTicks.
+        // Ordinary Play/Resume therefore asks the progress bridge for the current server-side
+        // position instead of trusting host DOM state that may be stale after another client.
         return 'resume';
     }
 
@@ -148,7 +147,7 @@
             const command = actionSheetItem.getAttribute('data-id') === 'resume' ? 'resume' : 'play';
             const opened = await openAdvancedItem(
                 state.itemId,
-                command === 'resume' ? 'resume' : 'start'
+                startModeForAction(actionSheetItem, command)
             );
             if (!opened) {
                 replayClick(actionSheetItem);
