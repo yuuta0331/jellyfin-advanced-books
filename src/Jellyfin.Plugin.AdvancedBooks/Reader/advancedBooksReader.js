@@ -349,12 +349,12 @@
 .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{display:inline-flex;align-items:center;justify-content:center;min-width:2.75rem;min-height:2.75rem;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(28,28,28,.88);color:#fff;padding:.45rem .7rem;font:inherit;cursor:pointer;backdrop-filter:blur(8px)}
 .advancedBooksReaderIconButton:hover,.advancedBooksReaderNavButton:hover,.advancedBooksReaderIconButton:focus-visible,.advancedBooksReaderNavButton:focus-visible{background:rgba(62,62,62,.95);outline:2px solid var(--ab-accent);outline-offset:2px}
 .advancedBooksReaderIconButton:disabled,.advancedBooksReaderNavButton:disabled{opacity:.35;cursor:default}
-.advancedBooksReaderMetadata{display:flex;flex-direction:column;min-width:0;max-width:min(42vw,32rem);line-height:1.18}
+.advancedBooksReaderMetadata{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;max-width:none;line-height:1.18}
 .advancedBooksReaderTitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .advancedBooksReaderSubtitle{font-size:.82rem;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .advancedBooksReaderCounter{font-variant-numeric:tabular-nums;white-space:nowrap;padding:.3rem .55rem;border-radius:999px;background:rgba(0,0,0,.35)}
-.advancedBooksReaderTopSpacer{flex:1 1 auto}
-.advancedBooksReaderPagesHost{display:flex;align-items:center;gap:.4rem}
+.advancedBooksReaderTopSpacer{display:none}
+.advancedBooksReaderPagesHost{display:flex;align-items:center;gap:.4rem}.advancedBooksReaderPagesHost:empty{display:none}
 .advancedBooksReaderPageSlider{flex:1 1 auto;min-width:5rem;height:2.75rem;margin:0;cursor:pointer;accent-color:var(--ab-accent);touch-action:none}
 .advancedBooksReaderPageSliderValue{min-width:5.2rem;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
 .advancedBooksReaderSliderPreview{position:absolute;z-index:10;bottom:calc(100% - .1rem);left:50%;transform:translate(-50%,-.35rem);width:min(8.5rem,28vw);padding:.35rem;border:1px solid rgba(255,255,255,.18);border-radius:.6rem;background:rgba(15,15,15,.96);box-shadow:0 10px 32px rgba(0,0,0,.55);pointer-events:none;box-sizing:border-box;backdrop-filter:blur(12px)}
@@ -648,6 +648,7 @@
             const finishSliderInteraction = () => {
                 this.sliderScrubbing = false;
                 this.sliderPointerX = null;
+                this.pageSlider.blur();
                 this.showControls();
                 this.scheduleSliderPreviewHide();
             };
@@ -655,6 +656,7 @@
             this.pageSlider.addEventListener('pointercancel', () => {
                 this.sliderScrubbing = false;
                 this.sliderPointerX = null;
+                this.pageSlider.blur();
                 this.showControls();
                 this.hideSliderPreview(true);
             });

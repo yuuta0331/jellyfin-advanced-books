@@ -238,7 +238,7 @@ dotnet run \
   --no-build \
   -- \
   src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll \
-  0.17.1.0
+  0.17.2.0
 ```
 
 A source file passing `node --check` is not sufficient evidence if the bytes embedded into the final DLL differ.
@@ -249,12 +249,12 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 
 1. confirm the Jellyfin log reports that both **Zoom Geometry** and **Reader Core** are registered. Do not infer browser execution order from the registration log: JavaScript Injector preserves existing entry positions during plugin upgrades;
 2. open a supported CBZ Book detail page and confirm **Advanced Reader** appears once in the main detail actions;
-3. compare the chrome against **v0.16.1.0**: desktop must use the centered compact bottom pill; narrow/mobile must use the floating rounded top/bottom chrome; mobile must expose the **…** More menu for Fullscreen/Help; inactivity must collapse the bottom controls to the page/range pill plus the thin progress rail;
+3. compare the chrome against **v0.16.1.0**: desktop must use the centered compact bottom pill; narrow/mobile must use the floating rounded top/bottom chrome; mobile must expose the **…** More menu for Fullscreen/Help; inactivity must collapse the bottom controls to the page/range pill plus the thin progress rail. On desktop, long title/series metadata must consume the available space up to the right-side controls rather than truncating at an arbitrary fixed width;
 4. on the first Reader open after a full browser refresh, repeat the previous UI check. The result must already match v0.16.1.0—there must be no first-open mixture of Core full-width styles and Preferences pill styles. Inspect the document styles if needed and confirm `advancedBooksReaderHelpStyles` is ordered after `advancedBooksReaderStyles`;
 5. verify only the current/nearby page endpoints are requested rather than a full-book download;
 6. verify a new/default user opens with Fit Screen; explicitly test Fit Screen, Fit Width, Fit Height, and Original Size in portrait/landscape and after resizing;
 7. verify Vertical Continuous and Webtoon can be scrolled rapidly through mixed portrait, landscape, short, and tall pages while observer loading and prefetch overlap; every `.advancedBooksReaderPageSlot` must contain at most one image and the cache must stay bounded;
-8. open **Pages**, scroll quickly to an unseen range, and keep the panel open; visible cards must resolve to a thumbnail or contained failure state and stale work must be abortable;
+8. confirm the **Pages** grid button is present on both desktop and mobile after every Reader launch path: dedicated Advanced Reader button, native/detail Play or Resume replacement, Home/Library card, list/context-menu and direct `AdvancedBooksReader.openItem()`. Open **Pages**, scroll quickly to an unseen range, and keep the panel open; visible cards must resolve to a thumbnail or contained failure state and stale work must be abortable;
 9. jump to a distant thumbnail and confirm the live Reader reaches it without temporarily changing layout; close Pages during loading and confirm outstanding requests are aborted;
 10. select Double Page and move through portrait, landscape, and final pages. Orientation must be resolved before the spread is committed. Save LTR, Fit Width, and a non-100% zoom, close, and verify they restore;
 11. change preferences and immediately close while a preference PUT is in flight; reopen and confirm the newest queued state wins;
@@ -263,7 +263,7 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 14. navigate to a different page and immediately background/close the tab before the normal progress debounce completes; reopen and confirm the newest page was persisted. Repeat while an earlier progress PUT is already in flight;
 15. navigate to the final page and confirm the Book becomes played; reopen and verify rereading earlier pages does not clear the played state;
 16. verify arrow keys, Page Up/Down, Space, Home/End, swipe, wheel navigation, direction-aware side tap zones in Single/Double, and top/bottom tap navigation in Vertical/Webtoon. Repeat with reduced motion;
-17. drag the bottom page scrubber across a distant range in every layout; the preview must stay above the active pointer/finger, stale thumbnail requests must be aborted, and the intended page must be reached;
+17. drag the bottom page scrubber across a distant range in every layout; the preview must stay above the active pointer/finger, stale thumbnail requests must be aborted, and the intended page must be reached. After releasing a mouse/touch pointer, wait for the normal auto-hide delay and confirm the chrome can hide again; a center click/tap must also be able to hide it. Keyboard focus reached by Tab must still remain usable for arrow-key range changes;
 18. hold the scrubber or another Reader control longer than the auto-hide timeout. Active interaction and open Settings/Help/More/Pages must keep chrome visible;
 19. open Reader Settings on desktop and mobile. Desktop must use the compact floating panel; mobile must use the resizable bottom sheet. The handle/header stay fixed while the body scrolls, downward drag can close, and keyboard resize/Escape work;
 20. toggle **Page position** to Hide. The numeric position and idle page pill disappear, while the thin progress rail and internal progress/resume continue; restore it and confirm persistence;

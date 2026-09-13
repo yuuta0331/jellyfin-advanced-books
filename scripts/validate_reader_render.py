@@ -8,6 +8,7 @@ READER = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksReader.js")
 ZOOM = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksZoom.js")
 GESTURES = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksGestures.js")
 PREFERENCES = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksPreferences.js")
+NAVIGATOR = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksNavigator.js")
 INTEGRATION = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksIntegration.js")
 REGISTRATION = Path("src/Jellyfin.Plugin.AdvancedBooks/Services/JavaScriptInjectorRegistrationService.cs")
 
@@ -17,6 +18,7 @@ def main() -> int:
     zoom = ZOOM.read_text(encoding="utf-8")
     gestures = GESTURES.read_text(encoding="utf-8")
     preferences = PREFERENCES.read_text(encoding="utf-8")
+    navigator = NAVIGATOR.read_text(encoding="utf-8")
     integration = INTEGRATION.read_text(encoding="utf-8")
     registration = REGISTRATION.read_text(encoding="utf-8")
 
@@ -34,6 +36,10 @@ def main() -> int:
         "direct reader launch implementation": "async function openReaderItem(itemId, startMode = 'resume')",
         "public direct reader API": "openItem: openReaderItem",
         "public support probe API": "supportsItem: supportsReaderItem",
+        "desktop metadata uses remaining chrome width": ".advancedBooksReaderMetadata{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;max-width:none",
+        "desktop top spacer removed": ".advancedBooksReaderTopSpacer{display:none}",
+        "pointer scrub releases range focus": "this.pageSlider.blur();",
+        "empty Pages host collapses": ".advancedBooksReaderPagesHost:empty{display:none}",
     }
     forbidden = {
         "append-based continuous page insertion": "slot.appendChild(image)",
@@ -64,6 +70,14 @@ def main() -> int:
         "legacy zoom monkey patch": "installAnchoredZoom",
         "temporary pinch preview transform": "previewRatio = this.targetZoom",
         "split live-paged pinch path": "livePagedPinch",
+    }
+    navigator_required = {
+        "all-path Reader opening trigger": "document.addEventListener('advancedbooks:reader-opening'",
+        "opening event item id": "const itemId = event.detail?.itemId;",
+        "navigator host button": "advancedBooksNavigatorButton advancedBooksReaderIconButton",
+    }
+    navigator_forbidden = {
+        "dedicated-button-only navigator trigger": "event.target?.closest?.('.advancedBooksReaderButton')",
     }
     preference_required = {
         "v0.16.1 desktop bottom pill": ".advancedBooksReaderChromeBottom{left:50%;right:auto;width:min(58rem,calc(100vw - 1.5rem))",
@@ -108,6 +122,14 @@ def main() -> int:
     if re.search(r"reader\.applyTransform\s*=(?!=)", gestures):
         failures.append("forbidden gesture applyTransform replacement")
 
+    for label, needle in navigator_required.items():
+        if needle not in navigator:
+            failures.append(f"missing navigator {label}: {needle!r}")
+
+    for label, needle in navigator_forbidden.items():
+        if needle in navigator:
+            failures.append(f"forbidden navigator {label}: {needle!r}")
+
     for label, needle in preference_required.items():
         if needle not in preferences:
             failures.append(f"missing v0.16.1 UI {label}: {needle!r}")
@@ -124,6 +146,15 @@ def main() -> int:
         failures.append("live continuous pinch rewrites unloaded placeholders instead of deferring them to commit")
     if "this.clampPagedPan();" not in text:
         failures.append("paged drag/zoom does not use the Core-owned pan clamp")
+
+    slider_start = text.find("const finishSliderInteraction = () =>")
+    slider_pointerup = text.find("this.pageSlider.addEventListener('pointerup'", slider_start)
+    slider_change = text.find("this.pageSlider.addEventListener('change'", slider_pointerup)
+    slider_value = text.find("this.pageSliderValue = document.createElement('div')", slider_change)
+    if not (slider_start >= 0 and slider_pointerup > slider_start and "this.pageSlider.blur();" in text[slider_start:slider_pointerup]):
+        failures.append("pointer scrub completion does not release range focus")
+    if not (slider_change >= 0 and slider_value > slider_change and "this.pageSlider.blur();" not in text[slider_change:slider_value]):
+        failures.append("keyboard/change scrub path unexpectedly blurs the page slider")
     if "this.syncTouchAction();" not in text or "pan-x pan-y" not in text:
         failures.append("Reader does not resync touch-action for touch-gesture changes")
 
