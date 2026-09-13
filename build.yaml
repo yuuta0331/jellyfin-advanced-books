@@ -1,7 +1,7 @@
 ---
 name: "Advanced Books"
 guid: "843f3c69-88ee-4e82-84f3-330b84d64d88"
-version: "0.17.0.0"
+version: "0.17.1.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 imageUrl: "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.png"
@@ -17,9 +17,9 @@ artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: |
-  - Harden final reading-position persistence on tab/app backgrounding and page exit with authenticated keepalive progress saves.
-  - Mark the newest queued reading position for keepalive delivery when an earlier progress request is still in flight.
-  - Keep two-way page and played-state interoperability with Jellyfin's built-in ComicsPlayer.
-  - Retain complete Advanced Reader replacement across detail, Home/Library, list, remote and context-menu actions.
-  - Include the Reader UI, zoom/pinch, page-position and Catalog icon improvements from the independently reviewed v0.16.1 line.
-  - Expand lifecycle, integration, release and embedded-reader regression validation.
+  - Restore the original full-width desktop/mobile Reader chrome and remove the floating pill/More-menu replacement.
+  - Rebuild buttons, Ctrl+wheel, double-tap and pinch around one Reader-owned focal zoom state.
+  - Track two-finger midpoint movement live and clamp paged drag pan to the rendered page/spread bounds.
+  - Fix Vertical/Webtoon Fit Screen scaling, image-point anchoring and native scrolling when touch gestures are disabled.
+  - Restore the original Jellyfin Catalog artwork while preserving v0.17 progress and native-action interoperability.
+  - Add regression guards that prevent Preferences from restyling the Reader shell or reviving layered zoom transforms.
