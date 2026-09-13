@@ -100,6 +100,12 @@ dotnet test jellyfin-advanced-books.slnx -c Release
 
 See [Development Guide](docs/DEVELOPMENT.md) for release and integration-test details.
 
+## AI-assisted development
+
+AI-assisted development tools have been used in this project for tasks including design exploration, implementation, review, documentation and test support. AI-generated or AI-assisted changes are reviewed and validated before they are accepted; project maintainers remain responsible for the code and releases.
+
+See [AI Usage](AI_USAGE.md) for details.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
