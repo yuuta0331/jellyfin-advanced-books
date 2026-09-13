@@ -29,6 +29,39 @@ class ReleasePackagingTests(unittest.TestCase):
         self.assertTrue(metadata["image_url"].startswith("https://"))
         self.assertTrue(metadata["image_url"].endswith(".png"))
         self.assertTrue(metadata["changelog"])
+        changelog_lines = [line for line in metadata["changelog"].splitlines() if line.strip()]
+        self.assertGreaterEqual(len(changelog_lines), 1)
+        self.assertLessEqual(len(changelog_lines), 8)
+        self.assertTrue(all(line.startswith("- ") for line in changelog_lines))
+
+    def test_repository_manifest_changelogs_are_compact_markdown_lists(self) -> None:
+        data = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
+        self.assertTrue(data)
+        versions = data[0]["versions"]
+        self.assertTrue(versions)
+        for entry in versions:
+            with self.subTest(version=entry["version"]):
+                lines = [line for line in entry["changelog"].splitlines() if line.strip()]
+                self.assertGreaterEqual(len(lines), 1)
+                self.assertLessEqual(len(lines), 8)
+                self.assertTrue(all(line.startswith("- ") for line in lines))
+                self.assertTrue(all(len(line) <= 180 for line in lines))
+
+    def test_manifest_rejects_paragraph_catalog_changelog(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "AdvancedBooks_1.0.0.0.zip"
+            package.write_bytes(b"release-package")
+            with self.assertRaisesRegex(ValueError, "Markdown bullet list"):
+                update_manifest.update_manifest(
+                    manifest_path=root / "manifest.json",
+                    package_path=package,
+                    version="1.0.0.0",
+                    target_abi="12.0.0.0",
+                    source_url="https://example.invalid/AdvancedBooks_1.0.0.0.zip",
+                    timestamp="2026-09-13T00:00:00Z",
+                    changelog="A long paragraph must not be accepted.",
+                )
 
     def test_package_is_reproducible_and_flat(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -95,7 +128,7 @@ class ReleasePackagingTests(unittest.TestCase):
                     "download/v0.8.0.0/AdvancedBooks_0.8.0.0.zip"
                 ),
                 timestamp="2026-09-11T00:00:00Z",
-                changelog="Pinch zoom",
+                changelog="- Pinch zoom",
             )
             expected_md5 = hashlib.md5(package.read_bytes(), usedforsecurity=False).hexdigest()
             self.assertEqual(expected_md5, release["checksum"])
@@ -113,12 +146,12 @@ class ReleasePackagingTests(unittest.TestCase):
                 target_abi="12.0.0.0",
                 source_url="https://example.invalid/replaced.zip",
                 timestamp="2026-09-11T01:00:00Z",
-                changelog="Replacement",
+                changelog="- Replacement",
             )
             data = json.loads(manifest.read_text(encoding="utf-8"))
             versions = data[0]["versions"]
             self.assertEqual(2, len(versions))
-            self.assertEqual("Replacement", versions[0]["changelog"])
+            self.assertEqual("- Replacement", versions[0]["changelog"])
 
 
 if __name__ == "__main__":
