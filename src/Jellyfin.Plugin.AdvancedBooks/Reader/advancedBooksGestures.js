@@ -53,10 +53,10 @@
     .advancedBooksReaderStage.ab-grab-scroll,.advancedBooksReaderPages.ab-grab-page{cursor:grab}
     .advancedBooksReaderStage.ab-grab-scroll.ab-grabbing,.advancedBooksReaderPages.ab-grab-page.ab-grabbing{cursor:grabbing}
 }
-.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous)[data-ab-page-motion="left"] img{animation:advancedBooksPageFromLeft .2s cubic-bezier(.2,.75,.25,1)}
-.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous)[data-ab-page-motion="right"] img{animation:advancedBooksPageFromRight .2s cubic-bezier(.2,.75,.25,1)}
-@keyframes advancedBooksPageFromLeft{from{opacity:.35;transform:translateX(-18px) scale(.995)}to{opacity:1;transform:translateX(0) scale(1)}}
-@keyframes advancedBooksPageFromRight{from{opacity:.35;transform:translateX(18px) scale(.995)}to{opacity:1;transform:translateX(0) scale(1)}}
+.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous)[data-ab-page-motion="left"] img{animation:advancedBooksPageFromLeft .16s cubic-bezier(.2,.75,.25,1) both}
+.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous)[data-ab-page-motion="right"] img{animation:advancedBooksPageFromRight .16s cubic-bezier(.2,.75,.25,1) both}
+@keyframes advancedBooksPageFromLeft{from{transform:translate3d(-10px,0,0)}to{transform:translate3d(0,0,0)}}
+@keyframes advancedBooksPageFromRight{from{transform:translate3d(10px,0,0)}to{transform:translate3d(0,0,0)}}
 @media(prefers-reduced-motion:reduce){
     .advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous)[data-ab-page-motion] img{animation:none!important}
 }
@@ -277,10 +277,11 @@
 
         markPageMotion(side) {
             this.pendingPageMotion = side;
+            this.pages.dataset.abPageMotion = side;
             window.clearTimeout(this.pageMotionTimer);
             this.pageMotionTimer = window.setTimeout(() => {
                 this.pendingPageMotion = null;
-                delete this.pages.dataset.abPageMotion;
+                if (this.pages.dataset.abPageMotion === side) delete this.pages.dataset.abPageMotion;
             }, 1500);
         }
 

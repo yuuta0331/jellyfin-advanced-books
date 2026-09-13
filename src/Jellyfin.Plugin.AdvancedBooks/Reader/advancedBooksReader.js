@@ -360,8 +360,7 @@
 .advancedBooksReaderZoomRow button{min-width:2.7rem;min-height:2.7rem;border:1px solid rgba(255,255,255,.2);border-radius:.45rem;background:#252525;color:#fff;padding:.35rem .6rem;font:inherit}
 .advancedBooksReaderZoomRow button[title="Reset zoom"]{min-width:4.5rem;font-variant-numeric:tabular-nums}
 .advancedBooksReaderSettingsHint{margin:0;font-size:.85rem;line-height:1.35;opacity:.62}
-.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous) img{animation:advancedBooksReaderPageIn .16s ease-out}
-@keyframes advancedBooksReaderPageIn{from{opacity:.35;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+.advancedBooksReaderOverlay.ab-animate-transitions .advancedBooksReaderPages:not(.ab-continuous) img{backface-visibility:hidden}
 @media(max-width:700px){
     .advancedBooksReaderChromeTop{min-height:3.25rem;padding-inline:.45rem;gap:.35rem}
     .advancedBooksReaderMetadata{max-width:28vw}

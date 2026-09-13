@@ -149,6 +149,11 @@ def main() -> int:
             "Vertical/Webtoon tap navigation is not connected to smooth reader movement")
     require("advancedBooksPageFromLeft" in gestures and "advancedBooksPageFromRight" in gestures,
             "Paged tap navigation has no directional transition animation")
+    require("advancedBooksReaderPageIn" not in reader,
+            "Legacy paged fade animation can expose the reader background during page changes")
+    require("@keyframes advancedBooksPageFromLeft{from{transform:" in gestures
+            and "@keyframes advancedBooksPageFromRight{from{transform:" in gestures,
+            "Paged transitions must use opaque transform-only motion")
     require("handleMousePointerDown" in gestures and "scrollPan" in gestures,
             "Desktop grab-to-pan handling is missing")
     require("advancedBooksReaderTitle" in reader and "return;" in reader,
