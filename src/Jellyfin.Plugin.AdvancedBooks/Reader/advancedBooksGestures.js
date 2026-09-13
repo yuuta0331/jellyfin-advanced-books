@@ -324,6 +324,7 @@
             const tapStart = this.tapStarts.get(event.pointerId);
             if (tapStart && Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) > tapMovementTolerance) {
                 tapStart.moved = true;
+                this.cancelPendingTap(true);
             }
 
             if (!this.pinching && this.suppressUntilRelease && this.pointers.size >= 2) {
@@ -412,6 +413,11 @@
                 }
                 event.preventDefault();
                 event.stopImmediatePropagation();
+                return;
+            }
+
+            if (event.type === 'pointercancel') {
+                this.cancelPendingTap(true);
                 return;
             }
 
