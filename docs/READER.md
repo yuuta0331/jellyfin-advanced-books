@@ -130,7 +130,13 @@ This keeps a large magazine or manga volume from turning into a full-archive bro
 
 ## Jellyfin Web integration
 
-For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers Localization, Core, Progress, Preferences, Navigator and Gestures as six independent validated entries through that plugin's public `PluginInterface.RegisterScript` contract.
+For Jellyfin 12, Advanced Books can integrate with the community JavaScript Injector plugin. At server startup, Advanced Books discovers `Jellyfin.Plugin.JavaScriptInjector` by reflection and registers Localization, Core, Progress, Preferences, Navigator, Gestures and Jellyfin Integration as seven independent validated entries through that plugin's public `PluginInterface.RegisterScript` contract.
+
+The Jellyfin Integration bridge keeps route/history and host-UI behavior outside the size-constrained Core reader. Opening Advanced Reader pushes a same-page history entry, so browser Back and Android/browser back gestures close the overlay and reveal the exact Jellyfin screen underneath. Closing the reader normally consumes that synthetic history entry instead of navigating away from the detail page.
+
+When **Use Advanced Reader for Jellyfin book actions** is enabled, supported CBZ/ZIP detail pages reuse Jellyfin's own Book actions. Jellyfin 12 exposes Resume/Play through `.btnPlay[data-action="resume"]` and Start from beginning through `.btnReplay[data-action="play"]`; Advanced Books intercepts only those actions when its supported-item button is already available. Resume restores saved Advanced Books progress, while Start from beginning deliberately skips restore and opens page 1. Unsupported items continue to use Jellyfin's built-in player.
+
+The same bridge replaces the previous/next text glyphs with centered inline SVG chevrons and hides the duplicate visual top page counter while retaining that counter in the DOM for progress synchronization.
 
 This is an optional runtime integration. Advanced Books does not reference or ship JavaScript Injector assemblies, and the server-side One-Shot/page/progress/preferences/thumbnail APIs continue to work without it.
 
@@ -171,7 +177,7 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 
 The injected UI is intended for Jellyfin Web and clients that wrap Jellyfin Web. Native clients with their own UI, such as Android TV clients, do not receive the injected reader.
 
-The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`, progress persistence is isolated in `Reader/advancedBooksProgress.js`, preference persistence is isolated in `Reader/advancedBooksPreferences.js`, page navigation is isolated in `Reader/advancedBooksNavigator.js`, and multi-touch handling is isolated in `Reader/advancedBooksGestures.js`. If Jellyfin changes the item-details or reader DOM, the integration layer can be replaced without changing archive or storage APIs.
+The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`, progress persistence is isolated in `Reader/advancedBooksProgress.js`, preference persistence is isolated in `Reader/advancedBooksPreferences.js`, page navigation is isolated in `Reader/advancedBooksNavigator.js`, multi-touch handling is isolated in `Reader/advancedBooksGestures.js`, and Jellyfin host/history integration is isolated in `Reader/advancedBooksIntegration.js`. If Jellyfin changes the item-details or reader DOM, the integration layer can be replaced without changing archive or storage APIs.
 
 ## Not implemented yet
 
