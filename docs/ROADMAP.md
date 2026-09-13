@@ -80,6 +80,12 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Layout-aware left/right and top/bottom click/tap navigation
 - [x] Directional paged transitions and smooth Vertical/Webtoon tap scrolling
 - [x] Desktop grab-to-pan/scroll interaction
+- [x] Auto-hide suspension during active reader/UI interaction
+- [x] Fixed-shell Reader Settings with independently scrollable content and functional mobile resize/close handle
+- [x] Grouped fixed-header Reader Help
+- [x] Per-user bottom page-position visibility
+- [x] Stable Fit Screen focal zoom with paged pan clamping and page-point continuous anchoring
+- [x] Native Jellyfin Reader replacement across detail, Home/Library card, list, command and context-menu surfaces
 
 ## Phase 4 - Continuous reader and progress
 
