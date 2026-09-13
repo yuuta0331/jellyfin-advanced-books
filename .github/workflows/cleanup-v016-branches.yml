@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - ".github/workflows/cleanup-v016-branches.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,8 +19,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for branch in             "feature/mode-aware-tap-navigation-drag"             "release/v0.16.0.0"
-          do
+          branches=("feature/mode-aware-tap-navigation-drag" "release/v0.16.0.0")
+          for branch in "${branches[@]}"; do
             endpoint="repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}"
             if gh api "$endpoint" >/dev/null 2>&1; then
               gh api --method DELETE "$endpoint"
