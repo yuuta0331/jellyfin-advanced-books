@@ -30,6 +30,8 @@ def main() -> int:
         "direct reader launch implementation": "async function openReaderItem(itemId, startMode = 'resume')",
         "public direct reader API": "openItem: openReaderItem",
         "public support probe API": "supportsItem: supportsReaderItem",
+        "core drag-time pan clamp hook": "this.clampPan?.();",
+        "core gesture input resync hook": "this.syncGestureInput?.();",
     }
     forbidden = {
         "append-based continuous page insertion": "slot.appendChild(image)",
@@ -48,6 +50,9 @@ def main() -> int:
         "live pinch through reader zoom": "{ snap: false }",
         "paged content-bound clamp": "pagedContentBounds",
         "continuous touch-action resync": "syncTouchAction()",
+        "drag-time paged pan clamp": "reader.clampPan =",
+        "pinch midpoint tracking": "fromAnchor: pending.from",
+        "reader input resync hook": "reader.syncGestureInput =",
     }
     gesture_forbidden = {
         "legacy layered zoom patch": "installAnchoredZoom",
