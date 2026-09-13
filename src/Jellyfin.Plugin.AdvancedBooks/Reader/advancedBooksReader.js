@@ -1705,7 +1705,6 @@
         }
 
         clampPagedPan() { window.AdvancedBooksZoom?.clampPagedPan(this, this.stage, this.pagesElement); }
-
         syncTouchAction() {
             if (!this.stage) return;
             this.stage.style.touchAction = this.externalPinchActive ? 'none'
