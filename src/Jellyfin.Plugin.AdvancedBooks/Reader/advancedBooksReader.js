@@ -353,7 +353,7 @@
 .advancedBooksReaderTitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .advancedBooksReaderSubtitle{font-size:.82rem;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .advancedBooksReaderCounter{font-variant-numeric:tabular-nums;white-space:nowrap;padding:.3rem .55rem;border-radius:999px;background:rgba(0,0,0,.35)}
-.advancedBooksReaderTopSpacer{flex:0 0 0}
+.advancedBooksReaderTopSpacer{display:none}
 .advancedBooksReaderPagesHost{display:flex;align-items:center;gap:.4rem}
 .advancedBooksReaderPageSlider{flex:1 1 auto;min-width:5rem;height:2.75rem;margin:0;cursor:pointer;accent-color:var(--ab-accent);touch-action:none}
 .advancedBooksReaderPageSliderValue{min-width:5.2rem;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -648,6 +648,7 @@
             const finishSliderInteraction = () => {
                 this.sliderScrubbing = false;
                 this.sliderPointerX = null;
+                this.pageSlider.blur();
                 this.showControls();
                 this.scheduleSliderPreviewHide();
             };
@@ -655,6 +656,7 @@
             this.pageSlider.addEventListener('pointercancel', () => {
                 this.sliderScrubbing = false;
                 this.sliderPointerX = null;
+                this.pageSlider.blur();
                 this.showControls();
                 this.hideSliderPreview(true);
             });
