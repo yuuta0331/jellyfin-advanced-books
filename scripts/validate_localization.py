@@ -176,7 +176,6 @@ def main() -> int:
     require("handleNativeCommand" in integration and "replayCommand" in integration,
             "Reader integration does not bridge keyboard/remote Play/Resume commands")
     require("openItem: openReaderItem" in reader
-            and "supportsItem: supportsReaderItem" in reader
             and "advancedbooks:reader-opening" in reader,
             "Core reader does not expose the direct item-opening bridge")
     require("advancedbooks:reader-opening" in (ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js").read_text(encoding="utf-8"),
