@@ -64,20 +64,15 @@
         return Boolean(type && type.toLowerCase() !== 'book');
     }
 
-    function readPositionTicks(element) {
-        const carrier = findItemCarrier(element);
-        const value = element?.getAttribute?.('data-positionticks')
-            ?? carrier?.getAttribute?.('data-positionticks')
-            ?? '0';
-        const ticks = Number.parseInt(value, 10);
-        return Number.isFinite(ticks) && ticks > 0 ? ticks : 0;
-    }
-
     function startModeForAction(element, action) {
         if (element?.classList?.contains('btnReplay')) return 'start';
         if (action === 'resume') return 'resume';
         if (detailAction(element)) return 'start';
-        return readPositionTicks(element) > 0 ? 'resume' : 'start';
+
+        // Generic card/list/remote Play can outlive a UserData update in the DOM.
+        // Resume from Jellyfin's authoritative shared UserItemData instead; when no
+        // position is stored the progress bridge naturally opens page 1.
+        return 'resume';
     }
 
     async function openAdvancedItem(itemId, startMode) {
