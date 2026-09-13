@@ -194,8 +194,8 @@ internal sealed class KomgaApiClient : IKomgaApiClient
     {
         var candidate = value.Trim();
         if (candidate.StartsWith("file:", StringComparison.OrdinalIgnoreCase)
-            || candidate.Contains('/', StringComparison.Ordinal)
-            || candidate.Contains('\\', StringComparison.Ordinal))
+            || candidate.Contains('/')
+            || candidate.Contains('\\'))
         {
             return false;
         }
