@@ -155,10 +155,11 @@ def main() -> int:
             "Reader zoom is not routed through the unified focal-point controller")
     require("clampPagedPan" in gestures and "pagedContentBounds" in gestures,
             "Paged zoom does not clamp pan to the rendered content")
-    require("{ snap: false }" in gestures
+    require("snap: false" in gestures
+            and "fromAnchor: pending.from" in gestures
             and "previewRatio = this.targetZoom" not in gestures
             and "livePagedPinch" not in gestures,
-            "Pinch zoom is not using the unified live Reader zoom path")
+            "Pinch zoom is not using the unified source-to-target Reader zoom path")
     require("doubleTapDelayMs" in gestures and "handleDoubleTap" in gestures,
             "Touch gestures do not provide double-tap zoom")
     require("touchPan" in gestures and "stage.scrollLeft" in gestures and "stage.scrollTop" in gestures,
