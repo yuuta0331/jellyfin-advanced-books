@@ -130,7 +130,9 @@ public static class KomgaPathMapper
                 return false;
             }
         }
-        else if (LooksLikeWindowsDrivePath(candidate))
+        else if (LooksLikeWindowsDrivePath(candidate)
+                 || candidate.StartsWith("/", StringComparison.Ordinal)
+                 || candidate.StartsWith("\\\\", StringComparison.Ordinal))
         {
             candidate = Uri.UnescapeDataString(candidate);
         }
