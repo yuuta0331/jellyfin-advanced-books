@@ -1705,7 +1705,7 @@
         }
 
         clampPagedPan() {
-            window.AdvancedBooksZoom?.clampPagedPan?.(this, this.stage, this.pagesElement);
+            window.AdvancedBooksZoom?.clampPagedPan(this, this.stage, this.pagesElement);
         }
 
         syncTouchAction() {
@@ -1718,25 +1718,19 @@
         setZoom(value, anchor = null, options = null) {
             if (!Number.isFinite(value) || !this.stage) return;
             const geometry = window.AdvancedBooksZoom;
+            if (!geometry) return;
             const requested = Math.min(4, Math.max(.5, value));
             const nextZoom = options?.snap === false ? requested : Math.round(requested * 20) / 20;
             const oldZoom = Number.isFinite(this.zoom) && this.zoom > 0 ? this.zoom : 1;
-            const targetFocus = geometry?.normalizeAnchor?.(this.stage, anchor);
-            const sourceFocus = geometry?.normalizeAnchor?.(this.stage, options?.fromAnchor ?? anchor) ?? targetFocus;
-            if (!targetFocus || !sourceFocus) {
-                this.zoom = nextZoom;
-                if (nextZoom <= 1) this.resetPan();
-                this.applyTransform();
-                this.syncControlState();
-                return;
-            }
+            const targetFocus = geometry.normalizeAnchor(this.stage, anchor);
+            const sourceFocus = geometry.normalizeAnchor(this.stage, options?.fromAnchor ?? anchor);
 
             if (this.isContinuous()) {
-                const captured = geometry.captureContinuousAnchor?.(this, sourceFocus);
+                const captured = geometry.captureContinuousAnchor(this, sourceFocus);
                 this.zoom = nextZoom;
                 this.applyTransform();
                 this.syncControlState();
-                geometry.restoreContinuousAnchor?.(this.stage, captured, targetFocus);
+                geometry.restoreContinuousAnchor(this.stage, captured, targetFocus);
                 return;
             }
 
