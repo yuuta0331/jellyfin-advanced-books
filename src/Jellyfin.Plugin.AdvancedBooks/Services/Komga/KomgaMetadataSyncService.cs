@@ -302,12 +302,6 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
             target.SeriesPresentationUniqueKey,
             seriesKey,
             value => target.SeriesPresentationUniqueKey = value);
-        if (target.SeriesId != Guid.Empty)
-        {
-            target.SeriesId = Guid.Empty;
-            changed = true;
-        }
-
         DateTime? releaseDate = null;
         if (bookMetadata.ReleaseDate.HasValue)
         {
