@@ -781,12 +781,6 @@
                         }
                     });
                 }
-            } else {
-                requestAnimationFrame(() => {
-                    if (this.closed || !this.overlay?.isConnected) return;
-                    this.clampPan?.();
-                    this.applyTransform();
-                });
             }
         }
 
@@ -1015,7 +1009,6 @@
             if (this.backgroundSelect && this.backgroundSelect.value !== this.background) this.backgroundSelect.value = this.background;
             if (this.transitionSelect && this.transitionSelect.value !== String(this.animateTransitions)) this.transitionSelect.value = String(this.animateTransitions);
             if (this.gestureSelect && this.gestureSelect.value !== String(this.touchGestures)) this.gestureSelect.value = String(this.touchGestures);
-            this.syncGestureInput?.();
             this.updateFullscreenButton();
         }
 
@@ -1332,7 +1325,7 @@
 
             if (this.fit === 'height') return stageHeight * this.zoom;
             if (this.fit === 'original') return slotWidth * ratio * this.zoom;
-            if (this.fit === 'screen') return Math.min(stageHeight * this.zoom, slotWidth * ratio);
+            if (this.fit === 'screen') return Math.min(stageHeight, slotWidth * ratio);
             return slotWidth * ratio;
         }
 
@@ -1534,7 +1527,7 @@
             } else if (this.fit === 'original') {
                 expectedHeight = image.naturalHeight * this.zoom;
             } else if (this.fit === 'screen') {
-                expectedHeight = Math.min(stageHeight * this.zoom, slotWidth * aspectHeight);
+                expectedHeight = Math.min(stageHeight, slotWidth * aspectHeight);
             } else {
                 expectedHeight = slotWidth * aspectHeight;
             }
@@ -1554,12 +1547,6 @@
             image.style.height = '';
             image.style.maxWidth = '';
             image.style.maxHeight = '';
-
-            if (this.fit === 'screen') {
-                const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
-                image.style.maxHeight = `${Math.max(1, Math.round(viewportHeight * this.zoom))}px`;
-                return;
-            }
 
             if (this.fit === 'height') {
                 const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
@@ -1744,7 +1731,6 @@
                 this.stage.style.touchAction = 'pan-y';
                 this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
                 this.refreshContinuousImageSizing();
-                this.syncGestureInput?.();
                 return;
             }
             this.pagesElement.style.width = '';
@@ -1757,7 +1743,6 @@
             this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
             this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
             this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
-            this.syncGestureInput?.();
         }
 
         onKeyDown(event) {
@@ -1859,7 +1844,6 @@
             event.preventDefault();
             this.panX = this.pointerStart.panX + event.clientX - this.pointerStart.x;
             this.panY = this.pointerStart.panY + event.clientY - this.pointerStart.y;
-            this.clampPan?.();
             this.applyTransform();
             this.pagesElement.style.cursor = 'grabbing';
         }
