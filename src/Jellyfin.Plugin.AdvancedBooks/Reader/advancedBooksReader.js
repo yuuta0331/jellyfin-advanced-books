@@ -1714,35 +1714,33 @@
 
         setZoom(value, anchor = null, options = null) {
             if (!Number.isFinite(value) || !this.stage) return;
-            const geometry = window.AdvancedBooksZoom;if (!geometry) return;
-            const nextZoom = options?.snap === false
+            const g = window.AdvancedBooksZoom;if (!g) return;
+            const next = options?.snap === false
                 ? Math.min(4, Math.max(.5, value))
                 : Math.round(Math.min(4, Math.max(.5, value)) * 20) / 20;
-            const oldZoom = Number.isFinite(this.zoom) && this.zoom > 0 ? this.zoom : 1;
-            const targetFocus = geometry.normalizeAnchor(this.stage, anchor);
-            const sourceFocus = geometry.normalizeAnchor(this.stage, options?.fromAnchor ?? anchor);
+            const old = Number.isFinite(this.zoom) && this.zoom > 0 ? this.zoom : 1;
+            const target = g.normalizeAnchor(this.stage, anchor);
+            const source = g.normalizeAnchor(this.stage, options?.fromAnchor ?? anchor);
 
             if (this.isContinuous()) {
-                const captured = geometry.captureContinuousAnchor(this, sourceFocus);
-                this.zoom = nextZoom;
+                const captured = g.captureContinuousAnchor(this, source);
+                this.zoom = next;
                 this.applyTransform();
                 this.syncControlState();
-                geometry.restoreContinuousAnchor(this.stage, captured, targetFocus);
+                g.restoreContinuousAnchor(this.stage, captured, target);
                 return;
             }
 
-            const oldPanX = Number.isFinite(this.panX) ? this.panX : 0;
-            const oldPanY = Number.isFinite(this.panY) ? this.panY : 0;
-            this.zoom = nextZoom;
-            if (nextZoom <= 1) this.resetPan();
+            const px = Number.isFinite(this.panX) ? this.panX : 0;
+            const py = Number.isFinite(this.panY) ? this.panY : 0;
+            this.zoom = next;
+            if (next <= 1) this.resetPan();
             else {
-                const ratio = nextZoom / oldZoom;
-                this.panX = oldPanX * ratio
-                    + targetFocus.localX - targetFocus.centerX
-                    - ratio * (sourceFocus.localX - sourceFocus.centerX);
-                this.panY = oldPanY * ratio
-                    + targetFocus.localY - targetFocus.centerY
-                    - ratio * (sourceFocus.localY - sourceFocus.centerY);
+                const ratio = next / old;
+                this.panX = px * ratio + target.localX - target.centerX
+                    - ratio * (source.localX - source.centerX);
+                this.panY = py * ratio + target.localY - target.centerY
+                    - ratio * (source.localY - source.centerY);
                 this.clampPagedPan();
             }
             this.applyTransform();
