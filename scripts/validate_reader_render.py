@@ -5,11 +5,15 @@ from pathlib import Path
 
 READER = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksReader.js")
 INTEGRATION = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksIntegration.js")
+GESTURES = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksGestures.js")
+PREFERENCES = Path("src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksPreferences.js")
 
 
 def main() -> int:
     text = READER.read_text(encoding="utf-8")
     integration = INTEGRATION.read_text(encoding="utf-8")
+    gestures = GESTURES.read_text(encoding="utf-8")
+    preferences = PREFERENCES.read_text(encoding="utf-8")
 
     required = {
         "continuous image replacement": "slot.replaceChildren(image)",
@@ -38,6 +42,25 @@ def main() -> int:
         "stale DOM playback-position routing": "data-positionticks",
         "context menu forced page-one play": "command === 'resume' ? 'resume' : 'start'",
     }
+    gesture_required = {
+        "single zoom controller": "installZoomController(this)",
+        "live pinch through reader zoom": "{ snap: false }",
+        "paged content-bound clamp": "pagedContentBounds",
+        "continuous touch-action resync": "syncTouchAction()",
+    }
+    gesture_forbidden = {
+        "legacy layered zoom patch": "installAnchoredZoom",
+        "applyTransform monkey patch": "reader.applyTransform =",
+        "temporary pinch preview scaling": "previewRatio = this.targetZoom",
+    }
+    preference_forbidden = {
+        "global reader chrome override": ".advancedBooksReaderChrome{",
+        "top chrome layout override": ".advancedBooksReaderChromeTop{",
+        "desktop bottom chrome layout override": "\n.advancedBooksReaderChromeBottom{",
+        "mobile bottom chrome layout override": "\n    .advancedBooksReaderChromeBottom{",
+        "mobile forced More button": ".advancedBooksReaderMoreButton{display:inline-flex}",
+        "mobile hidden native chrome actions": ".advancedBooksReaderMoreSource{display:none!important}",
+    }
 
     failures: list[str] = []
     for label, needle in required.items():
@@ -55,6 +78,21 @@ def main() -> int:
     for label, needle in integration_forbidden.items():
         if needle in integration:
             failures.append(f"forbidden integration {label}: {needle!r}")
+
+    for label, needle in gesture_required.items():
+        if needle not in gestures:
+            failures.append(f"missing gesture {label}: {needle!r}")
+
+    for label, needle in gesture_forbidden.items():
+        if needle in gestures:
+            failures.append(f"forbidden gesture {label}: {needle!r}")
+
+    for label, needle in preference_forbidden.items():
+        if needle in preferences:
+            failures.append(f"forbidden preference {label}: {needle!r}")
+
+    if "stageHeight * this.zoom" not in text or "image.style.maxHeight" not in text:
+        failures.append("continuous Fit Screen zoom is not scaling height with reader zoom")
 
     if failures:
         for failure in failures:
