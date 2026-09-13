@@ -234,7 +234,7 @@
     .advancedBooksReaderPageSlider{height:2.4rem}
     .advancedBooksReaderPageSliderValue{min-width:4.2rem;font-size:.84rem}
     .advancedBooksReaderProgressRail{height:2px}
-    .advancedBooksReaderSettingsPanel{height:min(var(--ab-sheet-height,84dvh),46rem);max-height:min(92dvh,52rem);border-radius:1.25rem 1.25rem 0 0}
+    .advancedBooksReaderSettingsPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;height:min(var(--ab-sheet-height,84dvh),46rem);max-height:min(92dvh,52rem);border-radius:1.25rem 1.25rem 0 0}
     .advancedBooksReaderSettingsBody{padding:.7rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
     .advancedBooksReaderSheetHandle{display:flex}
     .advancedBooksReaderHelpPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;height:min(84dvh,46rem);max-height:92dvh;border-radius:1.25rem 1.25rem 0 0}
