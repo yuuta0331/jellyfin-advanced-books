@@ -349,11 +349,11 @@
 .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{display:inline-flex;align-items:center;justify-content:center;min-width:2.75rem;min-height:2.75rem;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(28,28,28,.88);color:#fff;padding:.45rem .7rem;font:inherit;cursor:pointer;backdrop-filter:blur(8px)}
 .advancedBooksReaderIconButton:hover,.advancedBooksReaderNavButton:hover,.advancedBooksReaderIconButton:focus-visible,.advancedBooksReaderNavButton:focus-visible{background:rgba(62,62,62,.95);outline:2px solid var(--ab-accent);outline-offset:2px}
 .advancedBooksReaderIconButton:disabled,.advancedBooksReaderNavButton:disabled{opacity:.35;cursor:default}
-.advancedBooksReaderMetadata{display:flex;flex-direction:column;min-width:0;max-width:min(42vw,32rem);line-height:1.18}
+.advancedBooksReaderMetadata{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;max-width:none;line-height:1.18}
 .advancedBooksReaderTitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .advancedBooksReaderSubtitle{font-size:.82rem;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .advancedBooksReaderCounter{font-variant-numeric:tabular-nums;white-space:nowrap;padding:.3rem .55rem;border-radius:999px;background:rgba(0,0,0,.35)}
-.advancedBooksReaderTopSpacer{flex:1 1 auto}
+.advancedBooksReaderTopSpacer{flex:0 0 0}
 .advancedBooksReaderPagesHost{display:flex;align-items:center;gap:.4rem}
 .advancedBooksReaderPageSlider{flex:1 1 auto;min-width:5rem;height:2.75rem;margin:0;cursor:pointer;accent-color:var(--ab-accent);touch-action:none}
 .advancedBooksReaderPageSliderValue{min-width:5.2rem;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
