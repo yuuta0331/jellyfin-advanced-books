@@ -359,6 +359,10 @@
 
         syncTouchAction() {
             if (!this.stage) return;
+            if (this.reader?.touchGestures === false) {
+                this.stage.style.touchAction = this.isContinuous() ? 'pan-x pan-y' : 'pan-y';
+                return;
+            }
             this.stage.style.touchAction = this.reader?.externalPinchActive || currentZoom(this.overlay) > 1
                 ? 'none'
                 : 'pan-y';
