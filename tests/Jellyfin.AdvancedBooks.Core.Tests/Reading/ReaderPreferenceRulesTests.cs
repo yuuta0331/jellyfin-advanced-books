@@ -80,7 +80,7 @@ public sealed class ReaderPreferenceRulesTests
     [Fact]
     public void MetadataPreferences_DefaultToVisibleAndAutoScrolling()
     {
-        Assert.Equal(4, ReaderPreferenceRules.CurrentPreferenceSchemaVersion);
+        Assert.Equal(5, ReaderPreferenceRules.CurrentPreferenceSchemaVersion);
         Assert.True(ReaderPreferenceRules.DefaultShowMetadata);
         Assert.True(ReaderPreferenceRules.DefaultShowMetadataTitle);
         Assert.True(ReaderPreferenceRules.DefaultShowMetadataAuthors);
@@ -88,6 +88,31 @@ public sealed class ReaderPreferenceRulesTests
         Assert.True(ReaderPreferenceRules.DefaultShowMetadataIssue);
         Assert.True(ReaderPreferenceRules.DefaultShowMetadataYear);
         Assert.True(ReaderPreferenceRules.DefaultAutoScrollMetadata);
+    }
+
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("en")]
+    [InlineData("ja")]
+    [InlineData("de")]
+    [InlineData("fr")]
+    [InlineData("es")]
+    [InlineData("zh-CN")]
+    public void LanguageValues_AcceptSupportedValues(string value)
+    {
+        Assert.True(ReaderPreferenceRules.IsValidLanguage(value));
+        Assert.Equal(value, ReaderPreferenceRules.NormalizeLanguage(value));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("it")]
+    [InlineData("zh-cn")]
+    public void LanguageValues_FallBackToAutomaticForUnsupportedValues(string? value)
+    {
+        Assert.False(ReaderPreferenceRules.IsValidLanguage(value));
+        Assert.Equal(ReaderPreferenceRules.DefaultLanguage, ReaderPreferenceRules.NormalizeLanguage(value));
     }
 
     [Theory]
