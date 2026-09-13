@@ -76,13 +76,13 @@ Advanced Books can import metadata that is stored **directly in Komga's database
 In **Dashboard -> Plugins -> Advanced Books**, enable **Import metadata directly from Komga**, then configure:
 
 - the Komga server URL;
-- a Komga API key (recommended), or username/password for Basic authentication;
+- a Komga **administrator** API key (recommended), or administrator username/password for Basic authentication; Komga hides full Book file paths from non-admin users;
 - optional path mappings when Komga and Jellyfin see the same files under different paths, for example `/data/manga => G:/Manga`;
 - whether synchronization should run automatically after Jellyfin library scans.
 
 Matching is intentionally strict: Komga's Book file URL is converted to a filesystem path, path mappings are applied, and the result must exactly match a Jellyfin Book path. Advanced Books does not guess by title.
 
-The sync imports supported Book/Series metadata such as title, summary, series, release date/year, issue number, genres, publisher, language, tags, ISBN and authors/roles. It also records stable Komga Book/Series provider IDs. Use **Save & test connection**, **Save & sync now**, or Jellyfin's **Dashboard -> Scheduled Tasks -> Sync metadata from Komga**.
+The sync imports supported Book/Series metadata such as title, summary, series, release date/year, issue number, genres, publisher, tags, ISBN and authors/roles. It also records stable Komga Book/Series provider IDs. Use **Save & test connection**, **Save & sync now**, or Jellyfin's **Dashboard -> Scheduled Tasks -> Sync metadata from Komga**.
 
 ## Languages
 
