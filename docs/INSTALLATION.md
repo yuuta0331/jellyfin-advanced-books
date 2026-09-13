@@ -40,6 +40,8 @@ https://raw.githubusercontent.com/n00bcodr/jellyfin-plugins/main/12/manifest.jso
 
 Install **JavaScript Injector**, restart Jellyfin, then keep **Dashboard -> Plugins -> Advanced Books -> Enable Advanced Reader integration** enabled.
 
+Optionally enable **Use Advanced Reader for Jellyfin book actions** to make Jellyfin's normal Book Play/Resume and Start from beginning actions open Advanced Reader for supported CBZ/ZIP items. This option is off by default and requires a Jellyfin restart after changing it.
+
 Advanced Books registers its own embedded reader scripts automatically. No copy/paste JavaScript step is required.
 
 ## Updating
