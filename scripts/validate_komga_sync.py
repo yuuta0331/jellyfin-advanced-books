@@ -77,6 +77,8 @@ def main() -> int:
             "Stable Komga provider IDs are not persisted")
     require("SeriesPresentationUniqueKey" in sync,
             "Komga series grouping has no stable presentation key")
+    require("target.SeriesId =" not in sync,
+            "Komga synchronization must not mutate Jellyfin internal SeriesId")
     require("GetSeriesAsync(configuration" in sync,
             "Series metadata is not loaded in a bounded paginated pass")
     require("GetSeriesAsync(" not in sync[sync.find("foreach (var komgaBook"):],
