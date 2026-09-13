@@ -96,6 +96,25 @@ assert.ok(zoom, 'AdvancedBooksZoom was not installed');
 }
 
 {
+    const pages = {
+        clientWidth: 1000,
+        clientHeight: 800,
+        querySelectorAll: () => [
+            { offsetLeft: 100, offsetTop: 100, offsetWidth: 350, offsetHeight: 600 },
+            { offsetLeft: 550, offsetTop: 100, offsetWidth: 350, offsetHeight: 600 }
+        ]
+    };
+    const reader = {
+        zoom: 2,
+        panX: -999,
+        panY: 0,
+        isContinuous: () => false
+    };
+    zoom.clampPagedPan(reader, { clientWidth: 1000, clientHeight: 800 }, pages);
+    assert.equal(reader.panX, -300, 'double-page spread clamps as one rendered content bound');
+}
+
+{
     const slot = {
         isConnected: true,
         getBoundingClientRect: () => ({ left: 80, top: 160, width: 300, height: 600 })
