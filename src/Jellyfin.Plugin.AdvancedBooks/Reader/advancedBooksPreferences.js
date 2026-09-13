@@ -458,7 +458,9 @@
             ['Ctrl + wheel', 'Zoom'],
             ['F', 'Fullscreen'],
             ['Esc', 'Close panel, then reader'],
-            ['Drag', 'Pan while zoomed'],
+            ['Left / right tap', 'Previous / next page in paged modes'],
+            ['Top / bottom tap', 'Previous / next page in Vertical / Webtoon'],
+            ['Mouse drag', 'Grab and pan the page / continuous canvas'],
             ['Two-finger pinch', 'Zoom when touch gestures are enabled'],
             ['Double tap', 'Zoom tapped area / restore']
         ];
