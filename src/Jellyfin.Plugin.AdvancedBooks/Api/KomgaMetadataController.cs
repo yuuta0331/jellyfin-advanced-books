@@ -61,7 +61,7 @@ public sealed class KomgaMetadataController : ControllerBase
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<ActionResult<KomgaMetadataSyncResult>> Sync(CancellationToken cancellationToken)
     {
-        if (!await IsAdministrator().ConfigureAwait(false))
+        if (!User.IsInRole("Administrator"))
         {
             return Forbid();
         }
