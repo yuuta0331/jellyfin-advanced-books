@@ -17,7 +17,7 @@ All four modes support Fit Screen, Fit Width, Fit Height and Original Size plus 
 
 All four layouts use a single Reader-owned 50%-400% zoom state. Toolbar + / − / reset, keyboard + / − / 0, Ctrl+wheel, double-tap, persisted preference restore, and pinch all call the same Reader `setZoom` operation.
 
-Reusable coordinate math lives in `Reader/advancedBooksZoom.js`, while `Reader/advancedBooksGestures.js` only interprets input. Gestures no longer replaces the Reader's `setZoom` or `applyTransform` methods. The Zoom Geometry bridge is registered before Reader Core and is required at runtime.
+Reusable coordinate math lives in `Reader/advancedBooksZoom.js`, while `Reader/advancedBooksGestures.js` only interprets input. Gestures no longer replaces the Reader's `setZoom` or `applyTransform` methods. Zoom Geometry is a required runtime bridge; Reader Core resolves it when zoom is used rather than relying on JavaScript Injector's persisted list order.
 
 For a pinch, each animation frame preserves the content point under the previously rendered two-finger midpoint and moves it to the new midpoint while applying the new scale. Paged layouts clamp pan to the actual rendered image/spread during both zoom and later drag. Vertical Continuous and Webtoon anchor to the actual image under the fingers when possible and fall back to its page slot only for surrounding whitespace.
 
