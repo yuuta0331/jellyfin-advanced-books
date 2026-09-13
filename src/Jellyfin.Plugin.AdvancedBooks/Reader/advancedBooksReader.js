@@ -781,6 +781,12 @@
                         }
                     });
                 }
+            } else {
+                requestAnimationFrame(() => {
+                    if (this.closed || !this.overlay?.isConnected) return;
+                    this.clampPagedPan();
+                    this.applyTransform();
+                });
             }
         }
 
@@ -1009,6 +1015,7 @@
             if (this.backgroundSelect && this.backgroundSelect.value !== this.background) this.backgroundSelect.value = this.background;
             if (this.transitionSelect && this.transitionSelect.value !== String(this.animateTransitions)) this.transitionSelect.value = String(this.animateTransitions);
             if (this.gestureSelect && this.gestureSelect.value !== String(this.touchGestures)) this.gestureSelect.value = String(this.touchGestures);
+            this.syncTouchAction();
             this.updateFullscreenButton();
         }
 
@@ -1325,7 +1332,7 @@
 
             if (this.fit === 'height') return stageHeight * this.zoom;
             if (this.fit === 'original') return slotWidth * ratio * this.zoom;
-            if (this.fit === 'screen') return Math.min(stageHeight, slotWidth * ratio);
+            if (this.fit === 'screen') return Math.min(stageHeight * this.zoom, slotWidth * ratio);
             return slotWidth * ratio;
         }
 
@@ -1527,7 +1534,7 @@
             } else if (this.fit === 'original') {
                 expectedHeight = image.naturalHeight * this.zoom;
             } else if (this.fit === 'screen') {
-                expectedHeight = Math.min(stageHeight, slotWidth * aspectHeight);
+                expectedHeight = Math.min(stageHeight * this.zoom, slotWidth * aspectHeight);
             } else {
                 expectedHeight = slotWidth * aspectHeight;
             }
@@ -1547,6 +1554,12 @@
             image.style.height = '';
             image.style.maxWidth = '';
             image.style.maxHeight = '';
+
+            if (this.fit === 'screen') {
+                const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
+                image.style.maxHeight = `${Math.max(1, Math.round(viewportHeight * this.zoom))}px`;
+                return;
+            }
 
             if (this.fit === 'height') {
                 const viewportHeight = this.stage?.clientHeight || window.visualViewport?.height || window.innerHeight;
@@ -1691,26 +1704,148 @@
             this.overlay?.style.setProperty('--ab-progress', `${Math.max(0, Math.min(100, progress))}%`);
         }
 
-        setZoom(value) {
-            const anchor = this.isContinuous() && this.continuousElements[this.currentPage]
-                ? {
-                    element: this.continuousElements[this.currentPage],
-                    viewportOffset: this.continuousElements[this.currentPage].offsetTop - this.stage.scrollTop
-                }
-                : null;
+        normalizeZoomAnchor(anchor) {
+            const rect = this.stage.getBoundingClientRect();
+            const clientX = Number.isFinite(anchor?.clientX) ? anchor.clientX : rect.left + rect.width / 2;
+            const clientY = Number.isFinite(anchor?.clientY) ? anchor.clientY : rect.top + rect.height / 2;
+            return {
+                clientX,
+                clientY,
+                localX: clientX - rect.left,
+                localY: clientY - rect.top,
+                centerX: rect.width / 2,
+                centerY: rect.height / 2
+            };
+        }
 
-            this.zoom = Math.min(4, Math.max(.5, Math.round(value * 20) / 20));
-            if (this.zoom <= 1) { this.panX = 0; this.panY = 0; }
+        pagedContentBounds() {
+            const images = Array.from(this.pagesElement?.querySelectorAll('img') ?? [])
+                .filter(image => image.offsetWidth > 0 && image.offsetHeight > 0);
+            if (!images.length) return null;
+
+            let left = Number.POSITIVE_INFINITY;
+            let top = Number.POSITIVE_INFINITY;
+            let right = Number.NEGATIVE_INFINITY;
+            let bottom = Number.NEGATIVE_INFINITY;
+            for (const image of images) {
+                left = Math.min(left, image.offsetLeft);
+                top = Math.min(top, image.offsetTop);
+                right = Math.max(right, image.offsetLeft + image.offsetWidth);
+                bottom = Math.max(bottom, image.offsetTop + image.offsetHeight);
+            }
+            return { left, top, right, bottom };
+        }
+
+        clampPagedPan() {
+            if (this.isContinuous()) return;
+            if (!Number.isFinite(this.zoom) || this.zoom <= 1) {
+                this.panX = 0;
+                this.panY = 0;
+                return;
+            }
+
+            const bounds = this.pagedContentBounds();
+            if (!bounds) return;
+            const pageWidth = Math.max(1, this.pagesElement.clientWidth);
+            const pageHeight = Math.max(1, this.pagesElement.clientHeight);
+            const viewportWidth = Math.max(1, this.stage.clientWidth);
+            const viewportHeight = Math.max(1, this.stage.clientHeight);
+
+            const left = (bounds.left - pageWidth / 2) * this.zoom;
+            const right = (bounds.right - pageWidth / 2) * this.zoom;
+            const top = (bounds.top - pageHeight / 2) * this.zoom;
+            const bottom = (bounds.bottom - pageHeight / 2) * this.zoom;
+
+            if (right - left <= viewportWidth) {
+                this.panX = -(left + right) / 2;
+            } else {
+                const minimum = viewportWidth / 2 - right;
+                const maximum = -viewportWidth / 2 - left;
+                this.panX = Math.max(minimum, Math.min(maximum, Number(this.panX) || 0));
+            }
+
+            if (bottom - top <= viewportHeight) {
+                this.panY = -(top + bottom) / 2;
+            } else {
+                const minimum = viewportHeight / 2 - bottom;
+                const maximum = -viewportHeight / 2 - top;
+                this.panY = Math.max(minimum, Math.min(maximum, Number(this.panY) || 0));
+            }
+        }
+
+        syncTouchAction() {
+            if (!this.stage) return;
+            if (this.externalPinchActive) {
+                this.stage.style.touchAction = 'none';
+                return;
+            }
+            if (!this.touchGestures) {
+                this.stage.style.touchAction = this.isContinuous() ? 'pan-x pan-y' : 'pan-y';
+                return;
+            }
+            this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
+        }
+
+        setZoom(value, anchor = null, options = null) {
+            if (!Number.isFinite(value) || !this.stage) return;
+
+            const requested = Math.min(4, Math.max(.5, value));
+            const nextZoom = options?.snap === false
+                ? requested
+                : Math.round(requested * 20) / 20;
+            const oldZoom = Number.isFinite(this.zoom) && this.zoom > 0 ? this.zoom : 1;
+            const oldPanX = Number.isFinite(this.panX) ? this.panX : 0;
+            const oldPanY = Number.isFinite(this.panY) ? this.panY : 0;
+            const targetFocus = this.normalizeZoomAnchor(anchor);
+            const sourceFocus = options?.fromAnchor
+                ? this.normalizeZoomAnchor(options.fromAnchor)
+                : targetFocus;
+
+            if (this.isContinuous()) {
+                const hit = document.elementFromPoint?.(sourceFocus.clientX, sourceFocus.clientY) ?? null;
+                const pointedSlot = hit?.closest?.('.advancedBooksReaderPageSlot');
+                const slot = pointedSlot?.isConnected
+                    ? pointedSlot
+                    : this.continuousElements[this.currentPage] ?? null;
+                const element = hit?.tagName === 'IMG' && hit.closest?.('.advancedBooksReaderPageSlot') === slot
+                    ? hit
+                    : slot;
+                const before = element?.getBoundingClientRect?.();
+                const xRatio = before?.width > 0
+                    ? Math.max(0, Math.min(1, (sourceFocus.clientX - before.left) / before.width))
+                    : .5;
+                const yRatio = before?.height > 0
+                    ? Math.max(0, Math.min(1, (sourceFocus.clientY - before.top) / before.height))
+                    : .5;
+
+                this.zoom = nextZoom;
+                this.applyTransform();
+                this.syncControlState();
+
+                if (element?.isConnected) {
+                    const after = element.getBoundingClientRect();
+                    this.stage.scrollLeft += after.left + after.width * xRatio - targetFocus.clientX;
+                    this.stage.scrollTop += after.top + after.height * yRatio - targetFocus.clientY;
+                }
+                return;
+            }
+
+            this.zoom = nextZoom;
+            if (nextZoom <= 1) {
+                this.panX = 0;
+                this.panY = 0;
+            } else {
+                const ratio = nextZoom / oldZoom;
+                const sourceX = sourceFocus.localX - sourceFocus.centerX;
+                const sourceY = sourceFocus.localY - sourceFocus.centerY;
+                const targetX = targetFocus.localX - targetFocus.centerX;
+                const targetY = targetFocus.localY - targetFocus.centerY;
+                this.panX = oldPanX * ratio + targetX - ratio * sourceX;
+                this.panY = oldPanY * ratio + targetY - ratio * sourceY;
+                this.clampPagedPan();
+            }
             this.applyTransform();
             this.syncControlState();
-
-            if (anchor?.element?.isConnected) {
-                requestAnimationFrame(() => {
-                    if (!this.closed && anchor.element.isConnected) {
-                        this.stage.scrollTop = Math.max(0, anchor.element.offsetTop - anchor.viewportOffset);
-                    }
-                });
-            }
         }
 
         resetPan() { this.panX = 0; this.panY = 0; }
@@ -1728,9 +1863,9 @@
                     ? `${Math.round(this.zoom * 100)}%`
                     : '0';
                 this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
-                this.stage.style.touchAction = 'pan-y';
                 this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
                 this.refreshContinuousImageSizing();
+                this.syncTouchAction();
                 return;
             }
             this.pagesElement.style.width = '';
@@ -1741,8 +1876,8 @@
             this.pagesElement.className = `advancedBooksReaderPages ab-layout-${this.layout} ab-fit-${this.fit}${spreadClass}`;
             this.pagesElement.style.transform = `translate(${this.panX}px,${this.panY}px) scale(${this.zoom})`;
             this.pagesElement.style.cursor = this.zoom > 1 ? 'grab' : 'default';
-            this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
             this.zoomResetButton.textContent = `${Math.round(this.zoom * 100)}%`;
+            this.syncTouchAction();
         }
 
         onKeyDown(event) {
@@ -1844,6 +1979,7 @@
             event.preventDefault();
             this.panX = this.pointerStart.panX + event.clientX - this.pointerStart.x;
             this.panY = this.pointerStart.panY + event.clientY - this.pointerStart.y;
+            this.clampPagedPan();
             this.applyTransform();
             this.pagesElement.style.cursor = 'grabbing';
         }
