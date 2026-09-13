@@ -5,8 +5,22 @@
     window.__jellyfinAdvancedBooksIntegrationLoaded = true;
 
     const replaceNativeReader = window.__advancedBooksReplaceNativeReader === true;
+    const nativePlaybackSelector = [
+        '.mainDetailButtons .btnPlay',
+        '.mainDetailButtons .btnReplay',
+        '.btnPlayOrResume[data-action="play"]',
+        '.btnPlayOrResume[data-action="resume"]',
+        '.itemAction[data-action="play"]',
+        '.itemAction[data-action="resume"]',
+        '[data-action="play"].itemAction',
+        '[data-action="resume"].itemAction'
+    ].join(',');
+    const contextSourceSelector = '.itemAction[data-action="menu"],[data-action="menu"].itemAction,.btnMoreCommands';
+    const bypassClicks = new WeakSet();
+    const bypassCommands = new WeakSet();
     let popstateClosing = false;
     let tokenSequence = 0;
+    let contextTarget = null;
 
     function getCurrentItemId() {
         const directId = new URLSearchParams(window.location.search).get('id');
@@ -21,6 +35,176 @@
 
         const match = hash.match(/[?&]id=([^&]+)/i);
         return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    function getReaderApi() {
+        const api = window.AdvancedBooksReader;
+        return api && typeof api.openItem === 'function' ? api : null;
+    }
+
+    function detailAction(element) {
+        return Boolean(element?.closest?.(
+            '.mainDetailButtons,.itemDetailPage,.itemDetailsPage'
+        ) || element?.matches?.('.btnPlayOrResume,.btnReplay,.btnPlay,.btnMoreCommands'));
+    }
+
+    function findItemCarrier(element) {
+        if (!(element instanceof Element)) return null;
+        if (element.hasAttribute('data-id')) return element;
+        return element.closest('[data-id]');
+    }
+
+    function resolveItemId(element) {
+        const carrier = findItemCarrier(element);
+        const id = carrier?.getAttribute('data-id');
+        if (id) return id;
+        return detailAction(element) ? getCurrentItemId() : null;
+    }
+
+    function readPositionTicks(element) {
+        const carrier = findItemCarrier(element);
+        const value = element?.getAttribute?.('data-positionticks')
+            ?? carrier?.getAttribute?.('data-positionticks')
+            ?? '0';
+        const ticks = Number.parseInt(value, 10);
+        return Number.isFinite(ticks) && ticks > 0 ? ticks : 0;
+    }
+
+    function startModeForAction(element, action) {
+        if (element?.classList?.contains('btnReplay')) return 'start';
+        if (action === 'resume') return 'resume';
+        if (detailAction(element)) return 'start';
+        return readPositionTicks(element) > 0 ? 'resume' : 'start';
+    }
+
+    async function openAdvancedItem(itemId, startMode) {
+        const api = getReaderApi();
+        if (!api || !itemId) return false;
+        try {
+            return await api.openItem(itemId, startMode) === true;
+        } catch {
+            return false;
+        }
+    }
+
+    function replayClick(element) {
+        if (!(element instanceof HTMLElement)) return;
+        bypassClicks.add(element);
+        try {
+            element.click();
+        } finally {
+            queueMicrotask(() => bypassClicks.delete(element));
+        }
+    }
+
+    function replayCommand(element, command) {
+        if (!(element instanceof EventTarget)) return;
+        bypassCommands.add(element);
+        try {
+            element.dispatchEvent(new CustomEvent('command', {
+                detail: { command },
+                bubbles: true,
+                cancelable: true
+            }));
+        } finally {
+            queueMicrotask(() => bypassCommands.delete(element));
+        }
+    }
+
+    function rememberContextTarget(element) {
+        const itemId = resolveItemId(element);
+        if (!itemId) {
+            contextTarget = null;
+            return;
+        }
+
+        const api = getReaderApi();
+        contextTarget = {
+            itemId,
+            createdAt: Date.now(),
+            supportPromise: typeof api?.supportsItem === 'function'
+                ? api.supportsItem(itemId).catch(() => false)
+                : Promise.resolve(false)
+        };
+    }
+
+    async function handleNativeClick(event) {
+        if (!replaceNativeReader) return;
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+
+        const contextSource = target.closest(contextSourceSelector);
+        if (contextSource) {
+            rememberContextTarget(contextSource);
+            return;
+        }
+
+        const actionSheetItem = target.closest('.actionSheetMenuItem[data-id="play"],.actionSheetMenuItem[data-id="resume"]');
+        if (actionSheetItem && contextTarget && Date.now() - contextTarget.createdAt < 30000) {
+            const state = contextTarget;
+            contextTarget = null;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            const supported = await state.supportPromise;
+            if (!supported) {
+                replayClick(actionSheetItem);
+                return;
+            }
+
+            const command = actionSheetItem.getAttribute('data-id') === 'resume' ? 'resume' : 'play';
+            const originalId = actionSheetItem.getAttribute('data-id');
+            actionSheetItem.setAttribute('data-id', '__advancedbooks_handled__');
+            replayClick(actionSheetItem);
+            queueMicrotask(() => {
+                if (originalId) actionSheetItem.setAttribute('data-id', originalId);
+            });
+            await openAdvancedItem(state.itemId, command === 'resume' ? 'resume' : 'start');
+            return;
+        }
+
+        const nativeAction = target.closest(nativePlaybackSelector);
+        if (!nativeAction || bypassClicks.has(nativeAction)) return;
+
+        const itemId = resolveItemId(nativeAction);
+        if (!itemId) return;
+
+        const action = nativeAction.getAttribute('data-action')
+            || (nativeAction.classList.contains('btnReplay') ? 'play' : 'resume');
+        const startMode = startModeForAction(nativeAction, action);
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const opened = await openAdvancedItem(itemId, startMode);
+        if (!opened) replayClick(nativeAction);
+    }
+
+    async function handleNativeCommand(event) {
+        if (!replaceNativeReader) return;
+        const command = event.detail?.command;
+        if (command !== 'play' && command !== 'resume' && command !== 'menu') return;
+
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target || bypassCommands.has(target)) return;
+
+        if (command === 'menu') {
+            rememberContextTarget(target);
+            return;
+        }
+
+        const itemId = resolveItemId(target);
+        if (!itemId) return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const opened = await openAdvancedItem(
+            itemId,
+            startModeForAction(target, command)
+        );
+        if (!opened) replayCommand(target, command);
     }
 
     function ensureStyles() {
@@ -108,44 +292,18 @@
         document.querySelectorAll('.advancedBooksReaderButton').forEach(button => {
             const sameItem = !itemId || button.dataset.advancedBooksItemId === itemId;
             const host = button.closest('.mainDetailButtons');
-            const nativeAction = host?.querySelector('.btnPlay:not(.hide),.btnReplay:not(.hide)');
+            const nativeAction = host?.querySelector(
+                '.btnPlay:not(.hide),.btnReplay:not(.hide),.btnPlayOrResume:not(.hide)'
+            );
             button.classList.toggle('ab-native-reader-replaced', Boolean(sameItem && nativeAction));
         });
     }
 
-    function getAdvancedButton(itemId) {
-        return Array.from(document.querySelectorAll('.advancedBooksReaderButton'))
-            .find(button => button.dataset.advancedBooksItemId === itemId)
-            ?? null;
-    }
-
     document.addEventListener('click', event => {
-        if (!replaceNativeReader) return;
-
-        const nativeButton = event.target?.closest?.('.mainDetailButtons .btnPlay,.mainDetailButtons .btnReplay');
-        if (!nativeButton) return;
-
-        const itemId = getCurrentItemId();
-        if (!itemId) return;
-
-        const advancedButton = getAdvancedButton(itemId);
-        if (!advancedButton) return;
-
-        event.preventDefault();
-        event.stopImmediatePropagation();
-
-        const startMode = nativeButton.classList.contains('btnReplay')
-            || nativeButton.getAttribute('data-action') === 'play'
-            ? 'start'
-            : 'resume';
-
-        advancedButton.dataset.advancedBooksStartMode = startMode;
-        advancedButton.click();
-        queueMicrotask(() => {
-            if (advancedButton.dataset.advancedBooksStartMode === startMode) {
-                advancedButton.dataset.advancedBooksStartMode = 'resume';
-            }
-        });
+        handleNativeClick(event).catch(() => {});
+    }, true);
+    document.addEventListener('command', event => {
+        handleNativeCommand(event).catch(() => {});
     }, true);
 
     window.addEventListener('popstate', event => {
