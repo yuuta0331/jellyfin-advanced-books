@@ -65,141 +65,6 @@
         document.head.appendChild(style);
     }
 
-    function normalizeAnchor(stage, anchor) {
-        const rect = stage.getBoundingClientRect();
-        const clientX = Number.isFinite(anchor?.clientX) ? anchor.clientX : rect.left + rect.width / 2;
-        const clientY = Number.isFinite(anchor?.clientY) ? anchor.clientY : rect.top + rect.height / 2;
-        return {
-            clientX,
-            clientY,
-            localX: clientX - rect.left,
-            localY: clientY - rect.top,
-            centerX: rect.width / 2,
-            centerY: rect.height / 2
-        };
-    }
-
-    function pagedContentSize(pages) {
-        const images = Array.from(pages?.querySelectorAll('img') ?? [])
-            .filter(image => image.offsetWidth > 0 && image.offsetHeight > 0);
-        if (!images.length) return null;
-
-        let left = Number.POSITIVE_INFINITY;
-        let top = Number.POSITIVE_INFINITY;
-        let right = Number.NEGATIVE_INFINITY;
-        let bottom = Number.NEGATIVE_INFINITY;
-        for (const image of images) {
-            left = Math.min(left, image.offsetLeft);
-            top = Math.min(top, image.offsetTop);
-            right = Math.max(right, image.offsetLeft + image.offsetWidth);
-            bottom = Math.max(bottom, image.offsetTop + image.offsetHeight);
-        }
-        return {
-            width: Math.max(1, right - left),
-            height: Math.max(1, bottom - top)
-        };
-    }
-
-    function clampPagedPan(reader, stage, pages) {
-        if (!reader || reader.isContinuous?.()) return;
-        if (!Number.isFinite(reader.zoom) || reader.zoom <= 1) {
-            reader.panX = 0;
-            reader.panY = 0;
-            return;
-        }
-
-        const content = pagedContentSize(pages);
-        if (!content) return;
-        const viewportWidth = Math.max(1, stage.clientWidth);
-        const viewportHeight = Math.max(1, stage.clientHeight);
-        const limitX = Math.max(0, (content.width * reader.zoom - viewportWidth) / 2);
-        const limitY = Math.max(0, (content.height * reader.zoom - viewportHeight) / 2);
-        reader.panX = Math.max(-limitX, Math.min(limitX, Number(reader.panX) || 0));
-        reader.panY = Math.max(-limitY, Math.min(limitY, Number(reader.panY) || 0));
-    }
-
-    function installAnchoredZoom(session) {
-        const reader = session.overlay.__advancedBooksReaderSession;
-        if (!reader || typeof reader.setZoom !== 'function' || reader.__advancedBooksAnchoredZoomInstalled) return;
-
-        const originalSetZoom = reader.setZoom.bind(reader);
-        const originalApplyTransform = typeof reader.applyTransform === 'function'
-            ? reader.applyTransform.bind(reader)
-            : null;
-        reader.__advancedBooksAnchoredZoomInstalled = true;
-        reader.__advancedBooksOriginalSetZoom = originalSetZoom;
-
-        if (originalApplyTransform) {
-            reader.applyTransform = () => {
-                originalApplyTransform();
-                const beforeX = reader.panX;
-                const beforeY = reader.panY;
-                clampPagedPan(reader, session.stage, session.pages);
-                if (reader.panX !== beforeX || reader.panY !== beforeY) originalApplyTransform();
-            };
-        }
-
-        reader.setZoom = (value, anchor = null) => {
-            if (!session.overlay.isConnected) return;
-
-            const oldZoom = Number.isFinite(reader.zoom) ? reader.zoom : 1;
-            const oldPanX = Number.isFinite(reader.panX) ? reader.panX : 0;
-            const oldPanY = Number.isFinite(reader.panY) ? reader.panY : 0;
-            const focus = normalizeAnchor(session.stage, anchor);
-            const continuous = typeof reader.isContinuous === 'function'
-                ? reader.isContinuous()
-                : session.isContinuous();
-
-            let continuousAnchor = null;
-            if (continuous) {
-                const pointed = document.elementFromPoint(focus.clientX, focus.clientY)
-                    ?.closest?.('.advancedBooksReaderPageSlot');
-                const fallback = reader.continuousElements?.[reader.currentPage] ?? null;
-                const element = pointed?.isConnected ? pointed : fallback;
-                const rect = element?.getBoundingClientRect?.();
-                if (element && rect && rect.width > 0 && rect.height > 0) {
-                    continuousAnchor = {
-                        element,
-                        xRatio: Math.max(0, Math.min(1, (focus.clientX - rect.left) / rect.width)),
-                        yRatio: Math.max(0, Math.min(1, (focus.clientY - rect.top) / rect.height))
-                    };
-                }
-            }
-
-            originalSetZoom(value);
-
-            const nextZoom = Number.isFinite(reader.zoom) ? reader.zoom : oldZoom;
-            session.updateGrabCursor?.();
-            if (continuous) {
-                session.stage.style.touchAction = nextZoom > 1 ? 'none' : 'pan-y';
-                requestAnimationFrame(() => {
-                    if (!session.overlay.isConnected || !continuousAnchor?.element?.isConnected) return;
-                    const rect = continuousAnchor.element.getBoundingClientRect();
-                    const anchorClientX = rect.left + rect.width * continuousAnchor.xRatio;
-                    const anchorClientY = rect.top + rect.height * continuousAnchor.yRatio;
-                    session.stage.scrollLeft += anchorClientX - focus.clientX;
-                    session.stage.scrollTop += anchorClientY - focus.clientY;
-                });
-                return;
-            }
-
-            if (nextZoom <= 1 || oldZoom <= 0) {
-                reader.panX = 0;
-                reader.panY = 0;
-                reader.applyTransform?.();
-                return;
-            }
-
-            const ratio = nextZoom / oldZoom;
-            const anchorX = focus.localX - focus.centerX;
-            const anchorY = focus.localY - focus.centerY;
-            reader.panX = oldPanX * ratio + (1 - ratio) * anchorX;
-            reader.panY = oldPanY * ratio + (1 - ratio) * anchorY;
-            clampPagedPan(reader, session.stage, session.pages);
-            reader.applyTransform?.();
-        };
-    }
-
     function findZoomOperations(targetZoom) {
         const start = 20;
         const target = Math.min(80, Math.max(10, Math.round(clampZoom(targetZoom) * 20)));
@@ -268,7 +133,6 @@
             this.pointers = new Map();
             this.tapStarts = new Map();
             this.pinchPointerIds = [];
-            this.livePagedPinch = false;
             this.pinching = false;
             this.suppressUntilRelease = false;
             this.startDistance = 0;
@@ -276,22 +140,19 @@
             this.targetZoom = 1;
             this.startMidpoint = null;
             this.currentMidpoint = null;
-            this.startScrollLeft = 0;
-            this.startScrollTop = 0;
-            this.originalTransform = '';
-            this.originalTransformOrigin = '';
-            this.originalTransition = '';
-            this.originalWillChange = '';
+            this.renderedPinchMidpoint = null;
+            this.pinchFrame = 0;
+            this.pendingPinchZoom = null;
             this.touchPan = null;
             this.lastTap = null;
             this.tapTimer = null;
             this.doubleTapBaseZoom = 1;
             this.doubleTapZoomed = false;
-            this.livePagedPinch = false;
             this.mouseDrag = null;
             this.pendingPageMotion = null;
             this.pageMotionTimer = null;
             this.pageMutationObserver = null;
+            this.zoomObserver = null;
             this.removalObserver = null;
 
             this.onPointerDown = event => this.pointerDown(event);
@@ -307,17 +168,29 @@
         attach() {
             if (!this.stage || !this.pages) return false;
             ensureInteractionStyles();
-            installAnchoredZoom(this);
             this.updateGrabCursor();
-            this.pageMutationObserver = new MutationObserver(() => this.applyPendingPageMotion());
-            this.pageMutationObserver.observe(this.pages, { childList: true });
+            this.reader?.syncTouchAction?.();
+            this.pageMutationObserver = new MutationObserver(() => {
+                this.applyPendingPageMotion();
+                this.updateGrabCursor();
+            });
+            this.pageMutationObserver.observe(this.pages, {
+                childList: true,
+                attributes: true,
+                attributeFilter: ['class']
+            });
+
+            const zoomReset = this.overlay.querySelector('button[data-ab-action="zoom-reset"],button[title="Reset zoom"]');
+            if (zoomReset) {
+                this.zoomObserver = new MutationObserver(() => this.updateGrabCursor());
+                this.zoomObserver.observe(zoomReset, { childList: true, characterData: true, subtree: true });
+            }
+
             this.stage.addEventListener('pointerdown', this.onPointerDown, true);
             this.stage.addEventListener('pointermove', this.onPointerMove, true);
             this.stage.addEventListener('pointerup', this.onPointerEnd, true);
             this.stage.addEventListener('pointercancel', this.onPointerEnd, true);
             this.stage.addEventListener('wheel', this.onWheel, { capture: true, passive: false });
-
-            if (this.isContinuous() && currentZoom(this.overlay) > 1) this.stage.style.touchAction = 'none';
 
             this.removalObserver = new MutationObserver(() => {
                 if (!this.overlay.isConnected) this.dispose();
@@ -347,6 +220,62 @@
 
         reducedMotion() {
             return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+        }
+
+        schedulePinchZoom() {
+            if (!this.currentMidpoint) return;
+            const anchor = {
+                clientX: this.currentMidpoint.x,
+                clientY: this.currentMidpoint.y
+            };
+            const fromAnchor = this.renderedPinchMidpoint
+                ? {
+                    clientX: this.renderedPinchMidpoint.x,
+                    clientY: this.renderedPinchMidpoint.y
+                }
+                : anchor;
+
+            this.pendingPinchZoom = {
+                zoom: this.targetZoom,
+                anchor,
+                fromAnchor
+            };
+            if (this.pinchFrame) return;
+
+            this.pinchFrame = requestAnimationFrame(() => {
+                this.pinchFrame = 0;
+                const pending = this.pendingPinchZoom;
+                this.pendingPinchZoom = null;
+                if (!pending || !this.pinching || !this.overlay.isConnected) return;
+
+                this.reader?.setZoom?.(pending.zoom, pending.anchor, {
+                    snap: false,
+                    fromAnchor: pending.fromAnchor
+                });
+                this.renderedPinchMidpoint = {
+                    x: pending.anchor.clientX,
+                    y: pending.anchor.clientY
+                };
+                this.updateGrabCursor();
+            });
+        }
+
+        flushPinchZoom() {
+            if (this.pinchFrame) cancelAnimationFrame(this.pinchFrame);
+            this.pinchFrame = 0;
+            const pending = this.pendingPinchZoom;
+            this.pendingPinchZoom = null;
+            if (!pending || !this.overlay.isConnected) return;
+
+            this.reader?.setZoom?.(pending.zoom, pending.anchor, {
+                snap: false,
+                fromAnchor: pending.fromAnchor
+            });
+            this.renderedPinchMidpoint = {
+                x: pending.anchor.clientX,
+                y: pending.anchor.clientY
+            };
+            this.updateGrabCursor();
         }
 
         markPageMotion(side) {
@@ -526,24 +455,8 @@
             this.targetZoom = this.startZoom;
             this.startMidpoint = midpoint(first, second);
             this.currentMidpoint = this.startMidpoint;
-            this.startScrollLeft = this.stage.scrollLeft;
-            this.startScrollTop = this.stage.scrollTop;
-            this.originalTransform = this.pages.style.transform;
-            this.originalTransformOrigin = this.pages.style.transformOrigin;
-            this.originalTransition = this.pages.style.transition;
-            this.originalWillChange = this.pages.style.willChange;
-
-            this.livePagedPinch = !this.isContinuous();
-            if (!this.livePagedPinch) {
-                const pagesRect = this.pages.getBoundingClientRect();
-                if (pagesRect.width > 0 && pagesRect.height > 0) {
-                    const xRatio = Math.min(1, Math.max(0, (this.startMidpoint.x - pagesRect.left) / pagesRect.width));
-                    const yRatio = Math.min(1, Math.max(0, (this.startMidpoint.y - pagesRect.top) / pagesRect.height));
-                    this.pages.style.transformOrigin = `${(xRatio * 100).toFixed(2)}% ${(yRatio * 100).toFixed(2)}%`;
-                }
-                this.pages.style.transition = 'none';
-                this.pages.style.willChange = 'transform';
-            }
+            this.renderedPinchMidpoint = this.startMidpoint;
+            this.pendingPinchZoom = null;
 
             for (const pointerId of this.pinchPointerIds) {
                 try {
@@ -612,23 +525,7 @@
             const ratio = currentDistance / this.startDistance;
             this.targetZoom = clampZoom(this.startZoom * ratio);
             this.currentMidpoint = midpoint(first, second);
-            if (this.livePagedPinch) {
-                this.reader?.setZoom?.(this.targetZoom, {
-                    clientX: this.currentMidpoint.x,
-                    clientY: this.currentMidpoint.y
-                });
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                return;
-            }
-
-            const previewRatio = this.targetZoom / Math.max(this.startZoom, 0.01);
-            this.stage.scrollLeft = this.startScrollLeft;
-            this.stage.scrollTop = this.startScrollTop;
-            const baseTransform = this.originalTransform && this.originalTransform !== 'none'
-                ? this.originalTransform
-                : '';
-            this.pages.style.transform = `${baseTransform} scale(${previewRatio})`.trim();
+            this.schedulePinchZoom();
 
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -787,41 +684,35 @@
 
         finishPinch() {
             if (!this.pinching) return;
+            this.flushPinchZoom();
             this.pinching = false;
-            if (this.livePagedPinch) {
-                this.livePagedPinch = false;
-                this.pinchPointerIds = [];
-                return;
-            }
-            this.pages.style.transform = this.originalTransform;
-            this.pages.style.transformOrigin = this.originalTransformOrigin;
-            this.pages.style.transition = this.originalTransition;
-            this.pages.style.willChange = this.originalWillChange;
 
             const normalized = Math.round(clampZoom(this.targetZoom) * 20) / 20;
+            const anchor = this.currentMidpoint ?? this.startMidpoint;
+            const anchorPoint = anchor
+                ? { clientX: anchor.x, clientY: anchor.y }
+                : null;
             if (Math.abs(normalized - this.startZoom) >= minimumCommittedZoomDelta) {
-                const anchor = this.currentMidpoint ?? this.startMidpoint;
-                commitZoom(this, normalized, anchor
-                    ? { clientX: anchor.x, clientY: anchor.y }
-                    : null);
+                commitZoom(this, normalized, anchorPoint);
+            } else {
+                commitZoom(this, this.startZoom, anchorPoint);
             }
             this.pinchPointerIds = [];
         }
 
         dispose() {
             this.cancelPendingTap(true);
-            if (this.pinching && !this.livePagedPinch) {
-                this.pages.style.transform = this.originalTransform;
-                this.pages.style.transformOrigin = this.originalTransformOrigin;
-                this.pages.style.transition = this.originalTransition;
-                this.pages.style.willChange = this.originalWillChange;
-            }
+            if (this.pinchFrame) cancelAnimationFrame(this.pinchFrame);
+            this.pinchFrame = 0;
+            this.pendingPinchZoom = null;
+            this.renderedPinchMidpoint = null;
             this.stage?.removeEventListener('pointerdown', this.onPointerDown, true);
             this.stage?.removeEventListener('pointermove', this.onPointerMove, true);
             this.stage?.removeEventListener('pointerup', this.onPointerEnd, true);
             this.stage?.removeEventListener('pointercancel', this.onPointerEnd, true);
             this.stage?.removeEventListener('wheel', this.onWheel, true);
             this.pageMutationObserver?.disconnect();
+            this.zoomObserver?.disconnect();
             this.removalObserver?.disconnect();
             this.pointers.clear();
             this.tapStarts.clear();
