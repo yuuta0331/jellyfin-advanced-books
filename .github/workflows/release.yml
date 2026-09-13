@@ -40,6 +40,9 @@ jobs:
             fi
           done
 
+      - name: Test reader zoom geometry
+        run: node scripts/test_reader_zoom.mjs
+
       - name: Validate reader render invariants
         run: python scripts/validate_reader_render.py
 
