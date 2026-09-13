@@ -96,7 +96,11 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
         }
 
         var komgaBooks = await _apiClient.GetBooksAsync(configuration, cancellationToken).ConfigureAwait(false);
-        var seriesCache = new Dictionary<string, KomgaSeriesDto?>(StringComparer.Ordinal);
+        var komgaSeries = await _apiClient.GetSeriesAsync(configuration, cancellationToken).ConfigureAwait(false);
+        var seriesById = komgaSeries
+            .Where(static series => !series.Deleted && !string.IsNullOrWhiteSpace(series.Id))
+            .GroupBy(static series => series.Id, StringComparer.Ordinal)
+            .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
         var matched = 0;
         var updated = 0;
         var unchanged = 0;
@@ -135,11 +139,7 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
                 }
 
                 matched++;
-                var series = await GetSeriesAsync(
-                    configuration,
-                    komgaBook.SeriesId,
-                    seriesCache,
-                    cancellationToken).ConfigureAwait(false);
+                seriesById.TryGetValue(komgaBook.SeriesId ?? string.Empty, out var series);
 
                 var itemChanged = ApplyMetadata(jellyfinBook, komgaBook, series);
                 var peopleChanged = await UpdatePeopleIfChanged(
@@ -213,35 +213,6 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
 
         progress?.Report(100);
         return result;
-    }
-
-    private async Task<KomgaSeriesDto?> GetSeriesAsync(
-        PluginConfiguration configuration,
-        string seriesId,
-        IDictionary<string, KomgaSeriesDto?> cache,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(seriesId))
-        {
-            return null;
-        }
-
-        if (cache.TryGetValue(seriesId, out var cached))
-        {
-            return cached;
-        }
-
-        var series = await _apiClient
-            .GetSeriesAsync(configuration, seriesId, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (series?.Deleted == true)
-        {
-            series = null;
-        }
-
-        cache[seriesId] = series;
-        return series;
     }
 
     private bool ApplyMetadata(Book target, KomgaBookDto source, KomgaSeriesDto? series)
