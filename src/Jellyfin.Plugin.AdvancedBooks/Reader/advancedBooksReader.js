@@ -1714,8 +1714,7 @@
 
         setZoom(value, anchor = null, options = null) {
             if (!Number.isFinite(value) || !this.stage) return;
-            const geometry = window.AdvancedBooksZoom;
-            if (!geometry) return;
+            const geometry = window.AdvancedBooksZoom;if (!geometry) return;
             const nextZoom = options?.snap === false
                 ? Math.min(4, Math.max(.5, value))
                 : Math.round(Math.min(4, Math.max(.5, value)) * 20) / 20;
