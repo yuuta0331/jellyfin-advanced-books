@@ -15,7 +15,10 @@ public static class ReaderPreferenceRules
     public const string DefaultFit = "screen";
 
     /// <summary>Current persisted reader-preference schema version.</summary>
-    public const int CurrentPreferenceSchemaVersion = 4;
+    public const int CurrentPreferenceSchemaVersion = 5;
+
+    /// <summary>Default reader UI language mode.</summary>
+    public const string DefaultLanguage = "auto";
 
     /// <summary>Default reader zoom.</summary>
     public const double DefaultZoom = 1d;
@@ -70,6 +73,10 @@ public static class ReaderPreferenceRules
     public static bool IsValidDirection(string? value)
         => value is "rtl" or "ltr";
 
+    /// <summary>Returns whether a reader UI language value is supported.</summary>
+    public static bool IsValidLanguage(string? value)
+        => value is "auto" or "en" or "ja" or "de" or "fr" or "es" or "zh-CN";
+
     /// <summary>Returns whether a fit value is supported.</summary>
     public static bool IsValidFit(string? value)
         => value is "screen" or "width" or "height" or "original";
@@ -97,6 +104,10 @@ public static class ReaderPreferenceRules
     /// <summary>Normalizes a stored direction, falling back when stale or unknown.</summary>
     public static string NormalizeDirection(string? value)
         => IsValidDirection(value) ? value! : DefaultDirection;
+
+    /// <summary>Normalizes a stored reader UI language, falling back to automatic detection.</summary>
+    public static string NormalizeLanguage(string? value)
+        => IsValidLanguage(value) ? value! : DefaultLanguage;
 
     /// <summary>Normalizes a stored fit mode, falling back when stale or unknown.</summary>
     public static string NormalizeFit(string? value)

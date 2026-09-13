@@ -17,6 +17,11 @@ REQUIRED_READER_KEYS = (
     "Advanced Reader",
     "Pages",
     "Reader settings",
+    "Reading",
+    "Appearance",
+    "Behavior",
+    "Language",
+    "Automatic (Jellyfin)",
     "Single page",
     "Double page",
     "Vertical continuous",
@@ -93,11 +98,19 @@ def main() -> int:
 
     require("document.documentElement.lang" in reader, "Reader locale does not follow Jellyfin document language")
     require("navigator.language" in reader, "Reader locale has no browser fallback")
+    require("setLocale" in reader and "languagePreference" in reader,
+            "Reader localization has no persisted language override bridge")
     require("dataset.abAction" in reader, "Localization bridge does not annotate stable reader actions")
     require('button[data-ab-action="settings"]' in preferences,
             "Preferences still depends only on localized Reader settings title")
     require('button[data-ab-action="zoom-reset"]' in preferences,
             "Preferences still depends only on localized zoom title")
+    require("language.dataset.abControl = 'language'" in preferences,
+            "Reader preferences do not expose the language selector")
+    require("AdvancedBooksI18n?.setLocale" in preferences,
+            "Reader preferences do not apply language changes live")
+    require("advancedBooksReaderSettingsSections" in preferences,
+            "Reader settings are not organized into sections")
     require('button[data-ab-action="zoom-reset"]' in gestures,
             "Gestures still depends only on localized zoom title")
     require("advancedBooksReaderTitle" in reader and "return;" in reader,

@@ -21,7 +21,8 @@ public sealed record ReaderPreferencesDto(
     bool ShowMetadataSeries,
     bool ShowMetadataIssue,
     bool ShowMetadataYear,
-    bool AutoScrollMetadata);
+    bool AutoScrollMetadata,
+    string Language);
 
 /// <summary>
 /// Replaces the current user's Advanced Reader preferences.
@@ -75,4 +76,7 @@ public sealed class UpdateReaderPreferencesRequest
 
     /// <summary>Gets or sets whether overflowing reader metadata scrolls automatically.</summary>
     public bool AutoScrollMetadata { get; set; } = ReaderPreferenceRules.DefaultAutoScrollMetadata;
+
+    /// <summary>Gets or sets the reader UI language or automatic language detection.</summary>
+    public string Language { get; set; } = ReaderPreferenceRules.DefaultLanguage;
 }

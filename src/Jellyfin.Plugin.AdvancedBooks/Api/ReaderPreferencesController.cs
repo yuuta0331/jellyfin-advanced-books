@@ -34,6 +34,7 @@ public sealed class ReaderPreferencesController : ControllerBase
     private const string ShowMetadataIssueKey = "showMetadataIssue";
     private const string ShowMetadataYearKey = "showMetadataYear";
     private const string AutoScrollMetadataKey = "autoScrollMetadata";
+    private const string LanguageKey = "language";
     private const string PreferenceSchemaVersionKey = "schemaVersion";
 
     // Stable pseudo-item namespace reserved for global Advanced Reader preferences.
@@ -86,6 +87,7 @@ public sealed class ReaderPreferencesController : ControllerBase
         stored.TryGetValue(ShowMetadataIssueKey, out var showMetadataIssueText);
         stored.TryGetValue(ShowMetadataYearKey, out var showMetadataYearText);
         stored.TryGetValue(AutoScrollMetadataKey, out var autoScrollMetadataText);
+        stored.TryGetValue(LanguageKey, out var language);
         stored.TryGetValue(PreferenceSchemaVersionKey, out var schemaVersionText);
 
         var schemaVersion = 1;
@@ -144,7 +146,8 @@ public sealed class ReaderPreferencesController : ControllerBase
             showMetadataSeries,
             showMetadataIssue,
             showMetadataYear,
-            autoScrollMetadata));
+            autoScrollMetadata,
+            ReaderPreferenceRules.NormalizeLanguage(language)));
     }
 
     /// <summary>Replaces the current user's global Advanced Reader preferences.</summary>
@@ -199,6 +202,11 @@ public sealed class ReaderPreferencesController : ControllerBase
             return InvalidPreference("background", request.Background);
         }
 
+        if (!ReaderPreferenceRules.IsValidLanguage(request.Language))
+        {
+            return InvalidPreference("language", request.Language);
+        }
+
         var normalizedZoom = ReaderPreferenceRules.NormalizeZoom(request.Zoom);
         var values = new Dictionary<string, string?>
         {
@@ -218,6 +226,7 @@ public sealed class ReaderPreferencesController : ControllerBase
             [ShowMetadataIssueKey] = request.ShowMetadataIssue.ToString(),
             [ShowMetadataYearKey] = request.ShowMetadataYear.ToString(),
             [AutoScrollMetadataKey] = request.AutoScrollMetadata.ToString(),
+            [LanguageKey] = request.Language,
             [PreferenceSchemaVersionKey] = ReaderPreferenceRules.CurrentPreferenceSchemaVersion.ToString(CultureInfo.InvariantCulture)
         };
 
@@ -243,7 +252,8 @@ public sealed class ReaderPreferencesController : ControllerBase
             request.ShowMetadataSeries,
             request.ShowMetadataIssue,
             request.ShowMetadataYear,
-            request.AutoScrollMetadata));
+            request.AutoScrollMetadata,
+            request.Language));
     }
 
     private async Task<User?> GetCurrentUser()

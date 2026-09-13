@@ -567,12 +567,14 @@
 
             const zoomRow = document.createElement('div');
             zoomRow.className = 'advancedBooksReaderZoomRow';
+            zoomRow.dataset.abControl = 'zoom';
             zoomRow.append(this.zoomOutButton, this.zoomResetButton, this.zoomInButton);
 
             let controlSequence = 0;
             const row = (labelText, control) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'advancedBooksReaderSettingRow';
+                if (control?.dataset?.abControl) wrapper.dataset.abSetting = control.dataset.abControl;
                 const label = document.createElement('label');
                 label.textContent = labelText;
                 if (control instanceof HTMLElement && control.tagName !== 'DIV') {
