@@ -173,11 +173,14 @@
             const continuous = reader.isContinuous?.() ?? session.isContinuous();
 
             if (continuous) {
-                const pointed = document.elementFromPoint(sourceFocus.clientX, sourceFocus.clientY)
-                    ?.closest?.('.advancedBooksReaderPageSlot');
-                const element = pointed?.isConnected
+                const hit = document.elementFromPoint(sourceFocus.clientX, sourceFocus.clientY);
+                const pointed = hit?.closest?.('.advancedBooksReaderPageSlot');
+                const slot = pointed?.isConnected
                     ? pointed
                     : reader.continuousElements?.[reader.currentPage] ?? null;
+                const element = hit instanceof HTMLImageElement && hit.closest('.advancedBooksReaderPageSlot') === slot
+                    ? hit
+                    : slot;
                 const before = element?.getBoundingClientRect?.();
                 const xRatio = before?.width > 0
                     ? Math.max(0, Math.min(1, (sourceFocus.clientX - before.left) / before.width))
