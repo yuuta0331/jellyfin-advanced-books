@@ -35,7 +35,11 @@ CI creates the package twice from the same Release build and compares the result
 
 ## Release packaging
 
-Release metadata is defined in `build.yaml` and must match the plugin project's `<Version>`. Validate it with:
+Release metadata is defined in `build.yaml` and must match the plugin project's `<Version>`. Each release must also include a structured Markdown note at `release-notes/v<version>.md`.
+
+Keep the short `build.yaml` changelog suitable for Jellyfin's Catalog history, and use the versioned Markdown file for the human-facing GitHub Release page. Prefer clear sections and bullets such as Highlights, Reader UI & UX, Settings, Localization, Accessibility, Updating, and other sections that fit the release. Do not repeat the release title inside the body; GitHub already displays it above the notes.
+
+Validate release metadata with:
 
 ```bash
 python scripts/validate_release.py
@@ -60,9 +64,9 @@ AdvancedBooks_0.14.0.0.zip.sha256
 
 The MD5 value is intentional because Jellyfin 12 verifies plugin repository packages against the manifest checksum using MD5. SHA-256 is published alongside it for stronger manual integrity checking.
 
-`.github/workflows/release.yml` runs automatically on `main` only when `build.yaml` changes, plus manual dispatch. That makes the release-version metadata the deliberate publish trigger and prevents ordinary docs/manifest pushes from rebuilding the plugin. It validates/builds/tests the exact commit, creates the package, publishes a GitHub prerelease if that version tag does not already exist, downloads the published ZIP again, and generates the manifest entry from the bytes of that published asset. The generated manifest commit includes a CI-skip marker as an additional guard against recursive workflow runs.
+`.github/workflows/release.yml` runs automatically on `main` only when `build.yaml` changes, plus manual dispatch. That makes the release-version metadata the deliberate publish trigger and prevents ordinary docs/manifest pushes from rebuilding the plugin. It validates/builds/tests the exact commit, requires `release-notes/v<version>.md`, creates the package, publishes a GitHub prerelease if that version tag does not already exist, refreshes the GitHub Release body from the structured Markdown notes, downloads the published ZIP again, and generates the manifest entry from the bytes of that published asset. The generated manifest commit includes a CI-skip marker as an additional guard against recursive workflow runs.
 
-The workflow updates root `manifest.json` with version, target ABI, release URL, MD5 checksum, UTC timestamp and changelog. Re-running the workflow for an existing release preserves the published release assets and can reconstruct the manifest entry from the already-published ZIP.
+The workflow updates root `manifest.json` with version, target ABI, release URL, MD5 checksum, UTC timestamp and the concise Catalog changelog from `build.yaml`. Re-running the workflow for an existing release preserves the published release assets, refreshes the human-facing Release notes, and can reconstruct the manifest entry from the already-published ZIP.
 
 The public repository manifest is intended for Jellyfin's standard Repository URL flow. Release automation regenerates the newest manifest entry from the actually published ZIP, so the installer checksum and source URL remain synchronized.
 
