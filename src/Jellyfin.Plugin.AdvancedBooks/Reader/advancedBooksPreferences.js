@@ -198,6 +198,10 @@
 .advancedBooksReaderSettingsPanel.ab-sheet-resizing{transition:none!important}
 .advancedBooksReaderOverlay.ab-hide-page-position .advancedBooksReaderPageSliderValue{display:none!important}
 .advancedBooksReaderOverlay.ab-hide-page-position.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom{display:none!important}
+.advancedBooksReaderChromeBottom{left:50%;right:auto;width:min(58rem,calc(100vw - 1.5rem));min-height:3.5rem;padding:.5rem .6rem calc(.5rem + env(safe-area-inset-bottom,0px));border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(17,17,19,.72);box-shadow:0 10px 32px rgba(0,0,0,.34);backdrop-filter:blur(14px) saturate(1.08);transform:translateX(-50%)}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom{opacity:.92;pointer-events:none;width:auto;min-width:4.4rem;min-height:2rem;padding:.18rem .65rem calc(.18rem + env(safe-area-inset-bottom,0px));gap:0;transform:translateX(-50%)}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom .advancedBooksReaderNavButton,.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom .advancedBooksReaderPageSlider,.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom .advancedBooksReaderSliderPreview{display:none!important}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom .advancedBooksReaderPageSliderValue{min-width:auto;padding:0;font-size:.8rem;opacity:.86}
 .advancedBooksReaderSettingsSections{display:grid;gap:.65rem}
 .advancedBooksReaderSettingsSection{padding:.72rem;border:1px solid rgba(255,255,255,.1);border-radius:.72rem;background:rgba(255,255,255,.035)}
 .advancedBooksReaderSettingsSection:not([open])>:not(summary){display:none!important}
@@ -227,6 +231,18 @@
 }
 @media(prefers-reduced-motion:reduce){.advancedBooksReaderMetadataLine.ab-metadata-marquee .advancedBooksReaderMetadataText{animation:none!important}.advancedBooksReaderMetadataLine.ab-metadata-marquee{mask-image:none}}
 @media(max-width:700px){
+    .advancedBooksReaderChrome{left:.45rem;right:.45rem;border:1px solid rgba(255,255,255,.12);background:rgba(16,16,18,.64);box-shadow:0 8px 28px rgba(0,0,0,.28);backdrop-filter:blur(14px) saturate(1.1)}
+    .advancedBooksReaderChromeTop{top:calc(.4rem + env(safe-area-inset-top,0px));min-height:3.15rem;padding:.3rem .38rem;gap:.3rem;border-radius:1.55rem}
+    .advancedBooksReaderMetadata{flex:1 1 0;max-width:none;min-width:0}
+    .advancedBooksReaderSubtitle{font-size:.7rem}
+    .advancedBooksReaderCounter{display:none}
+    .advancedBooksReaderTopSpacer{display:none}
+    .advancedBooksReaderChromeBottom{left:50%;right:auto;width:calc(100vw - .9rem);bottom:calc(.4rem + env(safe-area-inset-bottom,0px));min-height:3.4rem;gap:.3rem;padding:.32rem .38rem;border-radius:1.55rem}
+    .advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom{left:50%;right:auto;width:auto;min-width:4.2rem;bottom:calc(.4rem + env(safe-area-inset-bottom,0px));border-radius:999px}
+    .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.6rem;block-size:2.6rem;min-width:2.6rem;min-height:2.6rem;max-width:2.6rem;max-height:2.6rem;padding:0;flex:0 0 2.6rem}
+    .advancedBooksReaderPageSlider{height:2.4rem}
+    .advancedBooksReaderPageSliderValue{min-width:4.2rem;font-size:.84rem}
+    .advancedBooksReaderProgressRail{height:2px}
     .advancedBooksReaderSettingsPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;height:min(var(--ab-sheet-height,84dvh),46rem);max-height:min(92dvh,52rem);border-radius:1.25rem 1.25rem 0 0}
     .advancedBooksReaderSettingsBody{padding:.7rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
     .advancedBooksReaderSheetHandle{display:flex}
@@ -235,6 +251,9 @@
     .advancedBooksReaderHelpGrid{grid-template-columns:minmax(7rem,.8fr) minmax(0,1.4fr);gap:.42rem .65rem}
     .advancedBooksReaderSettingsSections{gap:.55rem}
     .advancedBooksReaderSettingsSection{padding:.68rem;border-radius:.82rem}
+    .advancedBooksReaderMoreButton{display:inline-flex}
+    .advancedBooksReaderMoreSource{display:none!important}
+    .advancedBooksReaderMoreMenu{position:absolute;z-index:11;top:calc(4rem + env(safe-area-inset-top,0px));right:.45rem;display:grid;min-width:12.5rem;padding:.38rem;border:1px solid rgba(255,255,255,.14);border-radius:.8rem;background:rgba(18,18,20,.96);box-shadow:0 14px 42px rgba(0,0,0,.5);backdrop-filter:blur(16px)}
 }
 `;
         document.head.appendChild(style);
@@ -1084,6 +1103,7 @@
         session.lastSaved = serialize(session.latestPreferences);
         attachSettingsSheet(session);
         attachHelp(session);
+        attachMoreMenu(session);
         installInteractionGuard(session);
 
         session.onControlChange = event => {
