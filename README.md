@@ -17,7 +17,7 @@ Advanced comic, manga, magazine and book support for **Jellyfin 12**.
 - Thumbnail page navigator and direct page scrubber
 - Per-user reading progress and reader preferences stored in Jellyfin
 - Jellyfin title, author, series, issue and year display with visibility controls
-- English, Japanese, German, French, Spanish and Simplified Chinese UI
+- English, Japanese, German, French, Spanish and Simplified Chinese UI with automatic detection or a per-user language override
 - Komga-compatible `_oneshots` handling without reorganizing the media library
 - Read-only archive access with bounded extraction, traversal checks and other safety limits
 
