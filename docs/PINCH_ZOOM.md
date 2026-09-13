@@ -10,7 +10,7 @@ The responsibilities are deliberately separated:
 - `advancedBooksZoom.js` contains only reusable geometry: focal-point normalization, rendered paged bounds, paged pan clamping, and continuous image/slot anchor capture and restoration.
 - `advancedBooksGestures.js` interprets touch, double-tap, pointer, and wheel input. It calls the Reader API and **must not replace** `reader.setZoom` or `reader.applyTransform`.
 
-The Zoom Geometry script is a required JavaScript Injector entry and is registered before Reader Core. It is also an embedded resource verified from the built plugin DLL.
+The Zoom Geometry script is a required JavaScript Injector entry and an embedded resource verified from the built plugin DLL. Reader Core resolves it when zoom is actually used; correctness does not depend on the persisted JavaScript Injector list order during upgrades.
 
 ## Pinch lifecycle
 
@@ -71,4 +71,4 @@ Source validation rejects the former layered implementation, including:
 - `livePagedPinch`;
 - the temporary `previewRatio` pinch transform.
 
-Validation also requires source-to-target midpoint tracking, actual-image continuous anchoring, rendered paged pan clamping, Core-owned touch-action handling, and registration of Zoom Geometry before Reader Core.
+Validation also requires source-to-target midpoint tracking, actual-image continuous anchoring, rendered paged pan clamping, Core-owned touch-action handling, and the presence of the required Zoom Geometry registration.
