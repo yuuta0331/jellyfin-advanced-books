@@ -33,6 +33,8 @@ REQUIRED_READER_KEYS = (
     "Next page",
     "Zoom in",
     "Zoom out",
+    "Double tap",
+    "Zoom tapped area / restore",
     "Metadata",
     "Title",
     "Authors",
