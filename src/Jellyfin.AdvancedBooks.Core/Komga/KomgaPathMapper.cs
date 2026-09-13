@@ -117,23 +117,68 @@ public static class KomgaPathMapper
         }
 
         var candidate = bookUrl.Trim();
-        if (Uri.TryCreate(candidate, UriKind.Absolute, out var uri))
+        if (candidate.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
         {
-            if (!uri.IsFile)
+            candidate = DecodeFileUriPath(candidate);
+            if (candidate.Length == 0)
             {
                 return false;
             }
-
-            candidate = Uri.UnescapeDataString(uri.LocalPath);
         }
-        else if (candidate.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+        else if (LooksLikeWindowsDrivePath(candidate))
+        {
+            candidate = Uri.UnescapeDataString(candidate);
+        }
+        else if (Uri.TryCreate(candidate, UriKind.Absolute, out var absoluteUri)
+                 && !string.IsNullOrEmpty(absoluteUri.Scheme))
         {
             return false;
+        }
+        else
+        {
+            candidate = Uri.UnescapeDataString(candidate);
         }
 
         path = NormalizeComparablePath(candidate);
         return path.Length > 0;
     }
+
+    private static string DecodeFileUriPath(string value)
+    {
+        var encoded = value["file:".Length..];
+
+        // Komga commonly emits file:/path and file:///path. Keep UNC file://host/share
+        // recognizable while removing only URI syntax, not filesystem separators.
+        if (encoded.StartsWith("///", StringComparison.Ordinal))
+        {
+            encoded = encoded[2..];
+        }
+        else if (encoded.StartsWith("//", StringComparison.Ordinal))
+        {
+            // UNC form: file://server/share -> //server/share.
+            encoded = "//" + encoded[2..];
+        }
+
+        var decoded = Uri.UnescapeDataString(encoded);
+
+        // RFC file URIs for Windows drives often encode an extra leading slash:
+        // file:///G:/Books/A.cbz -> /G:/Books/A.cbz.
+        if (decoded.Length >= 3
+            && decoded[0] == '/'
+            && char.IsAsciiLetter(decoded[1])
+            && decoded[2] == ':')
+        {
+            decoded = decoded[1..];
+        }
+
+        return decoded;
+    }
+
+    private static bool LooksLikeWindowsDrivePath(string value)
+        => value.Length >= 3
+            && char.IsAsciiLetter(value[0])
+            && value[1] == ':'
+            && (value[2] == '/' || value[2] == '\\');
 
     private static bool HasPrefixBoundary(string path, string prefix, StringComparison comparison)
     {
