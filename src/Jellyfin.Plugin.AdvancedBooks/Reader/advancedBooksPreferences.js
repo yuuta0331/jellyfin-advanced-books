@@ -459,7 +459,8 @@
             ['F', 'Fullscreen'],
             ['Esc', 'Close panel, then reader'],
             ['Drag', 'Pan while zoomed'],
-            ['Two-finger pinch', 'Zoom when touch gestures are enabled']
+            ['Two-finger pinch', 'Zoom when touch gestures are enabled'],
+            ['Double tap', 'Zoom tapped area / restore']
         ];
         for (const [key, description] of shortcuts) {
             const keyElement = document.createElement('div');
