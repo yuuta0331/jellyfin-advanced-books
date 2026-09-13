@@ -176,10 +176,20 @@
 .advancedBooksReaderHelpGrid{display:grid;grid-template-columns:minmax(7rem,.8fr) minmax(10rem,1.4fr);gap:.45rem .9rem;font-size:.9rem;line-height:1.35}
 .advancedBooksReaderHelpKey{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.8}
 .advancedBooksReaderSettingsPanel{scrollbar-width:thin;overscroll-behavior:contain}
-.advancedBooksReaderSettingsSections{display:grid;gap:.75rem}
-.advancedBooksReaderSettingsSection{display:grid;gap:.58rem;padding:.78rem;border:1px solid rgba(255,255,255,.1);border-radius:.72rem;background:rgba(255,255,255,.035)}
-.advancedBooksReaderSettingsSectionTitle{font-size:.82rem;font-weight:700;letter-spacing:.02em;text-transform:none;opacity:.76}
+.advancedBooksReaderSettingsSections{display:grid;gap:.65rem}
+.advancedBooksReaderSettingsSection{padding:.72rem;border:1px solid rgba(255,255,255,.1);border-radius:.72rem;background:rgba(255,255,255,.035)}
+.advancedBooksReaderSettingsSection:not([open])>:not(summary){display:none!important}
+.advancedBooksReaderSettingsSection[open]{display:grid;gap:.58rem}
+.advancedBooksReaderSettingsSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:.7rem;min-height:2rem;font-size:.86rem;font-weight:700;letter-spacing:.01em;opacity:.86;cursor:pointer;list-style:none;user-select:none}
+.advancedBooksReaderSettingsSectionTitle::-webkit-details-marker{display:none}
+.advancedBooksReaderSettingsSectionTitle::after{content:"⌄";font-size:1rem;line-height:1;opacity:.68;transform:rotate(0deg);transition:transform .16s ease}
+.advancedBooksReaderSettingsSection[open]>.advancedBooksReaderSettingsSectionTitle::after{transform:rotate(180deg)}
 .advancedBooksReaderSettingsSection .advancedBooksReaderSettingRow{padding:.08rem 0}
+.advancedBooksReaderMoreButton,.advancedBooksReaderMoreMenu{display:none}
+.advancedBooksReaderMoreMenu[hidden]{display:none!important}
+.advancedBooksReaderMoreMenuItem{display:flex;align-items:center;gap:.7rem;width:100%;min-height:2.8rem;padding:.55rem .75rem;border:0;border-radius:.55rem;background:transparent;color:#fff;font:inherit;text-align:left;cursor:pointer}
+.advancedBooksReaderMoreMenuItem:hover,.advancedBooksReaderMoreMenuItem:focus-visible{background:rgba(255,255,255,.1);outline:2px solid var(--ab-accent);outline-offset:-2px}
+.advancedBooksReaderMoreMenuIcon{display:inline-flex;align-items:center;justify-content:center;width:1.4rem;font-size:1.05rem;opacity:.82}
 .advancedBooksReaderSettingsHeader{position:sticky;top:-1rem;z-index:2;margin:-1rem -1rem 0;padding:1rem;background:linear-gradient(to bottom,rgba(20,20,20,.99) 75%,rgba(20,20,20,0));backdrop-filter:blur(12px)}
 .advancedBooksReaderMetadata{overflow:hidden}
 .advancedBooksReaderMetadataLine{min-width:0;overflow:hidden;white-space:nowrap}
@@ -210,9 +220,12 @@
     .advancedBooksReaderHelpPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(84dvh,46rem);border-radius:1.25rem 1.25rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
     .advancedBooksReaderHelpGrid{grid-template-columns:1fr;gap:.18rem}
     .advancedBooksReaderHelpKey{margin-top:.5rem}
-    .advancedBooksReaderSettingsSections{gap:.65rem}
-    .advancedBooksReaderSettingsSection{padding:.7rem;border-radius:.82rem}
+    .advancedBooksReaderSettingsSections{gap:.55rem}
+    .advancedBooksReaderSettingsSection{padding:.68rem;border-radius:.82rem}
     .advancedBooksReaderSettingsPanel::before{content:"";display:block;width:2.5rem;height:.25rem;margin:-.3rem auto .35rem;border-radius:999px;background:rgba(255,255,255,.28)}
+    .advancedBooksReaderMoreButton{display:inline-flex}
+    .advancedBooksReaderMoreSource{display:none!important}
+    .advancedBooksReaderMoreMenu{position:absolute;z-index:11;top:calc(4rem + env(safe-area-inset-top,0px));right:.45rem;display:grid;min-width:12.5rem;padding:.38rem;border:1px solid rgba(255,255,255,.14);border-radius:.8rem;background:rgba(18,18,20,.96);box-shadow:0 14px 42px rgba(0,0,0,.5);backdrop-filter:blur(16px)}
     .advancedBooksReaderSettingsHeader{top:-1rem}
 }
 `;
@@ -265,7 +278,7 @@
 
         const fragment = document.createDocumentFragment();
         fragment.append(
-            makeRow('Language', language),
+            makeRow('Reader language', language),
             makeRow('Metadata header', makeSelect('showMetadata')),
             makeRow('Title', makeSelect('showMetadataTitle')),
             makeRow('Authors', makeSelect('showMetadataAuthors')),
@@ -294,13 +307,15 @@
             ['Metadata', ['showMetadata', 'showMetadataTitle', 'showMetadataAuthors', 'showMetadataSeries', 'showMetadataIssue', 'showMetadataYear', 'autoScrollMetadata']],
             ['Language', ['language']]
         ];
+        const compact = window.matchMedia?.('(max-width:700px)')?.matches === true;
 
         for (const [titleText, controls] of sectionDefinitions) {
-            const section = document.createElement('section');
+            const section = document.createElement('details');
             section.className = 'advancedBooksReaderSettingsSection';
             section.dataset.abSettingsSection = titleText.toLowerCase();
+            section.open = titleText === 'Reading' || (!compact && titleText === 'Appearance');
 
-            const title = document.createElement('div');
+            const title = document.createElement('summary');
             title.className = 'advancedBooksReaderSettingsSectionTitle';
             title.textContent = titleText;
             section.appendChild(title);
@@ -311,7 +326,17 @@
             }
 
             if (titleText === 'Appearance' && hint) section.appendChild(hint);
-            if (section.children.length > 1) host.appendChild(section);
+            if (section.children.length > 1) {
+                if (compact) {
+                    section.addEventListener('toggle', () => {
+                        if (!section.open) return;
+                        for (const other of host.querySelectorAll('.advancedBooksReaderSettingsSection[open]')) {
+                            if (other !== section) other.open = false;
+                        }
+                    });
+                }
+                host.appendChild(section);
+            }
         }
 
         for (const row of Array.from(toolbar.querySelectorAll('.advancedBooksReaderSettingRow'))) {
@@ -393,6 +418,7 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'advancedBooksReaderIconButton';
+        button.dataset.abAction = 'help';
         button.textContent = '?';
         button.title = 'Reader help';
         button.setAttribute('aria-label', 'Reader help');
@@ -466,12 +492,130 @@
         session.overlay.appendChild(panel);
         session.helpButton = button;
         session.helpPanel = panel;
+        session.openHelp = () => setOpen(true);
+        session.closeHelp = () => setOpen(false);
         session.overlay.__advancedBooksCloseHelp = () => {
             if (panel.hidden) return false;
             setOpen(false);
             button.focus?.({ preventScroll: true });
             return true;
         };
+    }
+
+    function attachMoreMenu(session) {
+        const top = session.overlay.querySelector('.advancedBooksReaderChromeTop');
+        const settingsButton = top?.querySelector('button[data-ab-action="settings"],button[title="Reader settings"]');
+        const fullscreenButton = top?.querySelector('button[data-ab-action="fullscreen"]')
+            ?? Array.from(top?.querySelectorAll('button') ?? []).find(candidate => candidate.textContent?.trim() === '⛶');
+        const helpButton = session.helpButton;
+        if (!top || !settingsButton || !helpButton) return;
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'advancedBooksReaderIconButton advancedBooksReaderMoreButton';
+        button.dataset.abAction = 'more';
+        button.textContent = '⋯';
+        button.title = 'More options';
+        button.setAttribute('aria-label', 'More options');
+        button.setAttribute('aria-expanded', 'false');
+
+        const menu = document.createElement('div');
+        menu.className = 'advancedBooksReaderMoreMenu';
+        menu.hidden = true;
+        menu.setAttribute('role', 'menu');
+
+        const makeItem = (iconText, labelText, handler) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'advancedBooksReaderMoreMenuItem';
+            item.setAttribute('role', 'menuitem');
+            const icon = document.createElement('span');
+            icon.className = 'advancedBooksReaderMoreMenuIcon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = iconText;
+            const label = document.createElement('span');
+            label.textContent = labelText;
+            item.append(icon, label);
+            item.addEventListener('click', handler);
+            item.__advancedBooksLabel = label;
+            return item;
+        };
+
+        const fullscreenItem = makeItem('⛶', 'Enter fullscreen', () => {
+            setOpen(false);
+            fullscreenButton?.click();
+        });
+        fullscreenItem.hidden = !fullscreenButton || fullscreenButton.hidden;
+
+        const helpItem = makeItem('?', 'Reader help', () => {
+            setOpen(false);
+            session.openHelp?.();
+        });
+        menu.append(fullscreenItem, helpItem);
+
+        if (fullscreenButton) fullscreenButton.classList.add('advancedBooksReaderMoreSource');
+        helpButton.classList.add('advancedBooksReaderMoreSource');
+
+        const reader = session.overlay.__advancedBooksReaderSession;
+        const syncFullscreenLabel = () => {
+            if (!fullscreenButton) return;
+            fullscreenItem.hidden = fullscreenButton.hidden;
+            const label = fullscreenButton.getAttribute('aria-label')
+                || fullscreenButton.getAttribute('title')
+                || 'Enter fullscreen';
+            fullscreenItem.__advancedBooksLabel.textContent = label;
+        };
+
+        const setOpen = open => {
+            const next = Boolean(open);
+            if (next) {
+                if (settingsButton.getAttribute('aria-expanded') === 'true') settingsButton.click();
+                session.closeHelp?.();
+            }
+            menu.hidden = !next;
+            button.setAttribute('aria-expanded', String(next));
+            if (next) {
+                reader?.showControls?.(false);
+                const first = Array.from(menu.querySelectorAll('button:not([hidden])'))[0];
+                first?.focus?.({ preventScroll: true });
+            } else if (settingsButton.getAttribute('aria-expanded') !== 'true') {
+                reader?.showControls?.();
+            }
+        };
+
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+            setOpen(menu.hidden);
+        });
+        session.onMoreOutside = event => {
+            if (menu.hidden) return;
+            if (menu.contains(event.target) || button.contains(event.target)) return;
+            setOpen(false);
+        };
+        document.addEventListener('pointerdown', session.onMoreOutside, true);
+
+        session.onMoreSettingsClick = () => setOpen(false);
+        settingsButton.addEventListener('click', session.onMoreSettingsClick, true);
+        session.onFullscreenChange = syncFullscreenLabel;
+        document.addEventListener('fullscreenchange', session.onFullscreenChange);
+        session.onLocaleChanged = syncFullscreenLabel;
+        document.addEventListener('advancedbooks:locale-changed', session.onLocaleChanged);
+
+        const closePanel = session.overlay.__advancedBooksCloseHelp;
+        session.overlay.__advancedBooksCloseHelp = () => {
+            if (!menu.hidden) {
+                setOpen(false);
+                button.focus?.({ preventScroll: true });
+                return true;
+            }
+            return closePanel?.() ?? false;
+        };
+
+        top.insertBefore(button, settingsButton);
+        session.overlay.appendChild(menu);
+        session.moreButton = button;
+        session.moreMenu = menu;
+        syncFullscreenLabel();
     }
 
     function setSelect(select, value) {
@@ -654,8 +798,15 @@
         session.removalObserver?.disconnect();
         session.controls.toolbar?.removeEventListener('change', session.onControlChange, true);
         if (session.overlay?.__advancedBooksCloseHelp) delete session.overlay.__advancedBooksCloseHelp;
-        session.controls.toolbar?.parentElement?.querySelector('button[data-ab-action="settings"],button[title="Reader settings"]')
-            ?.removeEventListener('click', session.onSettingsClick, true);
+        const settingsButton = session.controls.toolbar?.parentElement?.querySelector('button[data-ab-action="settings"],button[title="Reader settings"]');
+        settingsButton?.removeEventListener('click', session.onSettingsClick, true);
+        settingsButton?.removeEventListener('click', session.onMoreSettingsClick, true);
+        if (session.onMoreOutside) document.removeEventListener('pointerdown', session.onMoreOutside, true);
+        if (session.onFullscreenChange) document.removeEventListener('fullscreenchange', session.onFullscreenChange);
+        if (session.onLocaleChanged) document.removeEventListener('advancedbooks:locale-changed', session.onLocaleChanged);
+        session.helpButton?.classList.remove('advancedBooksReaderMoreSource');
+        session.moreButton?.remove();
+        session.moreMenu?.remove();
         session.helpButton?.remove();
         session.helpPanel?.remove();
         if (currentSession === session) currentSession = null;
@@ -692,8 +843,16 @@
             removalObserver: null,
             onControlChange: null,
             onSettingsClick: null,
+            onMoreSettingsClick: null,
+            onMoreOutside: null,
+            onFullscreenChange: null,
+            onLocaleChanged: null,
             helpButton: null,
-            helpPanel: null
+            helpPanel: null,
+            openHelp: null,
+            closeHelp: null,
+            moreButton: null,
+            moreMenu: null
         };
         currentSession = session;
 
@@ -702,6 +861,7 @@
         session.latestPreferences = readPreferences(session);
         session.lastSaved = serialize(session.latestPreferences);
         attachHelp(session);
+        attachMoreMenu(session);
 
         session.onControlChange = event => {
             const current = readPreferences(session);
