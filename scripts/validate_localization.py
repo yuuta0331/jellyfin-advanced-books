@@ -127,6 +127,15 @@ def main() -> int:
             "Overflow menu does not reuse the existing Help/Fullscreen actions")
     require('button[data-ab-action="zoom-reset"]' in gestures,
             "Gestures still depends only on localized zoom title")
+    require("installAnchoredZoom" in gestures and "normalizeAnchor" in gestures,
+            "Reader zoom is not anchored to the user focal point")
+    require("doubleTapDelayMs" in gestures and "handleDoubleTap" in gestures,
+            "Touch gestures do not provide double-tap zoom")
+    require("touchPan" in gestures and "stage.scrollLeft" in gestures and "stage.scrollTop" in gestures,
+            "Zoomed continuous layouts do not provide one-finger touch panning")
+    require("advancedBooksReaderOverlay.ab-controls-hidden" in preferences
+            and "advancedBooksReaderPageSliderValue" in preferences,
+            "Reader bottom controls do not collapse to the compact page-position state")
     require("advancedBooksReaderTitle" in reader and "return;" in reader,
             "Localization bridge no longer protects the user-provided title row")
     require("advancedBooksNavigatorCard" in reader,
