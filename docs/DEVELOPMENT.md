@@ -224,7 +224,7 @@ The validation requires all six supported locales in both the reader localizatio
 CI and release validation must inspect the **built plugin DLL**, not only the JavaScript source files. The `EmbeddedReaderResourceVerifier` reads managed manifest resources directly from the PE/CLI resource directory and verifies:
 
 - plugin AssemblyVersion matches the release version;
-- all seven reader resources (Localization, Core, Progress, Preferences, Navigator, Gestures and Jellyfin Integration) are present;
+- all eight reader resources (Localization, Zoom Geometry, Core, Progress, Preferences, Navigator, Gestures and Jellyfin Integration) are present;
 - every reader resource is strict UTF-8;
 - no unexpected control characters are present; and
 - each resource remains within the 96 KiB JavaScript Injector defensive limit.
@@ -238,7 +238,7 @@ dotnet run \
   --no-build \
   -- \
   src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll \
-  0.15.0.0
+  0.17.1.0
 ```
 
 A source file passing `node --check` is not sufficient evidence if the bytes embedded into the final DLL differ.
@@ -247,38 +247,40 @@ A source file passing `node --check` is not sufficient evidence if the bytes emb
 
 After Advanced Books and JavaScript Injector are both installed and Jellyfin has restarted:
 
-1. confirm the Jellyfin log reports that the Advanced Books reader was registered with JavaScript Injector;
-2. open a supported CBZ Book detail page;
-3. confirm **Advanced Reader** appears in the main detail buttons with a single reader-mode icon (not duplicated/multi-book glyphs);
-4. open it and verify only the current/nearby page endpoints are requested in browser developer tools rather than a full-book download;
-5. verify a new/default user opens with Fit Screen; upgrade a user that previously persisted legacy Fit Height and confirm it migrates to Fit Screen, then explicitly select Fit Height and confirm the current preference schema preserves that choice; verify all four fit modes in portrait/landscape and after resizing;
-6. verify Vertical Continuous and Webtoon can be scrolled rapidly through a long book containing mixed portrait, landscape, short and very tall pages while observer loading, directional prefetch and direct jumps overlap; every `.advancedBooksReaderPageSlot` must contain at most one `<img>`, no page may appear duplicated side-by-side, pages ahead are prefetched while the cache remains bounded, and the viewport marker follows the page actually being read;
-7. open **Pages**, scroll several screens downward quickly, stop on a previously unseen range, and keep the panel open for at least 10 seconds; every visible card must either show its thumbnail or a contained failure state—no visible card may remain forever as plain `Page N`; verify off-screen queued work is deprioritized/aborted, a stalled visible thumbnail can fall back to the page endpoint, and no more than two full-page fallbacks run concurrently;
-8. jump to a distant thumbnail and confirm the live reader session reaches the intended page directly without temporarily changing layouts;
-9. close the page navigator during thumbnail loading and confirm outstanding requests are aborted;
-10. select Double Page and move through portrait pages, then landscape pages and the final page; verify orientation is resolved before each spread is shown, so there is no brief incorrect two-page spread followed by a relayout. Then select LTR, Fit Width and a non-100% zoom, close the reader, and confirm those controls restore;
-11. change controls and immediately close while a preference PUT is still in flight; reopen and confirm the newest queued state wins;
-12. repeat the preference restore test from a second Jellyfin Web browser/client signed in as the same user;
-13. navigate to a middle page, close the reader, reopen it, and confirm it resumes at that page before applying saved reader controls;
-14. repeat the reopen test from a second Jellyfin Web browser/client signed in as the same user;
-15. navigate to the final page and confirm the Book becomes played in Jellyfin;
-16. reopen the completed Book and verify rereading earlier pages does not clear the played state;
-17. verify arrow keys, Page Up/Down, Space, Home/End, horizontal swipe and wheel navigation. In Single/Double Page, click/tap the left and right zones and confirm direction-aware page changes use a short horizontal transition while the center zone only toggles controls. In Vertical/Webtoon, click/tap the top and bottom zones and confirm the reader smoothly moves to the previous/next tracked page while the center zone only toggles controls; repeat with reduced-motion enabled and confirm navigation becomes immediate;
-18. confirm the top chrome auto-hides and the bottom navigation collapses after inactivity to only the current page/range plus the thin progress rail; tiny mouse jitter must keep the compact state, deliberate mouse movement or movement near a top/bottom edge must restore the full scrubber/navigation bar, hovering visible chrome must keep it open, and a center tap/click must toggle it without turning a page;
-19. drag the bottom page scrubber from the beginning to a distant page in Single, Double, Vertical and Webtoon layouts; verify the thumbnail/page preview stays directly above the active finger/pointer, the loading spinner remains centered inside the preview frame without text leaking beside it, stale preview requests are aborted, and the intended page is reached directly;
-20. hold the scrubber for longer than the normal auto-hide delay and confirm the reader chrome remains visible until scrubbing ends. Repeat while holding a button, changing a select, dragging/zooming the reading surface, scrolling Settings/Help, and keeping Help/Settings/More/Pages open; no active interaction may be hidden by the inactivity timer;
-21. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet. Confirm the header and drag handle remain fixed while only the settings body scrolls. Drag the mobile handle upward/downward to resize, drag it downward more than about 110px to close, and verify Arrow Up/Down plus Escape work when the handle is keyboard-focused;
-22. toggle **Page position** to Hide and confirm the numeric current-page/range disappears from the active bottom bar and the compact idle page pill disappears, while the thin progress rail and internal progress/resume updates continue. Reopen as the same user and confirm the choice persists. Re-enable it and confirm the position returns;
-23. open Reader Help on desktop and mobile and confirm Navigation, Zoom & pan and Reader groups remain readable, the header/close control stays fixed while the body scrolls, and opening Help keeps reader chrome visible;
-24. confirm Previous/Next use centered SVG chevrons rather than baseline-sensitive text glyphs, and confirm the hidden top counter still updates progress;
-25. open Advanced Reader, then use browser Back / Android back gesture; confirm the reader closes and the same Jellyfin detail page remains visible. Reopen it, use the reader Close button, and confirm the synthetic reader history entry is consumed without navigating away;
-26. enable **Use Advanced Reader for Jellyfin book actions**, restart Jellyfin, and test every supported Web surface: legacy detail Resume/Start-over, modern detail Play/Resume, Home/Library card center/overlay Play, list-view Play/Resume, keyboard/remote Play/Resume on a focused book card, and item-context-menu Play/Resume. Resume and generic card/list/remote Play must reopen at the server-side shared Jellyfin progress even when the current DOM has no or stale `data-positionticks`; explicit Start/Replay/Play-from-beginning must open page 1. For two-way interoperability, disable replacement and use Jellyfin's built-in ComicsPlayer to stop on a middle page, then enable replacement/restart and verify Advanced Reader resumes on that exact page. Next advance to a different page in Advanced Reader, disable replacement/restart, and verify the built-in ComicsPlayer resumes there. Confirm reaching the final page in Advanced Reader updates Jellyfin's played state, unsupported EPUB/PDF/non-archive items fall through to Jellyfin's built-in reader, and disabling replacement restores all built-in actions;
-27. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom and two-finger pinch zoom. On desktop, grab the reading surface with the primary mouse button at 100% and drag vertically/horizontally; confirm the canvas follows the mouse without accidentally triggering a top/bottom navigation tap. In paged Fit Width/Original, confirm mouse grab works whenever the canvas actually overflows, and at >100% zoom confirm the existing paged pan still works;
-28. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
-29. use a book with a deliberately long title, authors and series name. Confirm overflowing metadata automatically scrolls far enough to reveal the complete text, then disable Auto-scroll and confirm it stops. Toggle the metadata header and each Title/Authors/Series/Issue/Year field independently, reopen the reader, and verify every choice restores for the same Jellyfin user;
-30. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
-31. zoom above 100% in a paged mode, drag to pan, then close with Escape;
-32. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+1. confirm the Jellyfin log reports that **Zoom Geometry** and **Reader Core** are registered, with Zoom Geometry registered before Core;
+2. open a supported CBZ Book detail page and confirm **Advanced Reader** appears once in the main detail actions;
+3. compare the chrome against **v0.16.1.0**: desktop must use the centered compact bottom pill; narrow/mobile must use the floating rounded top/bottom chrome; mobile must expose the **…** More menu for Fullscreen/Help; inactivity must collapse the bottom controls to the page/range pill plus the thin progress rail;
+4. on the first Reader open after a full browser refresh, repeat the previous UI check. The result must already match v0.16.1.0—there must be no first-open mixture of Core full-width styles and Preferences pill styles. Inspect the document styles if needed and confirm `advancedBooksReaderHelpStyles` is ordered after `advancedBooksReaderStyles`;
+5. verify only the current/nearby page endpoints are requested rather than a full-book download;
+6. verify a new/default user opens with Fit Screen; explicitly test Fit Screen, Fit Width, Fit Height, and Original Size in portrait/landscape and after resizing;
+7. verify Vertical Continuous and Webtoon can be scrolled rapidly through mixed portrait, landscape, short, and tall pages while observer loading and prefetch overlap; every `.advancedBooksReaderPageSlot` must contain at most one image and the cache must stay bounded;
+8. open **Pages**, scroll quickly to an unseen range, and keep the panel open; visible cards must resolve to a thumbnail or contained failure state and stale work must be abortable;
+9. jump to a distant thumbnail and confirm the live Reader reaches it without temporarily changing layout; close Pages during loading and confirm outstanding requests are aborted;
+10. select Double Page and move through portrait, landscape, and final pages. Orientation must be resolved before the spread is committed. Save LTR, Fit Width, and a non-100% zoom, close, and verify they restore;
+11. change preferences and immediately close while a preference PUT is in flight; reopen and confirm the newest queued state wins;
+12. repeat preference restore from a second Jellyfin Web client signed in as the same user;
+13. navigate to a middle page, close, reopen, and confirm resume occurs before saved Reader controls are applied;
+14. navigate to a different page and immediately background/close the tab before the normal progress debounce completes; reopen and confirm the newest page was persisted. Repeat while an earlier progress PUT is already in flight;
+15. navigate to the final page and confirm the Book becomes played; reopen and verify rereading earlier pages does not clear the played state;
+16. verify arrow keys, Page Up/Down, Space, Home/End, swipe, wheel navigation, direction-aware side tap zones in Single/Double, and top/bottom tap navigation in Vertical/Webtoon. Repeat with reduced motion;
+17. drag the bottom page scrubber across a distant range in every layout; the preview must stay above the active pointer/finger, stale thumbnail requests must be aborted, and the intended page must be reached;
+18. hold the scrubber or another Reader control longer than the auto-hide timeout. Active interaction and open Settings/Help/More/Pages must keep chrome visible;
+19. open Reader Settings on desktop and mobile. Desktop must use the compact floating panel; mobile must use the resizable bottom sheet. The handle/header stay fixed while the body scrolls, downward drag can close, and keyboard resize/Escape work;
+20. toggle **Page position** to Hide. The numeric position and idle page pill disappear, while the thin progress rail and internal progress/resume continue; restore it and confirm persistence;
+21. open Reader Help on desktop/mobile and confirm its grouped, independently scrolling body does not alter the v0.16.1 chrome geometry;
+22. verify Previous/Next use centered SVG chevrons and the visually hidden top counter still updates progress;
+23. use browser Back / Android back gesture and the Reader Close button; both must close the Reader while preserving the Jellyfin detail-page navigation state;
+24. enable **Use Advanced Reader for Jellyfin book actions**, restart Jellyfin, and test legacy detail Resume/Start-over, modern detail Play/Resume, Home/Library card Play, list Play/Resume, keyboard/remote Play/Resume, and item-context-menu Play/Resume. Generic Play/Resume must use server progress; explicit Start/Replay must start at page 1;
+25. perform the two-way interoperability round trip: built-in ComicsPlayer middle page → Advanced Reader exact resume → advance in Advanced Reader → built-in ComicsPlayer exact resume. Final-page Advanced Reader state must still mark the Book played;
+26. in Single and Double Page, test + / − / 0, keyboard zoom, Ctrl+wheel at center and edges, double-tap, and two-finger pinch. All paths must report the same Reader zoom state;
+27. while paged zoom is above 100%, drag repeatedly toward every edge. The rendered page/spread must remain clamped; no path may drag the complete page into unreachable black space;
+28. rotate a phone or resize the desktop window while paged zoom/pan is active. Pan must be re-clamped to the new viewport without resetting valid position unnecessarily;
+29. in Vertical and Webtoon, test all four Fit modes with + / − / 0, Ctrl+wheel, double-tap, and pinch. Fit Screen must visibly grow/shrink tall images rather than leaving their height capped at the original viewport;
+30. in Vertical/Webtoon, pinch over actual image detail and over surrounding whitespace. Image detail should use the image as the focal anchor; whitespace may fall back to the page slot;
+31. with Vertical/Webtoon zoomed above 100%, move both pinch fingers together while keeping their distance nearly constant. The canvas must follow the moving midpoint. Then use one-finger pan;
+32. turn **Touch gestures** Off while zoomed. Native two-axis browser pan must become available immediately; turn it back On and confirm custom pinch/pan resumes;
+33. change Side padding/Page gap, long metadata/autoscroll fields, Fullscreen/F key, and language settings; reopen and verify persistence without chrome-layout changes;
+34. close/reopen after zooming and navigating and verify there are no stale overlays, stale pointer capture, duplicate images, or broken Blob URLs.
 
 ### Mobile pinch smoke test
 
@@ -298,7 +300,7 @@ Run these checks on a real touch device or browser/device mode that emits touch 
 12. Repeat double-tap near different corners/edges and confirm zoom does not jump toward the top-left. Then pinch at an off-center point and confirm the pinch midpoint stays visually anchored when the gesture commits.
 13. On desktop, test Fit Screen with +/−/0 and Ctrl+wheel over the center and all four page corners. Confirm zoom works, remains centered/anchored, and pan is clamped so the page cannot jump into unreachable black space.
 14. On a real touch device in Fit Screen, pinch at the center and near multiple page edges. Confirm the real page follows the fingers throughout the gesture and does not jump when either finger is released. Repeat in Fit Width and confirm the same page point remains anchored.
-15. Repeat the Fit Screen pinch test in Vertical/Webtoon. Confirm the page slot under the pinch stays under the same fingers even when image height is capped by the viewport; there must be no jump caused by whole-document height scaling.
+15. Repeat Fit Screen pinch in Vertical/Webtoon. Confirm the actual image point under the pinch stays under the same fingers even when the image height is viewport-limited. Move both fingers together without materially changing their distance and confirm the content follows the moving midpoint. Toggle **Touch gestures** Off while zoomed and confirm native two-axis panning is restored immediately.
 
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.
 
