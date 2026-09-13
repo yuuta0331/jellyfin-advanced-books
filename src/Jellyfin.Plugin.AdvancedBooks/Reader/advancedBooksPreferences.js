@@ -560,10 +560,9 @@
         const syncFullscreenLabel = () => {
             if (!fullscreenButton) return;
             fullscreenItem.hidden = fullscreenButton.hidden;
-            const label = fullscreenButton.getAttribute('aria-label')
-                || fullscreenButton.getAttribute('title')
-                || 'Enter fullscreen';
-            fullscreenItem.__advancedBooksLabel.textContent = label;
+            fullscreenItem.__advancedBooksLabel.textContent = document.fullscreenElement === session.overlay
+                ? 'Exit fullscreen'
+                : 'Enter fullscreen';
         };
 
         const setOpen = open => {
