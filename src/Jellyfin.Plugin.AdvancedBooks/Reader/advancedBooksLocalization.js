@@ -12,6 +12,12 @@
             'Close reader': 'リーダーを閉じる',
             'Close (Esc)': '閉じる (Esc)',
             'Reader settings': 'リーダー設定',
+            'Reading': '読書',
+            'Appearance': '表示',
+            'Behavior': '操作',
+            'Language': '言語',
+            'Automatic (Jellyfin)': '自動 (Jellyfin)',
+            'None': 'なし',
             'Close reader settings': 'リーダー設定を閉じる',
             'Close settings': '設定を閉じる',
             'Enter fullscreen': '全画面表示にする',
@@ -101,6 +107,12 @@
             'Close reader': 'Reader schließen',
             'Close (Esc)': 'Schließen (Esc)',
             'Reader settings': 'Reader-Einstellungen',
+            'Reading': 'Lesen',
+            'Appearance': 'Darstellung',
+            'Behavior': 'Verhalten',
+            'Language': 'Sprache',
+            'Automatic (Jellyfin)': 'Automatisch (Jellyfin)',
+            'None': 'Keine',
             'Close reader settings': 'Reader-Einstellungen schließen',
             'Close settings': 'Einstellungen schließen',
             'Enter fullscreen': 'Vollbild öffnen',
@@ -190,6 +202,12 @@
             'Close reader': 'Fermer le lecteur',
             'Close (Esc)': 'Fermer (Échap)',
             'Reader settings': 'Paramètres du lecteur',
+            'Reading': 'Lecture',
+            'Appearance': 'Apparence',
+            'Behavior': 'Comportement',
+            'Language': 'Langue',
+            'Automatic (Jellyfin)': 'Automatique (Jellyfin)',
+            'None': 'Aucun',
             'Close reader settings': 'Fermer les paramètres du lecteur',
             'Close settings': 'Fermer les paramètres',
             'Enter fullscreen': 'Passer en plein écran',
@@ -279,6 +297,12 @@
             'Close reader': 'Cerrar lector',
             'Close (Esc)': 'Cerrar (Esc)',
             'Reader settings': 'Ajustes del lector',
+            'Reading': 'Lectura',
+            'Appearance': 'Apariencia',
+            'Behavior': 'Comportamiento',
+            'Language': 'Idioma',
+            'Automatic (Jellyfin)': 'Automático (Jellyfin)',
+            'None': 'Ninguno',
             'Close reader settings': 'Cerrar ajustes del lector',
             'Close settings': 'Cerrar ajustes',
             'Enter fullscreen': 'Entrar en pantalla completa',
@@ -368,6 +392,12 @@
             'Close reader': '关闭阅读器',
             'Close (Esc)': '关闭 (Esc)',
             'Reader settings': '阅读器设置',
+            'Reading': '阅读',
+            'Appearance': '显示',
+            'Behavior': '操作',
+            'Language': '语言',
+            'Automatic (Jellyfin)': '自动 (Jellyfin)',
+            'None': '无',
             'Close reader settings': '关闭阅读器设置',
             'Close settings': '关闭设置',
             'Enter fullscreen': '进入全屏',
@@ -476,16 +506,57 @@
         return 'en';
     }
 
-    const locale = normalizeLocale(
-        document.documentElement.lang
-        || navigator.languages?.[0]
-        || navigator.language
-        || 'en'
-    );
-    const dictionary = dictionaries[locale] || dictionaries.en;
+    const supportedLocales = Object.freeze(['en', 'ja', 'de', 'fr', 'es', 'zh-CN']);
+    let languagePreference = 'auto';
+
+    function detectAutomaticLocale() {
+        return normalizeLocale(
+            document.documentElement.lang
+            || navigator.languages?.[0]
+            || navigator.language
+            || 'en'
+        );
+    }
+
+    let locale = detectAutomaticLocale();
+    let dictionary = dictionaries[locale] || dictionaries.en;
+    const textSources = new WeakMap();
+    const attributeSources = new WeakMap();
 
     function t(value) {
         return dictionary[value] || value;
+    }
+
+    function sourceText(element, current) {
+        const cached = textSources.get(element);
+        if (cached && current === cached.translated) return cached.source;
+        textSources.set(element, { source: current, translated: current });
+        return current;
+    }
+
+    function rememberText(element, source, translated) {
+        textSources.set(element, { source, translated });
+    }
+
+    function sourceAttribute(element, name, current) {
+        let cached = attributeSources.get(element);
+        if (!cached) {
+            cached = new Map();
+            attributeSources.set(element, cached);
+        }
+        const previous = cached.get(name);
+        if (previous && current === previous.translated) return previous.source;
+        cached.set(name, { source: current, translated: current });
+        return current;
+    }
+
+    function rememberAttribute(element, name, source, translated) {
+        let cached = attributeSources.get(element);
+        if (!cached) {
+            cached = new Map();
+            attributeSources.set(element, cached);
+        }
+        cached.set(name, { source, translated });
     }
 
     function translateMetadataValue(value) {
@@ -562,7 +633,9 @@
     function translateAttribute(element, name) {
         const current = element.getAttribute?.(name);
         if (!current) return;
-        const translated = translateDynamic(current);
+        const source = sourceAttribute(element, name, current);
+        const translated = translateDynamic(source);
+        rememberAttribute(element, name, source, translated);
         if (translated !== current) element.setAttribute(name, translated);
     }
 
@@ -572,14 +645,18 @@
             if (element.parentElement?.classList.contains('advancedBooksReaderTitle')) return;
             const value = element.textContent?.trim();
             if (!value) return;
-            const translated = translateMetadataValue(value);
+            const source = sourceText(element, value);
+            const translated = translateMetadataValue(source);
+            rememberText(element, source, translated);
             if (translated !== value) element.textContent = translated;
             return;
         }
 
         const value = element.textContent?.trim();
         if (!value) return;
-        const translated = translateDynamic(value);
+        const source = sourceText(element, value);
+        const translated = translateDynamic(source);
+        rememberText(element, source, translated);
         if (translated !== value) element.textContent = translated;
     }
 
@@ -603,9 +680,32 @@
         }
     }
 
+    function setLocale(value) {
+        const requested = String(value || 'auto');
+        languagePreference = requested === 'auto' || supportedLocales.includes(requested)
+            ? requested
+            : 'auto';
+        const nextLocale = languagePreference === 'auto'
+            ? detectAutomaticLocale()
+            : normalizeLocale(languagePreference);
+        locale = nextLocale;
+        dictionary = dictionaries[locale] || dictionaries.en;
+        translateRoot(document);
+        document.dispatchEvent(new CustomEvent('advancedbooks:locale-changed', {
+            detail: { locale, preference: languagePreference }
+        }));
+        return locale;
+    }
+
     const observer = new MutationObserver(records => {
         for (const record of records) {
             if (record.type === 'attributes') {
+                if (record.target === document.documentElement
+                    && record.attributeName === 'lang'
+                    && languagePreference === 'auto') {
+                    setLocale('auto');
+                    continue;
+                }
                 translateRoot(record.target);
                 continue;
             }
@@ -624,14 +724,16 @@
         childList: true,
         characterData: true,
         attributes: true,
-        attributeFilter: ['title', 'aria-label']
+        attributeFilter: ['title', 'aria-label', 'lang']
     });
 
     window.AdvancedBooksI18n = Object.freeze({
-        locale,
-        supportedLocales: Object.freeze(['en', 'ja', 'de', 'fr', 'es', 'zh-CN']),
+        get locale() { return locale; },
+        get languagePreference() { return languagePreference; },
+        supportedLocales,
         t: translateDynamic,
-        translateRoot
+        translateRoot,
+        setLocale
     });
 
     translateRoot(document);
