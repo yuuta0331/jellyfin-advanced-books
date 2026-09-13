@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 READER = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksLocalization.js"
+CORE = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksReader.js"
 CONFIG = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Configuration/configPage.html"
 PREFERENCES = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksPreferences.js"
 GESTURES = ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksGestures.js"
@@ -90,6 +91,7 @@ def require(condition: bool, message: str) -> None:
 
 def main() -> int:
     reader = READER.read_text(encoding="utf-8")
+    core = CORE.read_text(encoding="utf-8")
     config = CONFIG.read_text(encoding="utf-8")
     preferences = PREFERENCES.read_text(encoding="utf-8")
     gestures = GESTURES.read_text(encoding="utf-8")
@@ -171,7 +173,7 @@ def main() -> int:
             "Vertical/Webtoon tap navigation is not connected to smooth reader movement")
     require("advancedBooksPageFromLeft" in gestures and "advancedBooksPageFromRight" in gestures,
             "Paged tap navigation has no directional transition animation")
-    require("advancedBooksReaderPageIn" not in reader,
+    require("advancedBooksReaderPageIn" not in core,
             "Legacy paged fade animation can expose the reader background during page changes")
     require("@keyframes advancedBooksPageFromLeft{from{transform:" in gestures
             and "@keyframes advancedBooksPageFromRight{from{transform:" in gestures,
@@ -197,8 +199,8 @@ def main() -> int:
             "Reader integration does not bridge Jellyfin context-menu Play/Resume actions")
     require("handleNativeCommand" in integration and "replayCommand" in integration,
             "Reader integration does not bridge keyboard/remote Play/Resume commands")
-    require("openItem: openReaderItem" in reader
-            and "advancedbooks:reader-opening" in reader,
+    require("openItem: openReaderItem" in core
+            and "advancedbooks:reader-opening" in core,
             "Core reader does not expose the direct item-opening bridge")
     require("advancedbooks:reader-opening" in (ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js").read_text(encoding="utf-8"),
             "Progress bridge is still tied only to the detail-page Advanced Reader button")
