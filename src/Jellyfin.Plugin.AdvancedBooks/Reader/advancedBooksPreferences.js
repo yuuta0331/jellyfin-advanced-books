@@ -539,37 +539,61 @@
         close.setAttribute('aria-label', 'Close reader help');
         header.append(title, close);
 
-        const grid = document.createElement('div');
-        grid.className = 'advancedBooksReaderHelpGrid';
-        const shortcuts = [
-            ['← / →', 'Previous / next page in paged modes'],
-            ['Page Up / Down', 'Previous / next page or group'],
-            ['Space', 'Next page or group'],
-            ['Home / End', 'First / last page'],
-            ['+ / − / 0', 'Zoom in / out / reset'],
-            ['Ctrl + wheel', 'Zoom'],
-            ['F', 'Fullscreen'],
-            ['Esc', 'Close panel, then reader'],
-            ['Left / right tap', 'Previous / next page in paged modes'],
-            ['Top / bottom tap', 'Previous / next page in Vertical / Webtoon'],
-            ['Mouse drag', 'Grab and pan the page / continuous canvas'],
-            ['Two-finger pinch', 'Zoom when touch gestures are enabled'],
-            ['Double tap', 'Zoom tapped area / restore']
+        const body = document.createElement('div');
+        body.className = 'advancedBooksReaderHelpBody';
+        const sectionsHost = document.createElement('div');
+        sectionsHost.className = 'advancedBooksReaderHelpSections';
+
+        const groups = [
+            ['Navigation', [
+                ['← / →', 'Previous / next page in paged modes'],
+                ['Page Up / Down', 'Previous / next page or group'],
+                ['Space', 'Next page or group'],
+                ['Home / End', 'First / last page'],
+                ['Left / right tap', 'Previous / next page in paged modes'],
+                ['Top / bottom tap', 'Previous / next page in Vertical / Webtoon']
+            ]],
+            ['Zoom & pan', [
+                ['+ / − / 0', 'Zoom in / out / reset'],
+                ['Ctrl + wheel', 'Zoom'],
+                ['Mouse drag', 'Grab and pan the page / continuous canvas'],
+                ['Two-finger pinch', 'Zoom when touch gestures are enabled'],
+                ['Double tap', 'Zoom tapped area / restore']
+            ]],
+            ['Reader', [
+                ['F', 'Fullscreen'],
+                ['Esc', 'Close panel, then reader']
+            ]]
         ];
-        for (const [key, description] of shortcuts) {
-            const keyElement = document.createElement('div');
-            keyElement.className = 'advancedBooksReaderHelpKey';
-            keyElement.textContent = key;
-            const descriptionElement = document.createElement('div');
-            descriptionElement.textContent = description;
-            grid.append(keyElement, descriptionElement);
+
+        for (const [groupTitle, shortcuts] of groups) {
+            const section = document.createElement('section');
+            section.className = 'advancedBooksReaderHelpSection';
+            const heading = document.createElement('h3');
+            heading.className = 'advancedBooksReaderHelpSectionTitle';
+            heading.textContent = groupTitle;
+            const grid = document.createElement('div');
+            grid.className = 'advancedBooksReaderHelpGrid';
+
+            for (const [key, description] of shortcuts) {
+                const keyElement = document.createElement('div');
+                keyElement.className = 'advancedBooksReaderHelpKey';
+                keyElement.textContent = key;
+                const descriptionElement = document.createElement('div');
+                descriptionElement.textContent = description;
+                grid.append(keyElement, descriptionElement);
+            }
+            section.append(heading, grid);
+            sectionsHost.appendChild(section);
         }
-        panel.append(header, grid);
+        body.appendChild(sectionsHost);
+        panel.append(header, body);
 
         const reader = session.overlay.__advancedBooksReaderSession;
         const setOpen = open => {
             if (open && settingsButton.getAttribute('aria-expanded') === 'true') settingsButton.click();
             panel.hidden = !open;
+            session.overlay.classList.toggle('ab-help-open', open);
             button.setAttribute('aria-expanded', String(open));
             if (open) {
                 reader?.showControls?.(false);
