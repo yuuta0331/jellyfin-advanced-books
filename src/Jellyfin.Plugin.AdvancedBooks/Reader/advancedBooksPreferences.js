@@ -176,6 +176,10 @@
 .advancedBooksReaderHelpGrid{display:grid;grid-template-columns:minmax(7rem,.8fr) minmax(10rem,1.4fr);gap:.45rem .9rem;font-size:.9rem;line-height:1.35}
 .advancedBooksReaderHelpKey{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.8}
 .advancedBooksReaderSettingsPanel{scrollbar-width:thin;overscroll-behavior:contain}
+.advancedBooksReaderChromeBottom{left:50%;right:auto;width:min(58rem,calc(100vw - 1.5rem));min-height:3.5rem;padding:.5rem .6rem calc(.5rem + env(safe-area-inset-bottom,0px));border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(17,17,19,.72);box-shadow:0 10px 32px rgba(0,0,0,.34);backdrop-filter:blur(14px) saturate(1.08);transform:translateX(-50%)}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom{opacity:.92;pointer-events:none;width:auto;min-width:4.4rem;min-height:2rem;padding:.18rem .65rem calc(.18rem + env(safe-area-inset-bottom,0px));gap:0;transform:translateX(-50%)}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom .advancedBooksReaderNavButton,.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom .advancedBooksReaderPageSlider,.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom .advancedBooksReaderSliderPreview{display:none!important}
+.advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom .advancedBooksReaderPageSliderValue{min-width:auto;padding:0;font-size:.8rem;opacity:.86}
 .advancedBooksReaderSettingsSections{display:grid;gap:.65rem}
 .advancedBooksReaderSettingsSection{padding:.72rem;border:1px solid rgba(255,255,255,.1);border-radius:.72rem;background:rgba(255,255,255,.035)}
 .advancedBooksReaderSettingsSection:not([open])>:not(summary){display:none!important}
@@ -211,7 +215,8 @@
     .advancedBooksReaderSubtitle{font-size:.7rem}
     .advancedBooksReaderCounter{display:none}
     .advancedBooksReaderTopSpacer{display:none}
-    .advancedBooksReaderChromeBottom{bottom:calc(.4rem + env(safe-area-inset-bottom,0px));min-height:3.4rem;gap:.3rem;padding:.32rem .38rem;border-radius:1.55rem}
+    .advancedBooksReaderChromeBottom{left:50%;right:auto;width:calc(100vw - .9rem);bottom:calc(.4rem + env(safe-area-inset-bottom,0px));min-height:3.4rem;gap:.3rem;padding:.32rem .38rem;border-radius:1.55rem}
+    .advancedBooksReaderOverlay.ab-controls-hidden:not(.ab-settings-open) .advancedBooksReaderChromeBottom{left:50%;right:auto;width:auto;min-width:4.2rem;bottom:calc(.4rem + env(safe-area-inset-bottom,0px));border-radius:999px}
     .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.6rem;block-size:2.6rem;min-width:2.6rem;min-height:2.6rem;max-width:2.6rem;max-height:2.6rem;padding:0;flex:0 0 2.6rem}
     .advancedBooksReaderPageSlider{height:2.4rem}
     .advancedBooksReaderPageSliderValue{min-width:4.2rem;font-size:.84rem}
