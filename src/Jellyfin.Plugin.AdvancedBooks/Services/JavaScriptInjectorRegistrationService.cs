@@ -16,6 +16,7 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
     private const string InjectorAssemblyName = "Jellyfin.Plugin.JavaScriptInjector";
     private const string InjectorInterfaceTypeName = "Jellyfin.Plugin.JavaScriptInjector.PluginInterface";
     private const string LegacyCombinedScriptId = "jellyfin-advanced-books-reader";
+    private const string IntegrationScriptId = "jellyfin-advanced-books-reader-integration";
     private const int MaximumRegisteredScriptUtf8Bytes = 96 * 1024;
 
     private static readonly ScriptRegistration[] ReaderScripts =
@@ -44,7 +45,11 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
         new(
             "jellyfin-advanced-books-reader-gestures",
             "Advanced Books Reader - Gestures",
-            "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksGestures.js")
+            "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksGestures.js"),
+        new(
+            IntegrationScriptId,
+            "Advanced Books Reader - Jellyfin Integration",
+            "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksIntegration.js")
     ];
 
     private static readonly UTF8Encoding StrictUtf8 = new(
@@ -120,6 +125,12 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             try
             {
                 var script = LoadAndValidateEmbeddedScript(registration);
+                if (string.Equals(registration.Id, IntegrationScriptId, StringComparison.Ordinal))
+                {
+                    var replaceNativeReader = plugin.Configuration.ReplaceNativeReader ? "true" : "false";
+                    script = $"window.__advancedBooksReplaceNativeReader = {replaceNativeReader};\n{script}";
+                }
+
                 preparedScripts.Add(new PreparedScript(registration, script));
             }
             catch (Exception exception)
