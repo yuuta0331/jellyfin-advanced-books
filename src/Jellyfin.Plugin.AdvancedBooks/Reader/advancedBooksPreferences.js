@@ -479,9 +479,15 @@
             }
         };
         button.addEventListener('click', () => setOpen(panel.hidden));
+        const focusHelpTrigger = () => {
+            const trigger = session.moreButton && window.matchMedia?.('(max-width:700px)')?.matches
+                ? session.moreButton
+                : button;
+            trigger?.focus?.({ preventScroll: true });
+        };
         close.addEventListener('click', () => {
             setOpen(false);
-            button.focus?.({ preventScroll: true });
+            focusHelpTrigger();
         });
         session.onSettingsClick = () => {
             if (!panel.hidden) setOpen(false);
@@ -497,7 +503,7 @@
         session.overlay.__advancedBooksCloseHelp = () => {
             if (panel.hidden) return false;
             setOpen(false);
-            button.focus?.({ preventScroll: true });
+            focusHelpTrigger();
             return true;
         };
     }
@@ -518,17 +524,19 @@
         button.title = 'More options';
         button.setAttribute('aria-label', 'More options');
         button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-controls', 'advancedBooksReaderMoreMenu');
 
         const menu = document.createElement('div');
+        menu.id = 'advancedBooksReaderMoreMenu';
         menu.className = 'advancedBooksReaderMoreMenu';
         menu.hidden = true;
-        menu.setAttribute('role', 'menu');
+        menu.setAttribute('role', 'group');
+        menu.setAttribute('aria-label', 'More options');
 
         const makeItem = (iconText, labelText, handler) => {
             const item = document.createElement('button');
             item.type = 'button';
             item.className = 'advancedBooksReaderMoreMenuItem';
-            item.setAttribute('role', 'menuitem');
             const icon = document.createElement('span');
             icon.className = 'advancedBooksReaderMoreMenuIcon';
             icon.setAttribute('aria-hidden', 'true');
@@ -543,12 +551,14 @@
 
         const fullscreenItem = makeItem('⛶', 'Enter fullscreen', () => {
             setOpen(false);
+            button.focus?.({ preventScroll: true });
             fullscreenButton?.click();
         });
         fullscreenItem.hidden = !fullscreenButton || fullscreenButton.hidden;
 
         const helpItem = makeItem('?', 'Reader help', () => {
             setOpen(false);
+            button.focus?.({ preventScroll: true });
             session.openHelp?.();
         });
         menu.append(fullscreenItem, helpItem);
