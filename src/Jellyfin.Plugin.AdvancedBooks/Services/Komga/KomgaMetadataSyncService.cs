@@ -228,11 +228,6 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
         }
 
         var overview = Clean(bookMetadata.Summary);
-        if (overview.Length == 0 && seriesMetadata is not null)
-        {
-            overview = Clean(seriesMetadata.Summary);
-        }
-
         changed |= AssignString(target.Overview, overview, value => target.Overview = value);
 
         var seriesTitle = Clean(seriesMetadata?.Title);
@@ -253,8 +248,17 @@ internal sealed class KomgaMetadataSyncService : IKomgaMetadataSyncService
             target.SeriesPresentationUniqueKey,
             seriesKey,
             value => target.SeriesPresentationUniqueKey = value);
+        if (target.SeriesId != Guid.Empty)
+        {
+            target.SeriesId = Guid.Empty;
+            changed = true;
+        }
 
-        var releaseDate = bookMetadata.ReleaseDate?.ToUniversalTime();
+        DateTime? releaseDate = null;
+        if (bookMetadata.ReleaseDate.HasValue)
+        {
+            releaseDate = DateTime.SpecifyKind(bookMetadata.ReleaseDate.Value.Date, DateTimeKind.Utc);
+        }
         if (target.PremiereDate != releaseDate)
         {
             target.PremiereDate = releaseDate;
