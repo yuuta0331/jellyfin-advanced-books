@@ -1,0 +1,29 @@
+name: Temporary reader UX branch cleanup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/cleanup-reader-ux-branch.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Delete merged branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="repos/${GITHUB_REPOSITORY}/git/refs/heads/feature/reader-mobile-overflow-accordion"
+          if gh api "$endpoint" >/dev/null 2>&1; then
+            gh api --method DELETE "$endpoint"
+            echo "Deleted feature/reader-mobile-overflow-accordion"
+          else
+            echo "Branch already absent"
+          fi
