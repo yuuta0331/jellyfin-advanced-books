@@ -199,7 +199,7 @@ def main() -> int:
             "Reader integration does not bridge Jellyfin context-menu Play/Resume actions")
     require("handleNativeCommand" in integration and "replayCommand" in integration,
             "Reader integration does not bridge keyboard/remote Play/Resume commands")
-    require("openItem: openReaderItem" in core
+    require("AdvancedBooksReader = { openItem: async" in core
             and "advancedbooks:reader-opening" in core,
             "Core reader does not expose the direct item-opening bridge")
     require("advancedbooks:reader-opening" in (ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js").read_text(encoding="utf-8"),
