@@ -1,4 +1,4 @@
-name: Temporary refresh v0.15 release notes
+name: Temporary release-note branch cleanup
 
 on:
   push:
@@ -11,36 +11,19 @@ permissions:
   contents: write
 
 jobs:
-  refresh:
+  cleanup:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build structured release notes
+      - name: Delete merged release-note branch
         shell: bash
         run: |
           set -euo pipefail
-          {
-            cat release-notes/v0.15.0.0.md
-            echo
-            echo "## Compatibility"
-            echo
-            echo "- **Jellyfin Server target ABI:** 12.0.0.0"
-            echo "- **Runtime:** .NET 10"
-            echo "- **Advanced Reader formats:** CBZ / ZIP"
-            echo
-            echo "## Preview status"
-            echo
-            echo "- This is a development preview release."
-            echo "- Test on a backed-up or disposable Jellyfin instance before production use."
-          } > /tmp/release-notes.md
-
-      - name: Refresh v0.15.0.0 release body
-        shell: bash
-        run: |
-          gh release edit v0.15.0.0 \
-            --repo "$GITHUB_REPOSITORY" \
-            --notes-file /tmp/release-notes.md
+          endpoint="repos/${GITHUB_REPOSITORY}/git/refs/heads/docs/structured-release-notes"
+          if gh api "$endpoint" >/dev/null 2>&1; then
+            gh api --method DELETE "$endpoint"
+            echo "Deleted docs/structured-release-notes"
+          else
+            echo "Branch already absent"
+          fi
