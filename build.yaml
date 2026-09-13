@@ -1,7 +1,7 @@
 ---
 name: "Advanced Books"
 guid: "843f3c69-88ee-4e82-84f3-330b84d64d88"
-version: "0.16.0.0"
+version: "0.16.1.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 imageUrl: "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-plugin-icon.png"
@@ -17,9 +17,9 @@ artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: |
-  - Add browser/mobile Back handling and optional Jellyfin Resume/Start-over integration.
-  - Add focal pinch, Ctrl+wheel and double-tap zoom with one-finger pan after zoom.
-  - Add Komga-style left/right paged and top/bottom Vertical/Webtoon navigation.
-  - Add smooth directional page transitions and reduced-motion-aware scrolling.
-  - Add desktop grab-to-pan/scroll and centered SVG page-navigation icons.
-  - Add compact two-stage bottom navigation and updated six-language interaction help.
+  - Complete native Advanced Reader replacement across detail, Home/Library, list, command and context-menu actions.
+  - Share page progress and played state with Jellyfin's built-in ComicsPlayer using the same UserItemData playback ticks.
+  - Fix the standalone Advanced Reader button after the native-integration refactor and add direct API regression guards.
+  - Improve Reader Settings/Help, interaction-aware auto-hide and the optional page-position display.
+  - Fix Fit Screen/Width focal zoom, pinch release jumps and unreachable pan space on desktop and mobile.
+  - Refresh the Jellyfin plugin catalog icon with the Advanced Books purple/blue open-book identity.
