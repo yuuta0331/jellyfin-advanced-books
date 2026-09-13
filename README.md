@@ -19,7 +19,7 @@ Advanced comic, manga, magazine and book support for **Jellyfin 12**.
 - Jellyfin title, author, series, issue and year display with visibility controls
 - English, Japanese, German, French, Spanish and Simplified Chinese UI with automatic detection or a per-user language override
 - Browser/mobile Back closes the Advanced Reader and returns to the underlying Jellyfin screen
-- Optional replacement of Jellyfin's built-in Book Play/Resume/Start-over actions with Advanced Reader
+- Optional replacement of Jellyfin Book Play/Resume/Start-over actions across details, Home/Library cards, lists, commands and context menus
 - Komga-compatible `_oneshots` handling without reorganizing the media library
 - Read-only archive access with bounded extraction, traversal checks and other safety limits
 
