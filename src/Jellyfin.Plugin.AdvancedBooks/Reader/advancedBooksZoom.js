@@ -74,6 +74,26 @@
         }
     }
 
+    function reanchorPagedPan(reader, sourceFocus, targetFocus, oldZoom) {
+        if (!reader || !Number.isFinite(oldZoom) || oldZoom <= 0 || reader.zoom <= 1) {
+            if (reader) {
+                reader.panX = 0;
+                reader.panY = 0;
+            }
+            return;
+        }
+
+        const ratio = reader.zoom / oldZoom;
+        const oldPanX = Number.isFinite(reader.panX) ? reader.panX : 0;
+        const oldPanY = Number.isFinite(reader.panY) ? reader.panY : 0;
+        reader.panX = oldPanX * ratio
+            + targetFocus.localX - targetFocus.centerX
+            - ratio * (sourceFocus.localX - sourceFocus.centerX);
+        reader.panY = oldPanY * ratio
+            + targetFocus.localY - targetFocus.centerY
+            - ratio * (sourceFocus.localY - sourceFocus.centerY);
+    }
+
     function captureContinuousAnchor(reader, sourceFocus) {
         const hit = document.elementFromPoint?.(sourceFocus.clientX, sourceFocus.clientY) ?? null;
         const pointedSlot = hit?.closest?.('.advancedBooksReaderPageSlot');
@@ -105,6 +125,7 @@
     window.AdvancedBooksZoom = {
         normalizeAnchor,
         clampPagedPan,
+        reanchorPagedPan,
         captureContinuousAnchor,
         restoreContinuousAnchor
     };
