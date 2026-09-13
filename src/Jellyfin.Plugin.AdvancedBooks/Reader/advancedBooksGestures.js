@@ -151,6 +151,10 @@
         reader.__advancedBooksZoomControllerInstalled = true;
         reader.__advancedBooksOriginalSetZoom = fallbackSetZoom;
         reader.clampPan = () => clampPagedPan(reader, session.stage, session.pages);
+        reader.syncGestureInput = () => {
+            session.syncTouchAction();
+            session.updateGrabCursor();
+        };
 
         reader.setZoom = (value, anchor = null, options = null) => {
             if (!session.overlay.isConnected) return;
@@ -163,20 +167,23 @@
             const oldPanX = Number.isFinite(reader.panX) ? reader.panX : 0;
             const oldPanY = Number.isFinite(reader.panY) ? reader.panY : 0;
             const focus = normalizeAnchor(session.stage, anchor);
+            const sourceFocus = options?.fromAnchor
+                ? normalizeAnchor(session.stage, options.fromAnchor)
+                : focus;
             const continuous = reader.isContinuous?.() ?? session.isContinuous();
 
             if (continuous) {
-                const pointed = document.elementFromPoint(focus.clientX, focus.clientY)
+                const pointed = document.elementFromPoint(sourceFocus.clientX, sourceFocus.clientY)
                     ?.closest?.('.advancedBooksReaderPageSlot');
                 const element = pointed?.isConnected
                     ? pointed
                     : reader.continuousElements?.[reader.currentPage] ?? null;
                 const before = element?.getBoundingClientRect?.();
                 const xRatio = before?.width > 0
-                    ? Math.max(0, Math.min(1, (focus.clientX - before.left) / before.width))
+                    ? Math.max(0, Math.min(1, (sourceFocus.clientX - before.left) / before.width))
                     : .5;
                 const yRatio = before?.height > 0
-                    ? Math.max(0, Math.min(1, (focus.clientY - before.top) / before.height))
+                    ? Math.max(0, Math.min(1, (sourceFocus.clientY - before.top) / before.height))
                     : .5;
 
                 reader.zoom = nextZoom;
@@ -199,10 +206,12 @@
                 reader.panY = 0;
             } else {
                 const ratio = nextZoom / oldZoom;
-                const anchorX = focus.localX - focus.centerX;
-                const anchorY = focus.localY - focus.centerY;
-                reader.panX = oldPanX * ratio + (1 - ratio) * anchorX;
-                reader.panY = oldPanY * ratio + (1 - ratio) * anchorY;
+                const sourceX = sourceFocus.localX - sourceFocus.centerX;
+                const sourceY = sourceFocus.localY - sourceFocus.centerY;
+                const targetX = focus.localX - focus.centerX;
+                const targetY = focus.localY - focus.centerY;
+                reader.panX = oldPanX * ratio + targetX - ratio * sourceX;
+                reader.panY = oldPanY * ratio + targetY - ratio * sourceY;
                 clampPagedPan(reader, session.stage, session.pages);
             }
             applyTransform();
@@ -286,6 +295,7 @@
             this.targetZoom = 1;
             this.startMidpoint = null;
             this.currentMidpoint = null;
+            this.renderedPinchMidpoint = null;
             this.pinchFrame = 0;
             this.pendingPinchZoom = null;
             this.touchPan = null;
@@ -371,17 +381,25 @@
 
         schedulePinchZoom() {
             if (!this.currentMidpoint) return;
-            this.pendingPinchZoom = {
-                zoom: this.targetZoom,
-                anchor: { clientX: this.currentMidpoint.x, clientY: this.currentMidpoint.y }
-            };
+            const anchor = { clientX: this.currentMidpoint.x, clientY: this.currentMidpoint.y };
+            const from = this.renderedPinchMidpoint
+                ? { clientX: this.renderedPinchMidpoint.x, clientY: this.renderedPinchMidpoint.y }
+                : anchor;
+            this.pendingPinchZoom = { zoom: this.targetZoom, anchor, from };
             if (this.pinchFrame) return;
             this.pinchFrame = requestAnimationFrame(() => {
                 this.pinchFrame = 0;
                 const pending = this.pendingPinchZoom;
                 this.pendingPinchZoom = null;
                 if (!pending || !this.pinching || !this.overlay.isConnected) return;
-                this.reader?.setZoom?.(pending.zoom, pending.anchor, { snap: false });
+                this.reader?.setZoom?.(pending.zoom, pending.anchor, {
+                    snap: false,
+                    fromAnchor: pending.from
+                });
+                this.renderedPinchMidpoint = {
+                    x: pending.anchor.clientX,
+                    y: pending.anchor.clientY
+                };
             });
         }
 
@@ -391,7 +409,14 @@
             const pending = this.pendingPinchZoom;
             this.pendingPinchZoom = null;
             if (pending && this.overlay.isConnected) {
-                this.reader?.setZoom?.(pending.zoom, pending.anchor, { snap: false });
+                this.reader?.setZoom?.(pending.zoom, pending.anchor, {
+                    snap: false,
+                    fromAnchor: pending.from
+                });
+                this.renderedPinchMidpoint = {
+                    x: pending.anchor.clientX,
+                    y: pending.anchor.clientY
+                };
             }
         }
 
@@ -572,6 +597,7 @@
             this.targetZoom = this.startZoom;
             this.startMidpoint = midpoint(first, second);
             this.currentMidpoint = this.startMidpoint;
+            this.renderedPinchMidpoint = this.startMidpoint;
             this.pendingPinchZoom = null;
             this.syncTouchAction();
 
@@ -821,6 +847,7 @@
             if (this.pinchFrame) cancelAnimationFrame(this.pinchFrame);
             this.pinchFrame = 0;
             this.pendingPinchZoom = null;
+            this.renderedPinchMidpoint = null;
             this.stage?.removeEventListener('pointerdown', this.onPointerDown, true);
             this.stage?.removeEventListener('pointermove', this.onPointerMove, true);
             this.stage?.removeEventListener('pointerup', this.onPointerEnd, true);
