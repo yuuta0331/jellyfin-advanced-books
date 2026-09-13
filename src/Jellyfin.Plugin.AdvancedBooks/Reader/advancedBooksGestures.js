@@ -8,6 +8,11 @@
     const maximumZoom = 4;
     const minimumPinchDistance = 24;
     const minimumCommittedZoomDelta = 0.025;
+    const doubleTapDelayMs = 280;
+    const doubleTapDistance = 42;
+    const tapMovementTolerance = 12;
+    const tapMaximumDurationMs = 360;
+    const doubleTapZoom = 2;
     let activeSession = null;
 
     function clampZoom(value) {
@@ -16,6 +21,9 @@
     }
 
     function currentZoom(overlay) {
+        const reader = overlay.__advancedBooksReaderSession;
+        if (reader && Number.isFinite(reader.zoom)) return clampZoom(reader.zoom);
+
         const reset = overlay.querySelector('.advancedBooksReaderToolbar button[data-ab-action="zoom-reset"],button[title="Reset zoom"]');
         const text = reset?.textContent?.trim() ?? '100%';
         const percent = Number.parseInt(text.replace('%', ''), 10);
@@ -33,9 +41,70 @@
         return Math.hypot(second.x - first.x, second.y - first.y);
     }
 
+    function normalizeAnchor(stage, anchor) {
+        const rect = stage.getBoundingClientRect();
+        const clientX = Number.isFinite(anchor?.clientX) ? anchor.clientX : rect.left + rect.width / 2;
+        const clientY = Number.isFinite(anchor?.clientY) ? anchor.clientY : rect.top + rect.height / 2;
+        return {
+            clientX,
+            clientY,
+            localX: clientX - rect.left,
+            localY: clientY - rect.top,
+            centerX: rect.width / 2,
+            centerY: rect.height / 2
+        };
+    }
+
+    function installAnchoredZoom(session) {
+        const reader = session.overlay.__advancedBooksReaderSession;
+        if (!reader || typeof reader.setZoom !== 'function' || reader.__advancedBooksAnchoredZoomInstalled) return;
+
+        const originalSetZoom = reader.setZoom.bind(reader);
+        reader.__advancedBooksAnchoredZoomInstalled = true;
+        reader.__advancedBooksOriginalSetZoom = originalSetZoom;
+
+        reader.setZoom = (value, anchor = null) => {
+            if (!session.overlay.isConnected) return;
+
+            const oldZoom = Number.isFinite(reader.zoom) ? reader.zoom : 1;
+            const oldPanX = Number.isFinite(reader.panX) ? reader.panX : 0;
+            const oldPanY = Number.isFinite(reader.panY) ? reader.panY : 0;
+            const focus = normalizeAnchor(session.stage, anchor);
+            const continuous = typeof reader.isContinuous === 'function'
+                ? reader.isContinuous()
+                : session.isContinuous();
+
+            const oldScrollWidth = Math.max(1, session.stage.scrollWidth);
+            const oldScrollHeight = Math.max(1, session.stage.scrollHeight);
+            const contentX = session.stage.scrollLeft + focus.localX;
+            const contentY = session.stage.scrollTop + focus.localY;
+
+            originalSetZoom(value);
+
+            const nextZoom = Number.isFinite(reader.zoom) ? reader.zoom : oldZoom;
+            if (continuous) {
+                session.stage.style.touchAction = nextZoom > 1 ? 'none' : 'pan-y';
+                requestAnimationFrame(() => {
+                    if (!session.overlay.isConnected) return;
+                    const widthRatio = session.stage.scrollWidth / oldScrollWidth;
+                    const heightRatio = session.stage.scrollHeight / oldScrollHeight;
+                    session.stage.scrollLeft = Math.max(0, contentX * widthRatio - focus.localX);
+                    session.stage.scrollTop = Math.max(0, contentY * heightRatio - focus.localY);
+                });
+                return;
+            }
+
+            if (nextZoom <= 1 || oldZoom <= 0) return;
+            const ratio = nextZoom / oldZoom;
+            const anchorX = focus.localX - focus.centerX;
+            const anchorY = focus.localY - focus.centerY;
+            reader.panX = oldPanX * ratio + (1 - ratio) * anchorX;
+            reader.panY = oldPanY * ratio + (1 - ratio) * anchorY;
+            reader.applyTransform?.();
+        };
+    }
+
     function findZoomOperations(targetZoom) {
-        // Reader buttons move by 25%; Ctrl+wheel moves by 15%. Starting from the
-        // reset value (100%), those operations can reach every 5% step.
         const start = 20;
         const target = Math.min(80, Math.max(10, Math.round(clampZoom(targetZoom) * 20)));
         if (target === start) return [];
@@ -64,11 +133,11 @@
         return [];
     }
 
-    function commitZoom(session, targetZoom) {
+    function commitZoom(session, targetZoom, anchor = null) {
         if (!session?.overlay?.isConnected) return;
         const reader = session.overlay.__advancedBooksReaderSession;
         if (reader && typeof reader.setZoom === 'function') {
-            reader.setZoom(targetZoom);
+            reader.setZoom(targetZoom, anchor);
             return;
         }
 
@@ -87,7 +156,9 @@
                     bubbles: true,
                     cancelable: true,
                     ctrlKey: true,
-                    deltaY: operation === 'wheelPlus' ? -100 : 100
+                    deltaY: operation === 'wheelPlus' ? -100 : 100,
+                    clientX: anchor?.clientX ?? 0,
+                    clientY: anchor?.clientY ?? 0
                 }));
             }
         }
@@ -99,6 +170,7 @@
             this.stage = overlay.querySelector('.advancedBooksReaderStage');
             this.pages = overlay.querySelector('.advancedBooksReaderPages');
             this.pointers = new Map();
+            this.tapStarts = new Map();
             this.pinchPointerIds = [];
             this.pinching = false;
             this.suppressUntilRelease = false;
@@ -106,27 +178,40 @@
             this.startZoom = 1;
             this.targetZoom = 1;
             this.startMidpoint = null;
+            this.currentMidpoint = null;
             this.startScrollLeft = 0;
             this.startScrollTop = 0;
             this.originalTransform = '';
             this.originalTransformOrigin = '';
             this.originalTransition = '';
             this.originalWillChange = '';
+            this.touchPan = null;
+            this.lastTap = null;
+            this.tapTimer = null;
+            this.doubleTapBaseZoom = 1;
+            this.doubleTapZoomed = false;
             this.removalObserver = null;
 
             this.onPointerDown = event => this.pointerDown(event);
             this.onPointerMove = event => this.pointerMove(event);
             this.onPointerEnd = event => this.pointerEnd(event);
+            this.onWheel = event => this.wheel(event);
+        }
+
+        get reader() {
+            return this.overlay.__advancedBooksReaderSession;
         }
 
         attach() {
             if (!this.stage || !this.pages) return false;
-            // Capture phase lets the pinch bridge suppress the reader's single-pointer
-            // swipe/pan handling only after a second touch has committed to a pinch.
+            installAnchoredZoom(this);
             this.stage.addEventListener('pointerdown', this.onPointerDown, true);
             this.stage.addEventListener('pointermove', this.onPointerMove, true);
             this.stage.addEventListener('pointerup', this.onPointerEnd, true);
             this.stage.addEventListener('pointercancel', this.onPointerEnd, true);
+            this.stage.addEventListener('wheel', this.onWheel, { capture: true, passive: false });
+
+            if (this.isContinuous() && currentZoom(this.overlay) > 1) this.stage.style.touchAction = 'none';
 
             this.removalObserver = new MutationObserver(() => {
                 if (!this.overlay.isConnected) this.dispose();
@@ -140,10 +225,23 @@
                 || this.pages?.classList.contains('ab-continuous');
         }
 
+        cancelPendingTap(clearLastTap = false) {
+            window.clearTimeout(this.tapTimer);
+            this.tapTimer = null;
+            if (clearLastTap) this.lastTap = null;
+        }
+
         pointerDown(event) {
             if (event.pointerType !== 'touch') return;
-            if (this.overlay.__advancedBooksReaderSession?.touchGestures === false) return;
-            this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+            if (this.reader?.touchGestures === false) return;
+
+            const point = { x: event.clientX, y: event.clientY };
+            this.pointers.set(event.pointerId, point);
+            this.tapStarts.set(event.pointerId, {
+                ...point,
+                time: performance.now(),
+                moved: false
+            });
 
             if (this.pinching || this.suppressUntilRelease) {
                 event.preventDefault();
@@ -151,12 +249,24 @@
                 return;
             }
 
-            if (this.pointers.size < 2) return;
+            if (this.pointers.size < 2) {
+                if (this.isContinuous() && currentZoom(this.overlay) > 1) {
+                    this.touchPan = {
+                        id: event.pointerId,
+                        x: event.clientX,
+                        y: event.clientY,
+                        scrollLeft: this.stage.scrollLeft,
+                        scrollTop: this.stage.scrollTop,
+                        moved: false
+                    };
+                }
+                return;
+            }
 
-            // From the second touch onward, the pinch layer exclusively owns touch
-            // movement until every touch is released.
+            this.cancelPendingTap(true);
+            this.touchPan = null;
             this.suppressUntilRelease = true;
-            this.overlay.__advancedBooksReaderSession?.beginExternalPinch?.();
+            this.reader?.beginExternalPinch?.();
             this.tryBeginPinch();
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -176,17 +286,19 @@
             this.startZoom = currentZoom(this.overlay);
             this.targetZoom = this.startZoom;
             this.startMidpoint = midpoint(first, second);
+            this.currentMidpoint = this.startMidpoint;
             this.startScrollLeft = this.stage.scrollLeft;
             this.startScrollTop = this.stage.scrollTop;
             this.originalTransform = this.pages.style.transform;
             this.originalTransformOrigin = this.pages.style.transformOrigin;
             this.originalTransition = this.pages.style.transition;
             this.originalWillChange = this.pages.style.willChange;
-            if (this.isContinuous()) {
-                const pagesRect = this.pages.getBoundingClientRect();
-                const originX = this.startMidpoint.x - pagesRect.left;
-                const originY = this.startMidpoint.y - pagesRect.top;
-                this.pages.style.transformOrigin = `${originX}px ${originY}px`;
+
+            const pagesRect = this.pages.getBoundingClientRect();
+            if (pagesRect.width > 0 && pagesRect.height > 0) {
+                const xRatio = Math.min(1, Math.max(0, (this.startMidpoint.x - pagesRect.left) / pagesRect.width));
+                const yRatio = Math.min(1, Math.max(0, (this.startMidpoint.y - pagesRect.top) / pagesRect.height));
+                this.pages.style.transformOrigin = `${(xRatio * 100).toFixed(2)}% ${(yRatio * 100).toFixed(2)}%`;
             }
             this.pages.style.transition = 'none';
             this.pages.style.willChange = 'transform';
@@ -195,8 +307,7 @@
                 try {
                     this.stage.setPointerCapture?.(pointerId);
                 } catch {
-                    // Pointer capture is an optimization. The gesture can still proceed
-                    // while both pointers remain over the reader stage.
+                    // Pointer capture is an optimization only.
                 }
             }
             return true;
@@ -204,8 +315,15 @@
 
         pointerMove(event) {
             if (event.pointerType !== 'touch') return;
-            if (this.pointers.has(event.pointerId)) {
-                this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+            const pointer = this.pointers.get(event.pointerId);
+            if (pointer) {
+                pointer.x = event.clientX;
+                pointer.y = event.clientY;
+            }
+            const tapStart = this.tapStarts.get(event.pointerId);
+            if (tapStart && Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) > tapMovementTolerance) {
+                tapStart.moved = true;
             }
 
             if (!this.pinching && this.suppressUntilRelease && this.pointers.size >= 2) {
@@ -214,6 +332,18 @@
 
             if (!this.pinching) {
                 if (this.suppressUntilRelease) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    return;
+                }
+
+                if (this.touchPan?.id === event.pointerId && this.isContinuous() && currentZoom(this.overlay) > 1) {
+                    const dx = event.clientX - this.touchPan.x;
+                    const dy = event.clientY - this.touchPan.y;
+                    if (Math.hypot(dx, dy) > 4) this.touchPan.moved = true;
+                    this.stage.scrollLeft = this.touchPan.scrollLeft - dx;
+                    this.stage.scrollTop = this.touchPan.scrollTop - dy;
+                    if (this.touchPan.moved && this.reader) this.reader.suppressNextStageClick = true;
                     event.preventDefault();
                     event.stopImmediatePropagation();
                 }
@@ -234,11 +364,9 @@
 
             const ratio = currentDistance / this.startDistance;
             this.targetZoom = clampZoom(this.startZoom * ratio);
+            this.currentMidpoint = midpoint(first, second);
             const previewRatio = this.targetZoom / Math.max(this.startZoom, 0.01);
 
-            // Keep the page anchored while pinching. In continuous modes some WebViews
-            // may begin a native one-finger pan before the second touch arrives; restoring
-            // the captured scroll position prevents the document itself drifting.
             if (this.isContinuous()) {
                 this.stage.scrollLeft = this.startScrollLeft;
                 this.stage.scrollTop = this.startScrollTop;
@@ -255,6 +383,9 @@
 
         pointerEnd(event) {
             if (event.pointerType !== 'touch') return;
+
+            const tapStart = this.tapStarts.get(event.pointerId);
+            this.tapStarts.delete(event.pointerId);
             const wasTracked = this.pointers.delete(event.pointerId);
             if (!wasTracked) return;
 
@@ -262,16 +393,127 @@
             if (endedActivePinchPointer) this.finishPinch();
 
             if (this.suppressUntilRelease) {
-                // Suppress all final pointer-up events so the reader's original first
-                // pointer cannot be interpreted as a page-turn swipe after multi-touch.
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 if (this.pointers.size === 0) {
                     this.suppressUntilRelease = false;
                     this.pinchPointerIds = [];
-                    this.overlay.__advancedBooksReaderSession?.endExternalPinch?.();
+                    this.reader?.endExternalPinch?.();
                 }
+                return;
             }
+
+            const pan = this.touchPan?.id === event.pointerId ? this.touchPan : null;
+            if (pan) this.touchPan = null;
+            if (pan?.moved) {
+                if (this.reader) {
+                    this.reader.pointerStart = null;
+                    this.reader.suppressNextStageClick = true;
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
+
+            const duration = tapStart ? performance.now() - tapStart.time : Number.POSITIVE_INFINITY;
+            const isTap = tapStart
+                && !tapStart.moved
+                && duration <= tapMaximumDurationMs
+                && Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) <= tapMovementTolerance;
+
+            if (!isTap) return;
+
+            if (this.reader) {
+                this.reader.pointerStart = null;
+                if (this.isContinuous()) this.reader.suppressNextStageClick = true;
+            }
+            try {
+                this.stage.releasePointerCapture?.(event.pointerId);
+            } catch {
+                // Capture may already be released by the browser.
+            }
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.handleTap(event.clientX, event.clientY);
+        }
+
+        handleTap(clientX, clientY) {
+            const now = performance.now();
+            const current = { x: clientX, y: clientY, time: now };
+            const previous = this.lastTap;
+
+            if (previous
+                && now - previous.time <= doubleTapDelayMs
+                && Math.hypot(clientX - previous.x, clientY - previous.y) <= doubleTapDistance) {
+                this.cancelPendingTap(true);
+                this.handleDoubleTap(clientX, clientY);
+                return;
+            }
+
+            this.lastTap = current;
+            this.cancelPendingTap(false);
+            this.tapTimer = window.setTimeout(() => {
+                this.tapTimer = null;
+                const pending = this.lastTap;
+                this.lastTap = null;
+                if (pending) this.handleSingleTap(pending.x, pending.y);
+            }, doubleTapDelayMs);
+        }
+
+        handleDoubleTap(clientX, clientY) {
+            const reader = this.reader;
+            if (!reader || !this.overlay.isConnected) return;
+
+            const zoom = currentZoom(this.overlay);
+            let target;
+            if (zoom > 1.05) {
+                target = this.doubleTapZoomed ? this.doubleTapBaseZoom : 1;
+                this.doubleTapZoomed = false;
+            } else {
+                this.doubleTapBaseZoom = zoom;
+                this.doubleTapZoomed = true;
+                target = Math.max(doubleTapZoom, zoom);
+            }
+
+            reader.setZoom?.(target, { clientX, clientY });
+            reader.showControls?.();
+        }
+
+        handleSingleTap(clientX, clientY) {
+            const reader = this.reader;
+            if (!reader || !this.overlay.isConnected) return;
+
+            if (this.isContinuous() || currentZoom(this.overlay) > 1) {
+                reader.toggleControls?.();
+                return;
+            }
+
+            const rect = this.stage.getBoundingClientRect();
+            const ratio = (clientX - rect.left) / Math.max(1, rect.width);
+            if (ratio >= 0.32 && ratio <= 0.68) {
+                reader.toggleControls?.();
+                return;
+            }
+
+            const leftSide = ratio < 0.32;
+            if (reader.direction === 'rtl') leftSide ? reader.next?.() : reader.previous?.();
+            else leftSide ? reader.previous?.() : reader.next?.();
+        }
+
+        wheel(event) {
+            const reader = this.reader;
+            if (!reader || !this.overlay.isConnected) return;
+
+            const zoom = currentZoom(this.overlay);
+            const shouldZoom = event.ctrlKey || (!this.isContinuous() && zoom > 1);
+            if (!shouldZoom) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            reader.setZoom?.(
+                zoom + (event.deltaY < 0 ? 0.15 : -0.15),
+                { clientX: event.clientX, clientY: event.clientY }
+            );
         }
 
         finishPinch() {
@@ -282,17 +524,18 @@
             this.pages.style.transition = this.originalTransition;
             this.pages.style.willChange = this.originalWillChange;
 
-            // Commit on the same 5% grid used by persisted reader preferences. Avoid
-            // touching the reader state when the gesture rounded back to its start zoom,
-            // which preserves an existing one-finger pan offset above 100%.
             const normalized = Math.round(clampZoom(this.targetZoom) * 20) / 20;
             if (Math.abs(normalized - this.startZoom) >= minimumCommittedZoomDelta) {
-                commitZoom(this, normalized);
+                const anchor = this.currentMidpoint ?? this.startMidpoint;
+                commitZoom(this, normalized, anchor
+                    ? { clientX: anchor.x, clientY: anchor.y }
+                    : null);
             }
             this.pinchPointerIds = [];
         }
 
         dispose() {
+            this.cancelPendingTap(true);
             if (this.pinching) {
                 this.pages.style.transform = this.originalTransform;
                 this.pages.style.transformOrigin = this.originalTransformOrigin;
@@ -303,12 +546,15 @@
             this.stage?.removeEventListener('pointermove', this.onPointerMove, true);
             this.stage?.removeEventListener('pointerup', this.onPointerEnd, true);
             this.stage?.removeEventListener('pointercancel', this.onPointerEnd, true);
+            this.stage?.removeEventListener('wheel', this.onWheel, true);
             this.removalObserver?.disconnect();
             this.pointers.clear();
+            this.tapStarts.clear();
             this.pinchPointerIds = [];
+            this.touchPan = null;
             this.pinching = false;
             this.suppressUntilRelease = false;
-            this.overlay.__advancedBooksReaderSession?.endExternalPinch?.();
+            this.reader?.endExternalPinch?.();
             if (activeSession === this) activeSession = null;
         }
     }
