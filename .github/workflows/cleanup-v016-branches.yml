@@ -1,0 +1,32 @@
+name: Temporary v0.16 branch cleanup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/cleanup-v016-branches.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Delete merged branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          for branch in             "feature/mode-aware-tap-navigation-drag"             "release/v0.16.0.0"
+          do
+            endpoint="repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}"
+            if gh api "$endpoint" >/dev/null 2>&1; then
+              gh api --method DELETE "$endpoint"
+              echo "Deleted $branch"
+            else
+              echo "Already absent: $branch"
+            fi
+          done
