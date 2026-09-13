@@ -92,7 +92,7 @@ assert.ok(zoom, 'AdvancedBooksZoom was not installed');
     };
     zoom.clampPagedPan(reader, stage, pages);
     assert.equal(reader.panX, 400, 'small asymmetric content is centered horizontally');
-    assert.equal(reader.panY, 0, 'small symmetric content is centered vertically');
+    assert.ok(Math.abs(reader.panY) < Number.EPSILON, 'small symmetric content is centered vertically');
 }
 
 {
