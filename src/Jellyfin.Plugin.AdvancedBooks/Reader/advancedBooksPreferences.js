@@ -782,7 +782,6 @@
             && Boolean(document.activeElement.closest(interactiveSelector));
 
         session.interactionPointers = new Set();
-        session.sliderPointers = new Set();
         session.originalHideControls = reader.hideControls;
         reader.hideControls = () => {
             if (session.cleaned) {
@@ -799,19 +798,10 @@
         session.onInteractionPointerDown = event => {
             if (session.overlay.classList.contains('ab-controls-hidden')) return;
             session.interactionPointers.add(event.pointerId);
-            if (event.target instanceof Element && event.target.closest('.advancedBooksReaderPageSlider')) {
-                session.sliderPointers.add(event.pointerId);
-            }
             window.clearTimeout(reader.controlsTimer);
         };
         session.onInteractionPointerEnd = event => {
-            const sliderPointer = session.sliderPointers.delete(event.pointerId);
             if (!session.interactionPointers.delete(event.pointerId)) return;
-            if (sliderPointer
-                && document.activeElement instanceof Element
-                && document.activeElement.closest('.advancedBooksReaderPageSlider')) {
-                document.activeElement.blur?.();
-            }
             if (session.interactionPointers.size || panelOpen() || session.cleaned) return;
             if (!session.overlay.classList.contains('ab-controls-hidden')) reader.showControls?.();
         };
