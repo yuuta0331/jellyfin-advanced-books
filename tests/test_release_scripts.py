@@ -28,6 +28,7 @@ class ReleasePackagingTests(unittest.TestCase):
         self.assertEqual("Books", metadata["category"])
         self.assertTrue(metadata["image_url"].startswith("https://"))
         self.assertTrue(metadata["image_url"].endswith(".png"))
+        self.assertEqual(update_manifest.PLUGIN_METADATA["imageUrl"], metadata["image_url"])
         self.assertTrue(metadata["changelog"])
         changelog_lines = [line for line in metadata["changelog"].splitlines() if line.strip()]
         self.assertGreaterEqual(len(changelog_lines), 1)
