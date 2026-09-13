@@ -115,13 +115,9 @@
             return;
         }
 
-        const api = getReaderApi();
         contextTarget = {
             itemId,
-            createdAt: Date.now(),
-            supportPromise: typeof api?.supportsItem === 'function'
-                ? api.supportsItem(itemId).catch(() => false)
-                : Promise.resolve(false)
+            createdAt: Date.now()
         };
     }
 
@@ -143,12 +139,6 @@
 
             event.preventDefault();
             event.stopImmediatePropagation();
-
-            const supported = await state.supportPromise;
-            if (!supported) {
-                replayClick(actionSheetItem);
-                return;
-            }
 
             const command = actionSheetItem.getAttribute('data-id') === 'resume' ? 'resume' : 'play';
             const opened = await openAdvancedItem(
