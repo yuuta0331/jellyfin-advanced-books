@@ -32,6 +32,8 @@ def main() -> int:
         "public support probe API": "supportsItem: supportsReaderItem",
         "core drag-time pan clamp hook": "this.clampPan?.();",
         "core gesture input resync hook": "this.syncGestureInput?.();",
+        "resize-time pan reclamp": "this.clampPan?.();\n                    this.applyTransform();",
+        "continuous transform input resync": "this.refreshContinuousImageSizing();\n                this.syncGestureInput?.();",
     }
     forbidden = {
         "append-based continuous page insertion": "slot.appendChild(image)",
