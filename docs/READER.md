@@ -35,7 +35,7 @@ The bottom strip is available in Single, Double, Vertical Continuous and Webtoon
 
 The top chrome shows Jellyfin book metadata: title plus available authors, series, issue/index and production year. The metadata header can be disabled entirely or configured field-by-field. When enabled text is wider than the available header space, optional auto-scroll pauses at the start, moves in one direction, pauses at the end, then fades and resets invisibly instead of visibly reversing direction. Settings no longer occupy a permanent toolbar row. Desktop uses a compact floating settings panel; narrow/mobile layouts use a bottom sheet with touch-sized controls. Reader settings are grouped into collapsible Reading, Appearance, Behavior, Metadata and Language sections. On mobile the sections behave as an accordion so only the active category stays expanded; desktop initially keeps Reading and Appearance open. Layout, paged direction, fit, zoom, black/gray/white background, page-transition animation and touch gestures are available from the same sheet. Vertical Continuous and Webtoon additionally expose side-padding and page-gap controls.
 
-On narrow screens, the top and bottom chrome use compact floating surfaces instead of full-width bands. The duplicate top page counter is hidden so the title receives more room, while the bottom scrubber remains the single page-position display. Fullscreen and Help are secondary actions under a compact **…** menu; Close, metadata, Pages and Settings remain directly accessible. The overflow items reuse the existing fullscreen and contextual Help actions rather than maintaining separate state.
+On narrow screens, the top and bottom chrome use compact floating surfaces instead of full-width bands. The duplicate top page counter is hidden so the title receives more room. The bottom navigation now has two states: while controls are active it shows Previous/Next, the scrubber and page position; after the normal inactivity timeout it collapses to only the current page/range while the thin progress rail remains visible. Tapping the reading surface expands the controls again. Fullscreen and Help are secondary actions under a compact **…** menu; Close, metadata, Pages and Settings remain directly accessible. The overflow items reuse the existing fullscreen and contextual Help actions rather than maintaining separate state.
 
 ## Localization
 
@@ -166,10 +166,11 @@ Image elements cannot attach Jellyfin's custom authorization header directly. Fu
 | + / - / 0 | Reader zoom | Reader zoom |
 | Left/right click or tap | Direction-aware navigation | Native scrolling |
 | Horizontal swipe | Direction-aware navigation | Native scrolling |
-| Two-finger pinch | 50%-400% reader zoom when touch gestures are enabled | 50%-400% reader zoom when touch gestures are enabled |
-| Wheel | Previous/next in Fit Screen | Native vertical scroll |
-| Ctrl+wheel | Reader zoom | Reader zoom |
-| Drag at >100% | Pan | Desktop drag pan; native touch/scroll pan |
+| Two-finger pinch | 50%-400% focal-point zoom around the pinch location | 50%-400% focal-point zoom around the pinch location |
+| Double tap | Zoom the tapped area to 200%; double tap again to restore the previous/base view | Same |
+| Wheel | Previous/next in Fit Screen; focal zoom while already zoomed | Native vertical scroll |
+| Ctrl+wheel | Focal zoom around the pointer | Focal zoom around the pointer |
+| Drag at >100% | Pan with mouse or one finger | Pan with mouse or one finger while zoomed |
 | Bottom page scrubber | Direct page jump + thumbnail preview | Direct page jump + thumbnail preview |
 | Pages button | Open thumbnail navigator | Open thumbnail navigator |
 
@@ -181,7 +182,6 @@ The route/DOM adapter remains isolated inside `Reader/advancedBooksReader.js`, p
 
 ## Not implemented yet
 
-- focal-point pan persistence across pinch release;
 - additional mobile polish after live device testing;
 - CBR/PDF/EPUB Advanced Reader pipelines;
 - live end-to-end browser tests against a running Jellyfin 12 instance.

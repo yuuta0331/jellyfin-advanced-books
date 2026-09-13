@@ -100,6 +100,8 @@
             'Zoom when touch gestures are enabled': 'タッチジェスチャー有効時にズーム',
             'Close panel, then reader': 'パネルを閉じ、次にリーダーを閉じる',
             'Two-finger pinch': '2本指ピンチ',
+            'Double tap': 'ダブルタップ',
+            'Zoom tapped area / restore': 'タップ位置を拡大 / 元に戻す',
             'Drag': 'ドラッグ',
             'Book': '本'
         },
@@ -197,6 +199,8 @@
             'Zoom when touch gestures are enabled': 'Zoomen bei aktivierten Touch-Gesten',
             'Close panel, then reader': 'Zuerst Panel, dann Reader schließen',
             'Two-finger pinch': 'Zwei-Finger-Zoom',
+            'Double tap': 'Doppeltippen',
+            'Zoom tapped area / restore': 'Angetippte Stelle zoomen / zurücksetzen',
             'Drag': 'Ziehen',
             'Book': 'Buch'
         },
@@ -294,6 +298,8 @@
             'Zoom when touch gestures are enabled': 'Zoomer lorsque les gestes tactiles sont activés',
             'Close panel, then reader': 'Fermer le panneau puis le lecteur',
             'Two-finger pinch': 'Pincement à deux doigts',
+            'Double tap': 'Double appui',
+            'Zoom tapped area / restore': 'Zoomer sur la zone touchée / restaurer',
             'Drag': 'Glisser',
             'Book': 'Livre'
         },
@@ -391,6 +397,8 @@
             'Zoom when touch gestures are enabled': 'Zoom con gestos táctiles activados',
             'Close panel, then reader': 'Cerrar panel y después lector',
             'Two-finger pinch': 'Pellizco con dos dedos',
+            'Double tap': 'Doble toque',
+            'Zoom tapped area / restore': 'Ampliar zona tocada / restaurar',
             'Drag': 'Arrastrar',
             'Book': 'Libro'
         },
@@ -488,6 +496,8 @@
             'Zoom when touch gestures are enabled': '启用触摸手势时缩放',
             'Close panel, then reader': '先关闭面板，再关闭阅读器',
             'Two-finger pinch': '双指缩放',
+            'Double tap': '双击',
+            'Zoom tapped area / restore': '放大点击位置 / 恢复',
             'Drag': '拖动',
             'Book': '书籍'
         }

@@ -255,7 +255,7 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 15. navigate to the final page and confirm the Book becomes played in Jellyfin;
 16. reopen the completed Book and verify rereading earlier pages does not clear the played state;
 17. verify arrow keys, Page Up/Down, Space, Home/End, click/tap zones, horizontal swipe and wheel navigation;
-18. confirm top/bottom reader chrome auto-hides; tiny mouse jitter must leave it hidden, deliberate mouse movement or movement near a top/bottom edge must restore it, hovering visible chrome must keep it open, and a center tap/click must toggle it without turning a page;
+18. confirm the top chrome auto-hides and the bottom navigation collapses after inactivity to only the current page/range plus the thin progress rail; tiny mouse jitter must keep the compact state, deliberate mouse movement or movement near a top/bottom edge must restore the full scrubber/navigation bar, hovering visible chrome must keep it open, and a center tap/click must toggle it without turning a page;
 19. drag the bottom page scrubber from the beginning to a distant page in Single, Double, Vertical and Webtoon layouts; verify the thumbnail/page preview stays directly above the active finger/pointer, the loading spinner remains centered inside the preview frame without text leaking beside it, stale preview requests are aborted, and the intended page is reached directly;
 20. hold the scrubber for longer than the normal auto-hide delay and confirm the reader chrome remains visible until scrubbing ends;
 21. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet; on mobile confirm the top/bottom icon and navigation buttons remain square rather than vertically stretched;
@@ -280,9 +280,12 @@ Run these checks on a real touch device or browser/device mode that emits touch 
 5. Add a third finger during a pinch; confirm the original two-finger pair remains authoritative and zoom does not jump.
 6. With a third finger still down, lift either original pinch finger; confirm the pinch ends cleanly rather than switching to a different pair.
 7. Start with two fingers closer than the minimum pinch distance, spread them apart, and confirm the gesture can become a pinch without creating a page-turn tap/swipe.
-8. At greater than 100% zoom, confirm ordinary one-finger drag-to-pan still works after the pinch finishes.
-9. In Vertical Continuous and Webtoon, confirm one-finger vertical scrolling remains native, then add a second finger and pinch in/out; zoom should change while the page/scroll position stays anchored, and releasing the gesture must not create a page jump.
+8. At greater than 100% zoom in a paged layout, confirm ordinary one-finger drag-to-pan still works after the pinch finishes.
+9. In Vertical Continuous and Webtoon at 100% or below, confirm one-finger vertical scrolling remains native. Pinch above 100%, then confirm one-finger drag pans the zoomed canvas horizontally and vertically; reset to 100% and confirm native vertical scrolling returns.
 10. In paged Fit Width/Original at 100% or below, confirm normal vertical panning/scrolling remains usable where content exceeds the viewport; the pinch feature must not globally force `touch-action:none`.
+11. Double-tap a visible detail in Single Page and confirm that exact area remains under the finger while zooming to 200%; double-tap again and confirm the previous/base zoom and view are restored without turning the page.
+12. Repeat double-tap near different corners/edges and confirm zoom does not jump toward the top-left. Then pinch at an off-center point and confirm the pinch midpoint stays visually anchored when the gesture commits.
+13. On desktop, Ctrl+wheel over several different parts of a page and confirm the pointer location remains the focal point instead of zooming from the top-left or viewport origin.
 
 The JavaScript Injector integration is optional at runtime and loaded by reflection. Do not add its assembly or Newtonsoft.Json as a compile/runtime dependency to Advanced Books.
 
