@@ -128,8 +128,8 @@ Do not start integration testing with a production-scale library. First test a f
 
 Use a disposable Komga/Jellyfin pair that points at the same sample CBZ files.
 
-1. Set metadata directly in Komga (not via `ComicInfo.xml`) for a Book and its Series: title, summary, authors/roles, series title, genres, publisher, language, tags, ISBN, release date and numeric issue.
-2. Configure **Import metadata directly from Komga** with an API key. Use **Save & test connection** and confirm it succeeds.
+1. Set metadata directly in Komga (not via `ComicInfo.xml`) for a Book and its Series: title, summary, authors/roles, series title, genres, publisher, tags, ISBN, release date and numeric issue.
+2. Configure **Import metadata directly from Komga** with a Komga administrator API key. Use **Save & test connection** and confirm it succeeds. Repeat with a non-admin credential and confirm the connection test explains that full Book paths are hidden.
 3. If Komga uses a container path such as `/data/manga` while Jellyfin uses `G:/Manga`, configure `/data/manga => G:/Manga`. Confirm the same file matches only after the mapping is applied.
 4. Run **Save & sync now** or **Dashboard -> Scheduled Tasks -> Sync metadata from Komga**. Confirm the Jellyfin Book receives the supported fields and Komga provider IDs.
 5. Change the metadata directly in Komga and rerun the task. Confirm Jellyfin changes accordingly and a third run reports the item unchanged.
