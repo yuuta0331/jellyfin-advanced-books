@@ -79,7 +79,7 @@
         };
     }
 
-    function pagedContentSize(pages) {
+    function pagedContentBounds(pages) {
         const images = Array.from(pages?.querySelectorAll('img') ?? [])
             .filter(image => image.offsetWidth > 0 && image.offsetHeight > 0);
         if (!images.length) return null;
@@ -94,109 +94,119 @@
             right = Math.max(right, image.offsetLeft + image.offsetWidth);
             bottom = Math.max(bottom, image.offsetTop + image.offsetHeight);
         }
-        return {
-            width: Math.max(1, right - left),
-            height: Math.max(1, bottom - top)
-        };
+        return { left, top, right, bottom };
     }
 
     function clampPagedPan(reader, stage, pages) {
         if (!reader || reader.isContinuous?.()) return;
-        if (!Number.isFinite(reader.zoom) || reader.zoom <= 1) {
+        const zoom = Number.isFinite(reader.zoom) ? reader.zoom : 1;
+        if (zoom <= 1) {
             reader.panX = 0;
             reader.panY = 0;
             return;
         }
 
-        const content = pagedContentSize(pages);
-        if (!content) return;
+        const bounds = pagedContentBounds(pages);
+        if (!bounds) return;
+        const pageWidth = Math.max(1, pages.clientWidth);
+        const pageHeight = Math.max(1, pages.clientHeight);
         const viewportWidth = Math.max(1, stage.clientWidth);
         const viewportHeight = Math.max(1, stage.clientHeight);
-        const limitX = Math.max(0, (content.width * reader.zoom - viewportWidth) / 2);
-        const limitY = Math.max(0, (content.height * reader.zoom - viewportHeight) / 2);
-        reader.panX = Math.max(-limitX, Math.min(limitX, Number(reader.panX) || 0));
-        reader.panY = Math.max(-limitY, Math.min(limitY, Number(reader.panY) || 0));
-    }
 
-    function installAnchoredZoom(session) {
-        const reader = session.overlay.__advancedBooksReaderSession;
-        if (!reader || typeof reader.setZoom !== 'function' || reader.__advancedBooksAnchoredZoomInstalled) return;
+        const left = (bounds.left - pageWidth / 2) * zoom;
+        const right = (bounds.right - pageWidth / 2) * zoom;
+        const top = (bounds.top - pageHeight / 2) * zoom;
+        const bottom = (bounds.bottom - pageHeight / 2) * zoom;
 
-        const originalSetZoom = reader.setZoom.bind(reader);
-        const originalApplyTransform = typeof reader.applyTransform === 'function'
-            ? reader.applyTransform.bind(reader)
-            : null;
-        reader.__advancedBooksAnchoredZoomInstalled = true;
-        reader.__advancedBooksOriginalSetZoom = originalSetZoom;
-
-        if (originalApplyTransform) {
-            reader.applyTransform = () => {
-                originalApplyTransform();
-                const beforeX = reader.panX;
-                const beforeY = reader.panY;
-                clampPagedPan(reader, session.stage, session.pages);
-                if (reader.panX !== beforeX || reader.panY !== beforeY) originalApplyTransform();
-            };
+        if (right - left <= viewportWidth) {
+            reader.panX = -(left + right) / 2;
+        } else {
+            const minimum = viewportWidth / 2 - right;
+            const maximum = -viewportWidth / 2 - left;
+            reader.panX = Math.max(minimum, Math.min(maximum, Number(reader.panX) || 0));
         }
 
-        reader.setZoom = (value, anchor = null) => {
-            if (!session.overlay.isConnected) return;
+        if (bottom - top <= viewportHeight) {
+            reader.panY = -(top + bottom) / 2;
+        } else {
+            const minimum = viewportHeight / 2 - bottom;
+            const maximum = -viewportHeight / 2 - top;
+            reader.panY = Math.max(minimum, Math.min(maximum, Number(reader.panY) || 0));
+        }
+    }
 
-            const oldZoom = Number.isFinite(reader.zoom) ? reader.zoom : 1;
+    function installZoomController(session) {
+        const reader = session.overlay.__advancedBooksReaderSession;
+        if (!reader || typeof reader.setZoom !== 'function' || reader.__advancedBooksZoomControllerInstalled) return;
+
+        const fallbackSetZoom = reader.setZoom.bind(reader);
+        const applyTransform = typeof reader.applyTransform === 'function'
+            ? reader.applyTransform.bind(reader)
+            : null;
+        const syncControlState = typeof reader.syncControlState === 'function'
+            ? reader.syncControlState.bind(reader)
+            : null;
+        if (!applyTransform) return;
+
+        reader.__advancedBooksZoomControllerInstalled = true;
+        reader.__advancedBooksOriginalSetZoom = fallbackSetZoom;
+
+        reader.setZoom = (value, anchor = null, options = null) => {
+            if (!session.overlay.isConnected) return;
+            if (!Number.isFinite(value)) return;
+
+            const snap = options?.snap !== false;
+            const requested = clampZoom(value);
+            const nextZoom = snap ? Math.round(requested * 20) / 20 : requested;
+            const oldZoom = Number.isFinite(reader.zoom) && reader.zoom > 0 ? reader.zoom : 1;
             const oldPanX = Number.isFinite(reader.panX) ? reader.panX : 0;
             const oldPanY = Number.isFinite(reader.panY) ? reader.panY : 0;
             const focus = normalizeAnchor(session.stage, anchor);
-            const continuous = typeof reader.isContinuous === 'function'
-                ? reader.isContinuous()
-                : session.isContinuous();
+            const continuous = reader.isContinuous?.() ?? session.isContinuous();
 
-            let continuousAnchor = null;
             if (continuous) {
                 const pointed = document.elementFromPoint(focus.clientX, focus.clientY)
                     ?.closest?.('.advancedBooksReaderPageSlot');
-                const fallback = reader.continuousElements?.[reader.currentPage] ?? null;
-                const element = pointed?.isConnected ? pointed : fallback;
-                const rect = element?.getBoundingClientRect?.();
-                if (element && rect && rect.width > 0 && rect.height > 0) {
-                    continuousAnchor = {
-                        element,
-                        xRatio: Math.max(0, Math.min(1, (focus.clientX - rect.left) / rect.width)),
-                        yRatio: Math.max(0, Math.min(1, (focus.clientY - rect.top) / rect.height))
-                    };
+                const element = pointed?.isConnected
+                    ? pointed
+                    : reader.continuousElements?.[reader.currentPage] ?? null;
+                const before = element?.getBoundingClientRect?.();
+                const xRatio = before?.width > 0
+                    ? Math.max(0, Math.min(1, (focus.clientX - before.left) / before.width))
+                    : .5;
+                const yRatio = before?.height > 0
+                    ? Math.max(0, Math.min(1, (focus.clientY - before.top) / before.height))
+                    : .5;
+
+                reader.zoom = nextZoom;
+                applyTransform();
+                syncControlState?.();
+
+                if (element?.isConnected) {
+                    const after = element.getBoundingClientRect();
+                    session.stage.scrollLeft += after.left + after.width * xRatio - focus.clientX;
+                    session.stage.scrollTop += after.top + after.height * yRatio - focus.clientY;
                 }
-            }
-
-            originalSetZoom(value);
-
-            const nextZoom = Number.isFinite(reader.zoom) ? reader.zoom : oldZoom;
-            session.updateGrabCursor?.();
-            if (continuous) {
-                session.stage.style.touchAction = nextZoom > 1 ? 'none' : 'pan-y';
-                requestAnimationFrame(() => {
-                    if (!session.overlay.isConnected || !continuousAnchor?.element?.isConnected) return;
-                    const rect = continuousAnchor.element.getBoundingClientRect();
-                    const anchorClientX = rect.left + rect.width * continuousAnchor.xRatio;
-                    const anchorClientY = rect.top + rect.height * continuousAnchor.yRatio;
-                    session.stage.scrollLeft += anchorClientX - focus.clientX;
-                    session.stage.scrollTop += anchorClientY - focus.clientY;
-                });
+                session.syncTouchAction?.();
+                session.updateGrabCursor?.();
                 return;
             }
 
-            if (nextZoom <= 1 || oldZoom <= 0) {
+            reader.zoom = nextZoom;
+            if (nextZoom <= 1) {
                 reader.panX = 0;
                 reader.panY = 0;
-                reader.applyTransform?.();
-                return;
+            } else {
+                const ratio = nextZoom / oldZoom;
+                const anchorX = focus.localX - focus.centerX;
+                const anchorY = focus.localY - focus.centerY;
+                reader.panX = oldPanX * ratio + (1 - ratio) * anchorX;
+                reader.panY = oldPanY * ratio + (1 - ratio) * anchorY;
+                clampPagedPan(reader, session.stage, session.pages);
             }
-
-            const ratio = nextZoom / oldZoom;
-            const anchorX = focus.localX - focus.centerX;
-            const anchorY = focus.localY - focus.centerY;
-            reader.panX = oldPanX * ratio + (1 - ratio) * anchorX;
-            reader.panY = oldPanY * ratio + (1 - ratio) * anchorY;
-            clampPagedPan(reader, session.stage, session.pages);
-            reader.applyTransform?.();
+            applyTransform();
+            syncControlState?.();
+            session.updateGrabCursor?.();
         };
     }
 
@@ -307,7 +317,7 @@
         attach() {
             if (!this.stage || !this.pages) return false;
             ensureInteractionStyles();
-            installAnchoredZoom(this);
+            installZoomController(this);
             this.updateGrabCursor();
             this.pageMutationObserver = new MutationObserver(() => this.applyPendingPageMotion());
             this.pageMutationObserver.observe(this.pages, { childList: true });
