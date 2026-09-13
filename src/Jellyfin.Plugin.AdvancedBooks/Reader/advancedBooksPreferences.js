@@ -235,9 +235,6 @@
     .advancedBooksReaderHelpGrid{grid-template-columns:minmax(7rem,.8fr) minmax(0,1.4fr);gap:.42rem .65rem}
     .advancedBooksReaderSettingsSections{gap:.55rem}
     .advancedBooksReaderSettingsSection{padding:.68rem;border-radius:.82rem}
-    .advancedBooksReaderMoreButton{display:inline-flex}
-    .advancedBooksReaderMoreSource{display:none!important}
-    .advancedBooksReaderMoreMenu{position:absolute;z-index:11;top:calc(4rem + env(safe-area-inset-top,0px));right:.45rem;display:grid;min-width:12.5rem;padding:.38rem;border:1px solid rgba(255,255,255,.14);border-radius:.8rem;background:rgba(18,18,20,.96);box-shadow:0 14px 42px rgba(0,0,0,.5);backdrop-filter:blur(16px)}
 }
 `;
         document.head.appendChild(style);
