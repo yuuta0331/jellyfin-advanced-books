@@ -24,6 +24,16 @@
             </div>
           </div>
 
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="ReplaceNativeReader" type="checkbox" is="emby-checkbox">
+              <span data-i18n="replaceNativeReader">Use Advanced Reader for Jellyfin book actions</span>
+            </label>
+            <div class="fieldDescription" data-i18n="replaceNativeReaderDescription">
+              Optional. On supported CBZ/ZIP books, Jellyfin's Play/Resume and Start from beginning actions open Advanced Reader instead of the built-in reader. Resume keeps saved progress; Start from beginning opens page 1. Restart Jellyfin after changing this setting.
+            </div>
+          </div>
+
           <h2 data-i18n="komgaHeading">Komga compatibility</h2>
 
           <div class="checkboxContainer checkboxContainer-withDescription">
@@ -82,6 +92,8 @@
             readerHeading: 'Advanced Reader',
             enableReader: 'Enable Advanced Reader integration',
             enableReaderDescription: 'When the Jellyfin 12-compatible JavaScript Injector plugin is installed, Advanced Books registers its reader automatically and adds an Advanced Reader button to supported CBZ/ZIP book detail pages. Restart Jellyfin after changing this setting.',
+            replaceNativeReader: 'Use Advanced Reader for Jellyfin book actions',
+            replaceNativeReaderDescription: 'Optional. On supported CBZ/ZIP books, Jellyfin\'s Play/Resume and Start from beginning actions open Advanced Reader instead of the built-in reader. Resume keeps saved progress; Start from beginning opens page 1. Restart Jellyfin after changing this setting.',
             komgaHeading: 'Komga compatibility',
             enableOneShots: 'Enable Komga-compatible One-Shots',
             enableOneShotsDescription: 'Books under a matching directory are resolved as independent One-Shots before Jellyfin\'s default book resolver.',
@@ -100,6 +112,8 @@
             readerHeading: '高度なリーダー',
             enableReader: '高度なリーダー連携を有効にする',
             enableReaderDescription: 'Jellyfin 12対応のJavaScript Injectorプラグインがインストールされている場合、Advanced Booksはリーダーを自動登録し、対応するCBZ/ZIPの本の詳細画面に高度なリーダーボタンを追加します。この設定を変更した後はJellyfinを再起動してください。',
+            replaceNativeReader: 'Jellyfin標準の書籍操作をAdvanced Readerに置き換える',
+            replaceNativeReaderDescription: '任意設定です。対応するCBZ/ZIPでは、Jellyfin標準の再生/レジューム/最初から操作で内蔵リーダーの代わりにAdvanced Readerを開きます。レジュームは保存位置を維持し、「最初から」は1ページ目から開始します。変更後はJellyfinを再起動してください。',
             komgaHeading: 'Komga互換',
             enableOneShots: 'Komga互換One-Shotを有効にする',
             enableOneShotsDescription: '一致するディレクトリ内の本を、Jellyfin標準の本リゾルバーより先に独立したOne-Shotとして認識します。',
@@ -118,6 +132,8 @@
             readerHeading: 'Erweiterter Reader',
             enableReader: 'Advanced-Reader-Integration aktivieren',
             enableReaderDescription: 'Wenn das mit Jellyfin 12 kompatible JavaScript-Injector-Plugin installiert ist, registriert Advanced Books den Reader automatisch und fügt unterstützten CBZ/ZIP-Buchseiten eine Schaltfläche für den erweiterten Reader hinzu. Starten Sie Jellyfin nach einer Änderung neu.',
+            replaceNativeReader: 'Jellyfin-Buchaktionen mit Advanced Reader öffnen',
+            replaceNativeReaderDescription: 'Optional. Bei unterstützten CBZ/ZIP-Büchern öffnen Wiedergabe/Fortsetzen und Von Anfang an den Advanced Reader statt des integrierten Readers. Fortsetzen behält den gespeicherten Fortschritt bei; Von Anfang an startet auf Seite 1. Starten Sie Jellyfin nach einer Änderung neu.',
             komgaHeading: 'Komga-Kompatibilität',
             enableOneShots: 'Komga-kompatible One-Shots aktivieren',
             enableOneShotsDescription: 'Bücher in einem passenden Verzeichnis werden vor dem Standard-Resolver von Jellyfin als eigenständige One-Shots erkannt.',
@@ -136,6 +152,8 @@
             readerHeading: 'Lecteur avancé',
             enableReader: 'Activer l’intégration du lecteur avancé',
             enableReaderDescription: 'Lorsque le plugin JavaScript Injector compatible avec Jellyfin 12 est installé, Advanced Books enregistre automatiquement son lecteur et ajoute un bouton Lecteur avancé aux pages de détail CBZ/ZIP prises en charge. Redémarrez Jellyfin après toute modification.',
+            replaceNativeReader: 'Utiliser le lecteur avancé pour les actions de livre Jellyfin',
+            replaceNativeReaderDescription: 'Optionnel. Pour les livres CBZ/ZIP pris en charge, Lecture/Reprendre et Recommencer ouvrent le lecteur avancé à la place du lecteur intégré. Reprendre conserve la progression enregistrée ; Recommencer ouvre la page 1. Redémarrez Jellyfin après modification.',
             komgaHeading: 'Compatibilité Komga',
             enableOneShots: 'Activer les One-Shots compatibles Komga',
             enableOneShotsDescription: 'Les livres d’un dossier correspondant sont résolus comme One-Shots indépendants avant le résolveur de livres par défaut de Jellyfin.',
@@ -154,6 +172,8 @@
             readerHeading: 'Lector avanzado',
             enableReader: 'Activar integración del lector avanzado',
             enableReaderDescription: 'Cuando está instalado el plugin JavaScript Injector compatible con Jellyfin 12, Advanced Books registra su lector automáticamente y añade un botón de Lector avanzado a las páginas de detalle CBZ/ZIP compatibles. Reinicie Jellyfin después de cambiar esta opción.',
+            replaceNativeReader: 'Usar el lector avanzado para las acciones de libros de Jellyfin',
+            replaceNativeReaderDescription: 'Opcional. En libros CBZ/ZIP compatibles, Reproducir/Reanudar y Empezar desde el principio abren el lector avanzado en lugar del lector integrado. Reanudar conserva el progreso; Empezar desde el principio abre la página 1. Reinicie Jellyfin tras cambiar esta opción.',
             komgaHeading: 'Compatibilidad con Komga',
             enableOneShots: 'Activar One-Shots compatibles con Komga',
             enableOneShotsDescription: 'Los libros de un directorio coincidente se resuelven como One-Shots independientes antes que el resolvedor de libros predeterminado de Jellyfin.',
@@ -172,6 +192,8 @@
             readerHeading: '高级阅读器',
             enableReader: '启用高级阅读器集成',
             enableReaderDescription: '安装兼容 Jellyfin 12 的 JavaScript Injector 插件后，Advanced Books 会自动注册阅读器，并在支持的 CBZ/ZIP 图书详情页添加“高级阅读器”按钮。更改此设置后请重启 Jellyfin。',
+            replaceNativeReader: '使用高级阅读器处理 Jellyfin 图书操作',
+            replaceNativeReaderDescription: '可选。对于受支持的 CBZ/ZIP 图书，播放/继续和从头开始会打开高级阅读器，而不是内置阅读器。继续会保留已保存进度；从头开始会从第 1 页打开。更改后请重启 Jellyfin。',
             komgaHeading: 'Komga 兼容',
             enableOneShots: '启用 Komga 兼容 One-Shot',
             enableOneShotsDescription: '匹配目录中的图书会在 Jellyfin 默认图书解析器之前被识别为独立的 One-Shot。',
@@ -219,6 +241,7 @@
           Dashboard.showLoadingMsg();
           ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
             document.querySelector('#EnableAdvancedReader').checked = config.EnableAdvancedReader !== false;
+            document.querySelector('#ReplaceNativeReader').checked = config.ReplaceNativeReader === true;
             document.querySelector('#EnableKomgaOneShots').checked = config.EnableKomgaOneShots;
             document.querySelector('#OneShotDirectory').value = config.OneShotDirectory || '_oneshots';
             document.querySelector('#OneShotMatchCaseSensitive').checked = config.OneShotMatchCaseSensitive;
@@ -233,6 +256,7 @@
 
           ApiClient.getPluginConfiguration(AdvancedBooksConfig.pluginUniqueId).then(function (config) {
             config.EnableAdvancedReader = document.querySelector('#EnableAdvancedReader').checked;
+            config.ReplaceNativeReader = document.querySelector('#ReplaceNativeReader').checked;
             config.EnableKomgaOneShots = document.querySelector('#EnableKomgaOneShots').checked;
             config.OneShotDirectory = document.querySelector('#OneShotDirectory').value.trim() || '_oneshots';
             config.OneShotMatchCaseSensitive = document.querySelector('#OneShotMatchCaseSensitive').checked;
