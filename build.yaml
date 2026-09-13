@@ -1,7 +1,7 @@
 ---
 name: "Advanced Books"
 guid: "843f3c69-88ee-4e82-84f3-330b84d64d88"
-version: "0.14.0.0"
+version: "0.15.0.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 imageUrl: "https://raw.githubusercontent.com/yuuta0331/jellyfin-advanced-books/main/assets/advanced-books-icon.png"
@@ -17,11 +17,12 @@ artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: >
-  Add six-language localization for the Advanced Reader and plugin configuration:
-  English, Japanese, German, French, Spanish and Simplified Chinese. Reader UI follows
-  the Jellyfin/browser language automatically and keeps localized controls addressable
-  through stable action identifiers. Add a repository-owned catalog icon and project
-  banner, publish imageUrl and Books-category metadata in the Jellyfin repository
-  manifest, and document repository-based installation and Catalog-discovered updates.
-  Extend embedded-resource verification to the new localization bridge and add release
-  validation for catalog metadata.
+  Improve Advanced Reader UI/UX on mobile and desktop. Add a per-user reader language
+  override for Auto, English, Japanese, German, French, Spanish and Simplified Chinese
+  while preserving Jellyfin/browser automatic detection. Replace ping-pong metadata
+  scrolling with one-direction motion and an invisible reset, reorganize Reader Settings
+  into collapsible Reading, Appearance, Behavior, Metadata and Language sections, and
+  use mobile accordion behavior. Reduce mobile chrome clutter with compact floating
+  controls, hide duplicate page-position information, and move secondary Fullscreen and
+  Help actions into a localized overflow menu with accessible focus handling. Extend
+  preference-schema, localization and UI regression validation for the new behavior.
