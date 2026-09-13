@@ -1704,136 +1704,47 @@
             this.overlay?.style.setProperty('--ab-progress', `${Math.max(0, Math.min(100, progress))}%`);
         }
 
-        normalizeZoomAnchor(anchor) {
-            const rect = this.stage.getBoundingClientRect();
-            const clientX = Number.isFinite(anchor?.clientX) ? anchor.clientX : rect.left + rect.width / 2;
-            const clientY = Number.isFinite(anchor?.clientY) ? anchor.clientY : rect.top + rect.height / 2;
-            return {
-                clientX,
-                clientY,
-                localX: clientX - rect.left,
-                localY: clientY - rect.top,
-                centerX: rect.width / 2,
-                centerY: rect.height / 2
-            };
-        }
-
-        pagedContentBounds() {
-            const images = Array.from(this.pagesElement?.querySelectorAll('img') ?? [])
-                .filter(image => image.offsetWidth > 0 && image.offsetHeight > 0);
-            if (!images.length) return null;
-
-            let left = Number.POSITIVE_INFINITY;
-            let top = Number.POSITIVE_INFINITY;
-            let right = Number.NEGATIVE_INFINITY;
-            let bottom = Number.NEGATIVE_INFINITY;
-            for (const image of images) {
-                left = Math.min(left, image.offsetLeft);
-                top = Math.min(top, image.offsetTop);
-                right = Math.max(right, image.offsetLeft + image.offsetWidth);
-                bottom = Math.max(bottom, image.offsetTop + image.offsetHeight);
-            }
-            return { left, top, right, bottom };
-        }
-
         clampPagedPan() {
-            if (this.isContinuous()) return;
-            if (!Number.isFinite(this.zoom) || this.zoom <= 1) {
-                this.panX = 0;
-                this.panY = 0;
-                return;
-            }
-
-            const bounds = this.pagedContentBounds();
-            if (!bounds) return;
-            const pageWidth = Math.max(1, this.pagesElement.clientWidth);
-            const pageHeight = Math.max(1, this.pagesElement.clientHeight);
-            const viewportWidth = Math.max(1, this.stage.clientWidth);
-            const viewportHeight = Math.max(1, this.stage.clientHeight);
-
-            const left = (bounds.left - pageWidth / 2) * this.zoom;
-            const right = (bounds.right - pageWidth / 2) * this.zoom;
-            const top = (bounds.top - pageHeight / 2) * this.zoom;
-            const bottom = (bounds.bottom - pageHeight / 2) * this.zoom;
-
-            if (right - left <= viewportWidth) {
-                this.panX = -(left + right) / 2;
-            } else {
-                const minimum = viewportWidth / 2 - right;
-                const maximum = -viewportWidth / 2 - left;
-                this.panX = Math.max(minimum, Math.min(maximum, Number(this.panX) || 0));
-            }
-
-            if (bottom - top <= viewportHeight) {
-                this.panY = -(top + bottom) / 2;
-            } else {
-                const minimum = viewportHeight / 2 - bottom;
-                const maximum = -viewportHeight / 2 - top;
-                this.panY = Math.max(minimum, Math.min(maximum, Number(this.panY) || 0));
-            }
+            window.AdvancedBooksZoom?.clampPagedPan?.(this, this.stage, this.pagesElement);
         }
 
         syncTouchAction() {
             if (!this.stage) return;
-            if (this.externalPinchActive) {
-                this.stage.style.touchAction = 'none';
-                return;
-            }
-            if (!this.touchGestures) {
-                this.stage.style.touchAction = this.isContinuous() ? 'pan-x pan-y' : 'pan-y';
-                return;
-            }
-            this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
+            if (this.externalPinchActive) this.stage.style.touchAction = 'none';
+            else if (!this.touchGestures) this.stage.style.touchAction = this.isContinuous() ? 'pan-x pan-y' : 'pan-y';
+            else this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
         }
 
         setZoom(value, anchor = null, options = null) {
             if (!Number.isFinite(value) || !this.stage) return;
-
+            const geometry = window.AdvancedBooksZoom;
             const requested = Math.min(4, Math.max(.5, value));
-            const nextZoom = options?.snap === false
-                ? requested
-                : Math.round(requested * 20) / 20;
+            const nextZoom = options?.snap === false ? requested : Math.round(requested * 20) / 20;
             const oldZoom = Number.isFinite(this.zoom) && this.zoom > 0 ? this.zoom : 1;
-            const oldPanX = Number.isFinite(this.panX) ? this.panX : 0;
-            const oldPanY = Number.isFinite(this.panY) ? this.panY : 0;
-            const targetFocus = this.normalizeZoomAnchor(anchor);
-            const sourceFocus = options?.fromAnchor
-                ? this.normalizeZoomAnchor(options.fromAnchor)
-                : targetFocus;
-
-            if (this.isContinuous()) {
-                const hit = document.elementFromPoint?.(sourceFocus.clientX, sourceFocus.clientY) ?? null;
-                const pointedSlot = hit?.closest?.('.advancedBooksReaderPageSlot');
-                const slot = pointedSlot?.isConnected
-                    ? pointedSlot
-                    : this.continuousElements[this.currentPage] ?? null;
-                const element = hit?.tagName === 'IMG' && hit.closest?.('.advancedBooksReaderPageSlot') === slot
-                    ? hit
-                    : slot;
-                const before = element?.getBoundingClientRect?.();
-                const xRatio = before?.width > 0
-                    ? Math.max(0, Math.min(1, (sourceFocus.clientX - before.left) / before.width))
-                    : .5;
-                const yRatio = before?.height > 0
-                    ? Math.max(0, Math.min(1, (sourceFocus.clientY - before.top) / before.height))
-                    : .5;
-
+            const targetFocus = geometry?.normalizeAnchor?.(this.stage, anchor);
+            const sourceFocus = geometry?.normalizeAnchor?.(this.stage, options?.fromAnchor ?? anchor) ?? targetFocus;
+            if (!targetFocus || !sourceFocus) {
                 this.zoom = nextZoom;
+                if (nextZoom <= 1) this.resetPan();
                 this.applyTransform();
                 this.syncControlState();
-
-                if (element?.isConnected) {
-                    const after = element.getBoundingClientRect();
-                    this.stage.scrollLeft += after.left + after.width * xRatio - targetFocus.clientX;
-                    this.stage.scrollTop += after.top + after.height * yRatio - targetFocus.clientY;
-                }
                 return;
             }
 
+            if (this.isContinuous()) {
+                const captured = geometry.captureContinuousAnchor?.(this, sourceFocus);
+                this.zoom = nextZoom;
+                this.applyTransform();
+                this.syncControlState();
+                geometry.restoreContinuousAnchor?.(this.stage, captured, targetFocus);
+                return;
+            }
+
+            const oldPanX = Number.isFinite(this.panX) ? this.panX : 0;
+            const oldPanY = Number.isFinite(this.panY) ? this.panY : 0;
             this.zoom = nextZoom;
             if (nextZoom <= 1) {
-                this.panX = 0;
-                this.panY = 0;
+                this.resetPan();
             } else {
                 const ratio = nextZoom / oldZoom;
                 const sourceX = sourceFocus.localX - sourceFocus.centerX;
