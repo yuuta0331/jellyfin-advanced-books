@@ -278,7 +278,6 @@
             this.pointers = new Map();
             this.tapStarts = new Map();
             this.pinchPointerIds = [];
-            this.livePagedPinch = false;
             this.pinching = false;
             this.suppressUntilRelease = false;
             this.startDistance = 0;
@@ -286,18 +285,13 @@
             this.targetZoom = 1;
             this.startMidpoint = null;
             this.currentMidpoint = null;
-            this.startScrollLeft = 0;
-            this.startScrollTop = 0;
-            this.originalTransform = '';
-            this.originalTransformOrigin = '';
-            this.originalTransition = '';
-            this.originalWillChange = '';
+            this.pinchFrame = 0;
+            this.pendingPinchZoom = null;
             this.touchPan = null;
             this.lastTap = null;
             this.tapTimer = null;
             this.doubleTapBaseZoom = 1;
             this.doubleTapZoomed = false;
-            this.livePagedPinch = false;
             this.mouseDrag = null;
             this.pendingPageMotion = null;
             this.pageMotionTimer = null;
@@ -319,15 +313,19 @@
             ensureInteractionStyles();
             installZoomController(this);
             this.updateGrabCursor();
-            this.pageMutationObserver = new MutationObserver(() => this.applyPendingPageMotion());
-            this.pageMutationObserver.observe(this.pages, { childList: true });
+            this.syncTouchAction();
+            this.pageMutationObserver = new MutationObserver(() => {
+                this.applyPendingPageMotion();
+                this.updateGrabCursor();
+                this.syncTouchAction();
+            });
+            this.pageMutationObserver.observe(this.pages, { childList: true, attributes: true, attributeFilter: ['class'] });
+            this.pageMutationObserver.observe(this.stage, { attributes: true, attributeFilter: ['class'] });
             this.stage.addEventListener('pointerdown', this.onPointerDown, true);
             this.stage.addEventListener('pointermove', this.onPointerMove, true);
             this.stage.addEventListener('pointerup', this.onPointerEnd, true);
             this.stage.addEventListener('pointercancel', this.onPointerEnd, true);
             this.stage.addEventListener('wheel', this.onWheel, { capture: true, passive: false });
-
-            if (this.isContinuous() && currentZoom(this.overlay) > 1) this.stage.style.touchAction = 'none';
 
             this.removalObserver = new MutationObserver(() => {
                 if (!this.overlay.isConnected) this.dispose();
@@ -357,6 +355,39 @@
 
         reducedMotion() {
             return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+        }
+
+        syncTouchAction() {
+            if (!this.stage) return;
+            this.stage.style.touchAction = this.reader?.externalPinchActive || currentZoom(this.overlay) > 1
+                ? 'none'
+                : 'pan-y';
+        }
+
+        schedulePinchZoom() {
+            if (!this.currentMidpoint) return;
+            this.pendingPinchZoom = {
+                zoom: this.targetZoom,
+                anchor: { clientX: this.currentMidpoint.x, clientY: this.currentMidpoint.y }
+            };
+            if (this.pinchFrame) return;
+            this.pinchFrame = requestAnimationFrame(() => {
+                this.pinchFrame = 0;
+                const pending = this.pendingPinchZoom;
+                this.pendingPinchZoom = null;
+                if (!pending || !this.pinching || !this.overlay.isConnected) return;
+                this.reader?.setZoom?.(pending.zoom, pending.anchor, { snap: false });
+            });
+        }
+
+        flushPinchZoom() {
+            if (this.pinchFrame) cancelAnimationFrame(this.pinchFrame);
+            this.pinchFrame = 0;
+            const pending = this.pendingPinchZoom;
+            this.pendingPinchZoom = null;
+            if (pending && this.overlay.isConnected) {
+                this.reader?.setZoom?.(pending.zoom, pending.anchor, { snap: false });
+            }
         }
 
         markPageMotion(side) {
@@ -536,24 +567,8 @@
             this.targetZoom = this.startZoom;
             this.startMidpoint = midpoint(first, second);
             this.currentMidpoint = this.startMidpoint;
-            this.startScrollLeft = this.stage.scrollLeft;
-            this.startScrollTop = this.stage.scrollTop;
-            this.originalTransform = this.pages.style.transform;
-            this.originalTransformOrigin = this.pages.style.transformOrigin;
-            this.originalTransition = this.pages.style.transition;
-            this.originalWillChange = this.pages.style.willChange;
-
-            this.livePagedPinch = !this.isContinuous();
-            if (!this.livePagedPinch) {
-                const pagesRect = this.pages.getBoundingClientRect();
-                if (pagesRect.width > 0 && pagesRect.height > 0) {
-                    const xRatio = Math.min(1, Math.max(0, (this.startMidpoint.x - pagesRect.left) / pagesRect.width));
-                    const yRatio = Math.min(1, Math.max(0, (this.startMidpoint.y - pagesRect.top) / pagesRect.height));
-                    this.pages.style.transformOrigin = `${(xRatio * 100).toFixed(2)}% ${(yRatio * 100).toFixed(2)}%`;
-                }
-                this.pages.style.transition = 'none';
-                this.pages.style.willChange = 'transform';
-            }
+            this.pendingPinchZoom = null;
+            this.syncTouchAction();
 
             for (const pointerId of this.pinchPointerIds) {
                 try {
@@ -622,23 +637,7 @@
             const ratio = currentDistance / this.startDistance;
             this.targetZoom = clampZoom(this.startZoom * ratio);
             this.currentMidpoint = midpoint(first, second);
-            if (this.livePagedPinch) {
-                this.reader?.setZoom?.(this.targetZoom, {
-                    clientX: this.currentMidpoint.x,
-                    clientY: this.currentMidpoint.y
-                });
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                return;
-            }
-
-            const previewRatio = this.targetZoom / Math.max(this.startZoom, 0.01);
-            this.stage.scrollLeft = this.startScrollLeft;
-            this.stage.scrollTop = this.startScrollTop;
-            const baseTransform = this.originalTransform && this.originalTransform !== 'none'
-                ? this.originalTransform
-                : '';
-            this.pages.style.transform = `${baseTransform} scale(${previewRatio})`.trim();
+            this.schedulePinchZoom();
 
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -666,6 +665,7 @@
                     this.suppressUntilRelease = false;
                     this.pinchPointerIds = [];
                     this.reader?.endExternalPinch?.();
+                    this.syncTouchAction();
                 }
                 return;
             }
@@ -797,35 +797,25 @@
 
         finishPinch() {
             if (!this.pinching) return;
+            this.flushPinchZoom();
             this.pinching = false;
-            if (this.livePagedPinch) {
-                this.livePagedPinch = false;
-                this.pinchPointerIds = [];
-                return;
-            }
-            this.pages.style.transform = this.originalTransform;
-            this.pages.style.transformOrigin = this.originalTransformOrigin;
-            this.pages.style.transition = this.originalTransition;
-            this.pages.style.willChange = this.originalWillChange;
 
             const normalized = Math.round(clampZoom(this.targetZoom) * 20) / 20;
+            const anchor = this.currentMidpoint ?? this.startMidpoint;
+            const anchorPoint = anchor ? { clientX: anchor.x, clientY: anchor.y } : null;
             if (Math.abs(normalized - this.startZoom) >= minimumCommittedZoomDelta) {
-                const anchor = this.currentMidpoint ?? this.startMidpoint;
-                commitZoom(this, normalized, anchor
-                    ? { clientX: anchor.x, clientY: anchor.y }
-                    : null);
+                commitZoom(this, normalized, anchorPoint);
+            } else {
+                commitZoom(this, this.startZoom, anchorPoint);
             }
             this.pinchPointerIds = [];
         }
 
         dispose() {
             this.cancelPendingTap(true);
-            if (this.pinching && !this.livePagedPinch) {
-                this.pages.style.transform = this.originalTransform;
-                this.pages.style.transformOrigin = this.originalTransformOrigin;
-                this.pages.style.transition = this.originalTransition;
-                this.pages.style.willChange = this.originalWillChange;
-            }
+            if (this.pinchFrame) cancelAnimationFrame(this.pinchFrame);
+            this.pinchFrame = 0;
+            this.pendingPinchZoom = null;
             this.stage?.removeEventListener('pointerdown', this.onPointerDown, true);
             this.stage?.removeEventListener('pointermove', this.onPointerMove, true);
             this.stage?.removeEventListener('pointerup', this.onPointerEnd, true);
