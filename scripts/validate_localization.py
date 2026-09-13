@@ -35,6 +35,11 @@ REQUIRED_READER_KEYS = (
     "Zoom out",
     "Double tap",
     "Zoom tapped area / restore",
+    "Left / right tap",
+    "Top / bottom tap",
+    "Previous / next page in Vertical / Webtoon",
+    "Mouse drag",
+    "Grab and pan the page / continuous canvas",
     "Metadata",
     "Title",
     "Authors",
@@ -138,6 +143,15 @@ def main() -> int:
     require("advancedBooksReaderOverlay.ab-controls-hidden" in preferences
             and "advancedBooksReaderPageSliderValue" in preferences,
             "Reader bottom controls do not collapse to the compact page-position state")
+    require("navigateHorizontal" in gestures and "navigateVertical" in gestures,
+            "Gestures do not provide layout-aware horizontal/vertical tap navigation")
+    require("behavior: 'smooth'" not in gestures
+            or "goTo?.(target" in gestures,
+            "Vertical/Webtoon tap navigation is not connected to smooth reader movement")
+    require("advancedBooksPageFromLeft" in gestures and "advancedBooksPageFromRight" in gestures,
+            "Paged tap navigation has no directional transition animation")
+    require("handleMousePointerDown" in gestures and "scrollPan" in gestures,
+            "Desktop grab-to-pan handling is missing")
     require("advancedBooksReaderTitle" in reader and "return;" in reader,
             "Localization bridge no longer protects the user-provided title row")
     require("advancedBooksNavigatorCard" in reader,
