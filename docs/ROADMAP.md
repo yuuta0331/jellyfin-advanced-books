@@ -73,6 +73,10 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] SVG previous/next controls with corrected visual centering
 - [x] Browser/mobile Back closes Advanced Reader through a dedicated history entry
 - [x] Optional replacement of Jellyfin Book Resume/Start-over actions
+- [x] Focal-point zoom for pinch, wheel and double tap
+- [x] Double-tap 200% zoom with second-double-tap restore
+- [x] One-finger touch pan after zoom on paged and continuous layouts
+- [x] Two-stage bottom navigation with compact idle page position
 
 ## Phase 4 - Continuous reader and progress
 
