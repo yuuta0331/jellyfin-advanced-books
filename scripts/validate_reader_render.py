@@ -39,6 +39,7 @@ def main() -> int:
         "desktop metadata uses remaining chrome width": ".advancedBooksReaderMetadata{display:flex;flex:1 1 auto;flex-direction:column;min-width:0;max-width:none",
         "desktop top spacer removed": ".advancedBooksReaderTopSpacer{display:none}",
         "pointer scrub releases range focus": "this.pageSlider.blur();",
+        "empty Pages host collapses": ".advancedBooksReaderPagesHost:empty{display:none}",
     }
     forbidden = {
         "append-based continuous page insertion": "slot.appendChild(image)",
