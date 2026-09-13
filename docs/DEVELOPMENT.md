@@ -37,7 +37,16 @@ CI creates the package twice from the same Release build and compares the result
 
 Release metadata is defined in `build.yaml` and must match the plugin project's `<Version>`. Each release must also include a structured Markdown note at `release-notes/v<version>.md`.
 
-Keep the short `build.yaml` changelog suitable for Jellyfin's Catalog history, and use the versioned Markdown file for the human-facing GitHub Release page. Prefer clear sections and bullets such as Highlights, Reader UI & UX, Settings, Localization, Accessibility, Updating, and other sections that fit the release. Do not repeat the release title inside the body; GitHub already displays it above the notes.
+Keep the `build.yaml` changelog suitable for Jellyfin's compact **Update history** panel, and use the versioned Markdown file for the human-facing GitHub Release page. Catalog changelogs must use a YAML literal block (`|`) containing 1-8 short Markdown bullets; do not use a folded paragraph (`>`). Jellyfin renders these lines as a readable list, matching the style used by official plugins such as AniDB.
+
+```yaml
+changelog: |
+  - Add the main user-facing change.
+  - Fix the most important reader or integration issue.
+  - Improve another behavior users will notice.
+```
+
+Keep each Catalog bullet concise (the release validator caps a bullet at 180 characters). Detailed rationale, grouped sections, compatibility notes and upgrade guidance belong in `release-notes/v<version>.md`. Prefer clear sections there such as Highlights, Reader UI & UX, Settings, Localization, Accessibility and Updating. Do not repeat the release title inside the body; GitHub already displays it above the notes.
 
 Validate release metadata with:
 
