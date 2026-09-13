@@ -89,15 +89,13 @@
     }
 
     async function openReaderItem(itemId, startMode = 'resume') {
-        if (!itemId) return false;
         const metadata = await getMetadata(itemId);
         if (!metadata?.pages?.length) return false;
         activeReader?.close();
         document.dispatchEvent(new CustomEvent('advancedbooks:reader-opening', {
-            detail: { itemId, startMode: startMode === 'start' ? 'start' : 'resume' }
+            detail: { itemId, startMode }
         }));
-        activeReader = new AdvancedBooksReaderSession(getApiClient(), itemId, metadata);
-        await activeReader.open();
+        await (activeReader = new AdvancedBooksReaderSession(getApiClient(), itemId, metadata)).open();
         return true;
     }
 
