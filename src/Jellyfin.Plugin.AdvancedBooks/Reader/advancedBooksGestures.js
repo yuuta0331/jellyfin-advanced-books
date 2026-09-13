@@ -149,10 +149,21 @@
                 ? reader.isContinuous()
                 : session.isContinuous();
 
-            const oldScrollWidth = Math.max(1, session.stage.scrollWidth);
-            const oldScrollHeight = Math.max(1, session.stage.scrollHeight);
-            const contentX = session.stage.scrollLeft + focus.localX;
-            const contentY = session.stage.scrollTop + focus.localY;
+            let continuousAnchor = null;
+            if (continuous) {
+                const pointed = document.elementFromPoint(focus.clientX, focus.clientY)
+                    ?.closest?.('.advancedBooksReaderPageSlot');
+                const fallback = reader.continuousElements?.[reader.currentPage] ?? null;
+                const element = pointed?.isConnected ? pointed : fallback;
+                const rect = element?.getBoundingClientRect?.();
+                if (element && rect && rect.width > 0 && rect.height > 0) {
+                    continuousAnchor = {
+                        element,
+                        xRatio: Math.max(0, Math.min(1, (focus.clientX - rect.left) / rect.width)),
+                        yRatio: Math.max(0, Math.min(1, (focus.clientY - rect.top) / rect.height))
+                    };
+                }
+            }
 
             originalSetZoom(value);
 
@@ -161,11 +172,12 @@
             if (continuous) {
                 session.stage.style.touchAction = nextZoom > 1 ? 'none' : 'pan-y';
                 requestAnimationFrame(() => {
-                    if (!session.overlay.isConnected) return;
-                    const widthRatio = session.stage.scrollWidth / oldScrollWidth;
-                    const heightRatio = session.stage.scrollHeight / oldScrollHeight;
-                    session.stage.scrollLeft = Math.max(0, contentX * widthRatio - focus.localX);
-                    session.stage.scrollTop = Math.max(0, contentY * heightRatio - focus.localY);
+                    if (!session.overlay.isConnected || !continuousAnchor?.element?.isConnected) return;
+                    const rect = continuousAnchor.element.getBoundingClientRect();
+                    const anchorClientX = rect.left + rect.width * continuousAnchor.xRatio;
+                    const anchorClientY = rect.top + rect.height * continuousAnchor.yRatio;
+                    session.stage.scrollLeft += anchorClientX - focus.clientX;
+                    session.stage.scrollTop += anchorClientY - focus.clientY;
                 });
                 return;
             }
