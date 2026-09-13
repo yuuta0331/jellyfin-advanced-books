@@ -68,6 +68,8 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Per-user language override while retaining automatic Jellyfin/browser detection
 - [x] Grouped Reader Settings and compact floating mobile chrome
 - [x] One-direction metadata marquee with invisible reset instead of ping-pong motion
+- [x] Mobile overflow menu for secondary Fullscreen/Help actions
+- [x] Collapsible Reader Settings with mobile accordion behavior
 
 ## Phase 4 - Continuous reader and progress
 
