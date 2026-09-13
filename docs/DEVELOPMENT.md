@@ -261,7 +261,8 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 12. repeat the preference restore test from a second Jellyfin Web browser/client signed in as the same user;
 13. navigate to a middle page, close the reader, reopen it, and confirm it resumes at that page before applying saved reader controls;
 14. repeat the reopen test from a second Jellyfin Web browser/client signed in as the same user;
-15. navigate to the final page and confirm the Book becomes played in Jellyfin;
+15. navigate to a new page and immediately background the tab/app or close the tab before the normal 1.2-second debounce completes; reopen the same Book and confirm the latest page was persisted. Repeat with a page change while an earlier progress PUT is still in flight and confirm the newest queued page wins;
+16. navigate to the final page and confirm the Book becomes played in Jellyfin;
 16. reopen the completed Book and verify rereading earlier pages does not clear the played state;
 17. verify arrow keys, Page Up/Down, Space, Home/End, horizontal swipe and wheel navigation. In Single/Double Page, click/tap the left and right zones and confirm direction-aware page changes use a short horizontal transition while the center zone only toggles controls. In Vertical/Webtoon, click/tap the top and bottom zones and confirm the reader smoothly moves to the previous/next tracked page while the center zone only toggles controls; repeat with reduced-motion enabled and confirm navigation becomes immediate;
 18. confirm the top chrome auto-hides and the bottom navigation collapses after inactivity to only the current page/range plus the thin progress rail; tiny mouse jitter must keep the compact state, deliberate mouse movement or movement near a top/bottom edge must restore the full scrubber/navigation bar, hovering visible chrome must keep it open, and a center tap/click must toggle it without turning a page;
