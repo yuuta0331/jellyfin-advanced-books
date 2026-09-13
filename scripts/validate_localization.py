@@ -145,8 +145,7 @@ def main() -> int:
             "Reader bottom controls do not collapse to the compact page-position state")
     require("navigateHorizontal" in gestures and "navigateVertical" in gestures,
             "Gestures do not provide layout-aware horizontal/vertical tap navigation")
-    require("behavior: 'smooth'" not in gestures
-            or "goTo?.(target" in gestures,
+    require("reader.goTo?.(target, this.reducedMotion() ? 'auto' : 'smooth')" in gestures,
             "Vertical/Webtoon tap navigation is not connected to smooth reader movement")
     require("advancedBooksPageFromLeft" in gestures and "advancedBooksPageFromRight" in gestures,
             "Paged tap navigation has no directional transition animation")
