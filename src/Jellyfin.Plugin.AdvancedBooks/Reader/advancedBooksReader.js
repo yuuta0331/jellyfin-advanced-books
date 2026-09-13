@@ -88,14 +88,28 @@
         }
     }
 
-    window.AdvancedBooksReader = { openItem: async (itemId, startMode = 'resume') => {
+    async function supportsReaderItem(itemId) {
+        try {
+            const metadata = await getMetadata(itemId);
+            return Boolean(metadata?.pages?.length);
+        } catch {
+            return false;
+        }
+    }
+
+    async function openReaderItem(itemId, startMode = 'resume') {
         const metadata = await getMetadata(itemId);
         if (!metadata?.pages?.length) return false;
         activeReader?.close();
         document.dispatchEvent(new CustomEvent('advancedbooks:reader-opening', { detail: { itemId, startMode } }));
         await (activeReader = new AdvancedBooksReaderSession(getApiClient(), itemId, metadata)).open();
         return true;
-    } };
+    }
+
+    window.AdvancedBooksReader = {
+        openItem: openReaderItem,
+        supportsItem: supportsReaderItem
+    };
 
     function removeReaderButtons() {
         document.querySelectorAll('.advancedBooksReaderButton').forEach(button => button.remove());
