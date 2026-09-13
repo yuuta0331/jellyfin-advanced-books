@@ -26,6 +26,11 @@ public sealed class JavaScriptInjectorRegistrationService : IHostedService
             "Advanced Books Reader - Localization",
             "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksLocalization.js"),
         new(
+            "jellyfin-advanced-books-reader-zoom",
+            "Advanced Books Reader - Zoom Geometry",
+            "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksZoom.js",
+            Required: true),
+        new(
             "jellyfin-advanced-books-reader-core",
             "Advanced Books Reader - Core",
             "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksReader.js",
