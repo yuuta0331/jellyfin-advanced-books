@@ -1704,9 +1704,7 @@
             this.overlay?.style.setProperty('--ab-progress', `${Math.max(0, Math.min(100, progress))}%`);
         }
 
-        clampPagedPan() {
-            window.AdvancedBooksZoom?.clampPagedPan(this, this.stage, this.pagesElement);
-        }
+        clampPagedPan() { window.AdvancedBooksZoom?.clampPagedPan(this, this.stage, this.pagesElement); }
 
         syncTouchAction() {
             if (!this.stage) return;
@@ -1721,8 +1719,9 @@
             if (!Number.isFinite(value) || !this.stage) return;
             const geometry = window.AdvancedBooksZoom;
             if (!geometry) return;
-            const requested = Math.min(4, Math.max(.5, value));
-            const nextZoom = options?.snap === false ? requested : Math.round(requested * 20) / 20;
+            const nextZoom = options?.snap === false
+                ? Math.min(4, Math.max(.5, value))
+                : Math.round(Math.min(4, Math.max(.5, value)) * 20) / 20;
             const oldZoom = Number.isFinite(this.zoom) && this.zoom > 0 ? this.zoom : 1;
             const targetFocus = geometry.normalizeAnchor(this.stage, anchor);
             const sourceFocus = geometry.normalizeAnchor(this.stage, options?.fromAnchor ?? anchor);
