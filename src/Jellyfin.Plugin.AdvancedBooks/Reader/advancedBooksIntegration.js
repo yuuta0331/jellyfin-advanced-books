@@ -8,12 +8,9 @@
     const nativePlaybackSelector = [
         '.mainDetailButtons .btnPlay',
         '.mainDetailButtons .btnReplay',
-        '.btnPlayOrResume[data-action="play"]',
-        '.btnPlayOrResume[data-action="resume"]',
-        '.itemAction[data-action="play"]',
-        '.itemAction[data-action="resume"]',
-        '[data-action="play"].itemAction',
-        '[data-action="resume"].itemAction'
+        '.btnPlayOrResume',
+        '[data-action="play"]',
+        '[data-action="resume"]'
     ].join(',');
     const contextSourceSelector = '.itemAction[data-action="menu"],[data-action="menu"].itemAction,.btnMoreCommands';
     const bypassClicks = new WeakSet();
@@ -154,13 +151,21 @@
             }
 
             const command = actionSheetItem.getAttribute('data-id') === 'resume' ? 'resume' : 'play';
+            const opened = await openAdvancedItem(
+                state.itemId,
+                command === 'resume' ? 'resume' : 'start'
+            );
+            if (!opened) {
+                replayClick(actionSheetItem);
+                return;
+            }
+
             const originalId = actionSheetItem.getAttribute('data-id');
             actionSheetItem.setAttribute('data-id', '__advancedbooks_handled__');
             replayClick(actionSheetItem);
             queueMicrotask(() => {
                 if (originalId) actionSheetItem.setAttribute('data-id', originalId);
             });
-            await openAdvancedItem(state.itemId, command === 'resume' ? 'resume' : 'start');
             return;
         }
 
