@@ -22,6 +22,7 @@ public sealed record ReaderPreferencesDto(
     bool ShowMetadataIssue,
     bool ShowMetadataYear,
     bool AutoScrollMetadata,
+    bool ShowPagePosition,
     string Language);
 
 /// <summary>
@@ -76,6 +77,9 @@ public sealed class UpdateReaderPreferencesRequest
 
     /// <summary>Gets or sets whether overflowing reader metadata scrolls automatically.</summary>
     public bool AutoScrollMetadata { get; set; } = ReaderPreferenceRules.DefaultAutoScrollMetadata;
+
+    /// <summary>Gets or sets whether the bottom reader chrome shows the current page/range.</summary>
+    public bool ShowPagePosition { get; set; } = ReaderPreferenceRules.DefaultShowPagePosition;
 
     /// <summary>Gets or sets the reader UI language or automatic language detection.</summary>
     public string Language { get; set; } = ReaderPreferenceRules.DefaultLanguage;
