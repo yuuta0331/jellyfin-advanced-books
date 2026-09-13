@@ -39,5 +39,7 @@
     <EmbeddedResource Include="Reader/advancedBooksPreferences.js" />
     <None Remove="Reader/advancedBooksGestures.js" />
     <EmbeddedResource Include="Reader/advancedBooksGestures.js" />
+    <None Remove="Reader/advancedBooksIntegration.js" />
+    <EmbeddedResource Include="Reader/advancedBooksIntegration.js" />
   </ItemGroup>
 </Project>
