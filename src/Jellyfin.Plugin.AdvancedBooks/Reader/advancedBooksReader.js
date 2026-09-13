@@ -88,6 +88,41 @@
         }
     }
 
+    async function openReaderItem(itemId, startMode = 'resume') {
+        const apiClient = getApiClient();
+        if (!apiClient || !itemId) return false;
+
+        const metadata = await getMetadata(itemId);
+        if (!metadata?.pages?.length) return false;
+
+        activeReader?.close();
+        document.dispatchEvent(new CustomEvent('advancedbooks:reader-opening', {
+            detail: {
+                itemId,
+                startMode: startMode === 'start' ? 'start' : 'resume'
+            }
+        }));
+
+        activeReader = new AdvancedBooksReaderSession(apiClient, itemId, metadata);
+        await activeReader.open();
+        return true;
+    }
+
+    async function supportsReaderItem(itemId) {
+        if (!itemId) return false;
+        try {
+            const metadata = await getMetadata(itemId);
+            return Boolean(metadata?.pages?.length);
+        } catch {
+            return false;
+        }
+    }
+
+    window.AdvancedBooksReader = Object.assign(window.AdvancedBooksReader || {}, {
+        openItem: openReaderItem,
+        supportsItem: supportsReaderItem
+    });
+
     function removeReaderButtons() {
         document.querySelectorAll('.advancedBooksReaderButton').forEach(button => button.remove());
     }
@@ -111,9 +146,8 @@
         button.appendChild(content);
 
         button.addEventListener('click', () => {
-            activeReader?.close();
-            activeReader = new AdvancedBooksReaderSession(getApiClient(), itemId, metadata);
-            activeReader.open();
+            const startMode = button.dataset.advancedBooksStartMode === 'start' ? 'start' : 'resume';
+            openReaderItem(itemId, startMode).catch(() => {});
         });
         return button;
     }
