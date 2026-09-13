@@ -215,7 +215,7 @@
         });
     }
 
-    async function attachProgressSession(itemId, progressPromise, token) {
+    async function attachProgressSession(itemId, progressPromise, token, startMode) {
         const overlay = await waitFor('.advancedBooksReaderOverlay', document, 4000);
         if (!overlay || token !== sessionToken) return;
 
@@ -262,7 +262,9 @@
         };
         overlay.addEventListener('advancedbooks:reader-closing', session.boundClosing, { once: true });
 
-        const progress = normalizeProgress(await progressPromise.catch(() => null));
+        const progress = startMode === 'start'
+            ? null
+            : normalizeProgress(await progressPromise.catch(() => null));
         if (progress && progress.pageCount > 0) {
             const resumePage = Math.max(0, Math.min(progress.pageCount - 1, progress.pageIndex));
             session.lastSavedPage = resumePage;
@@ -282,8 +284,9 @@
         if (!itemId) return;
 
         const token = ++sessionToken;
-        const progressPromise = getProgress(itemId);
-        attachProgressSession(itemId, progressPromise, token).catch(() => {});
+        const startMode = button.dataset.advancedBooksStartMode === 'start' ? 'start' : 'resume';
+        const progressPromise = startMode === 'start' ? Promise.resolve(null) : getProgress(itemId);
+        attachProgressSession(itemId, progressPromise, token, startMode).catch(() => {});
     }, true);
 
     window.addEventListener('beforeunload', () => {
