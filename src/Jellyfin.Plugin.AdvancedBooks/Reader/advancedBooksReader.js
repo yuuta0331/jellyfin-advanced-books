@@ -1710,9 +1710,11 @@
 
         syncTouchAction() {
             if (!this.stage) return;
-            if (this.externalPinchActive) this.stage.style.touchAction = 'none';
-            else if (!this.touchGestures) this.stage.style.touchAction = this.isContinuous() ? 'pan-x pan-y' : 'pan-y';
-            else this.stage.style.touchAction = this.zoom > 1 ? 'none' : 'pan-y';
+            this.stage.style.touchAction = this.externalPinchActive
+                ? 'none'
+                : !this.touchGestures
+                    ? (this.isContinuous() ? 'pan-x pan-y' : 'pan-y')
+                    : (this.zoom > 1 ? 'none' : 'pan-y');
         }
 
         setZoom(value, anchor = null, options = null) {
@@ -1737,16 +1739,15 @@
             const oldPanX = Number.isFinite(this.panX) ? this.panX : 0;
             const oldPanY = Number.isFinite(this.panY) ? this.panY : 0;
             this.zoom = nextZoom;
-            if (nextZoom <= 1) {
-                this.resetPan();
-            } else {
+            if (nextZoom <= 1) this.resetPan();
+            else {
                 const ratio = nextZoom / oldZoom;
-                const sourceX = sourceFocus.localX - sourceFocus.centerX;
-                const sourceY = sourceFocus.localY - sourceFocus.centerY;
-                const targetX = targetFocus.localX - targetFocus.centerX;
-                const targetY = targetFocus.localY - targetFocus.centerY;
-                this.panX = oldPanX * ratio + targetX - ratio * sourceX;
-                this.panY = oldPanY * ratio + targetY - ratio * sourceY;
+                this.panX = oldPanX * ratio
+                    + targetFocus.localX - targetFocus.centerX
+                    - ratio * (sourceFocus.localX - sourceFocus.centerX);
+                this.panY = oldPanY * ratio
+                    + targetFocus.localY - targetFocus.centerY
+                    - ratio * (sourceFocus.localY - sourceFocus.centerY);
                 this.clampPagedPan();
             }
             this.applyTransform();
