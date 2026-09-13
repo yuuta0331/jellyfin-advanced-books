@@ -8,6 +8,14 @@
     "category": "Books",
     "versions": [
       {
+        "version": "0.16.0.0",
+        "changelog": "Integrate Advanced Reader more deeply with Jellyfin and improve reading interaction. Add browser/mobile Back handling plus an optional replacement for Jellyfin Book Resume/Start-over actions, centered SVG navigation icons, focal-point pinch/wheel and double-tap zoom, one-finger pan after zoom, compact two-stage bottom navigation, layout-aware left/right and top/bottom click/tap navigation with smooth transitions, and desktop grab-to-pan/scroll behavior. Extend six-language help, integration guards and smoke-test documentation for the new controls.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/yuuta0331/jellyfin-advanced-books/releases/download/v0.16.0.0/AdvancedBooks_0.16.0.0.zip",
+        "checksum": "a8b31b61a4277dc18c33e637de2616da",
+        "timestamp": "2026-09-13T07:44:34Z"
+      },
+      {
         "version": "0.15.0.0",
         "changelog": "Improve Advanced Reader UI/UX on mobile and desktop. Add a per-user reader language override for Auto, English, Japanese, German, French, Spanish and Simplified Chinese while preserving Jellyfin/browser automatic detection. Replace ping-pong metadata scrolling with one-direction motion and an invisible reset, reorganize Reader Settings into collapsible Reading, Appearance, Behavior, Metadata and Language sections, and use mobile accordion behavior. Reduce mobile chrome clutter with compact floating controls, hide duplicate page-position information, and move secondary Fullscreen and Help actions into a localized overflow menu with accessible focus handling. Extend preference-schema, localization and UI regression validation for the new behavior.",
         "targetAbi": "12.0.0.0",
