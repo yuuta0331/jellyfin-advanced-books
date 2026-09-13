@@ -175,6 +175,7 @@
 .advancedBooksReaderHelpHeader{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem;font-size:1.05rem;font-weight:600}
 .advancedBooksReaderHelpGrid{display:grid;grid-template-columns:minmax(7rem,.8fr) minmax(10rem,1.4fr);gap:.45rem .9rem;font-size:.9rem;line-height:1.35}
 .advancedBooksReaderHelpKey{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;opacity:.8}
+.advancedBooksReaderSettingsPanel{scrollbar-width:thin;overscroll-behavior:contain}
 .advancedBooksReaderSettingsSections{display:grid;gap:.75rem}
 .advancedBooksReaderSettingsSection{display:grid;gap:.58rem;padding:.78rem;border:1px solid rgba(255,255,255,.1);border-radius:.72rem;background:rgba(255,255,255,.035)}
 .advancedBooksReaderSettingsSectionTitle{font-size:.82rem;font-weight:700;letter-spacing:.02em;text-transform:none;opacity:.76}
@@ -194,6 +195,18 @@
 }
 @media(prefers-reduced-motion:reduce){.advancedBooksReaderMetadataLine.ab-metadata-marquee .advancedBooksReaderMetadataText{animation:none!important}.advancedBooksReaderMetadataLine.ab-metadata-marquee{mask-image:none}}
 @media(max-width:700px){
+    .advancedBooksReaderChrome{left:.45rem;right:.45rem;border:1px solid rgba(255,255,255,.12);background:rgba(16,16,18,.64);box-shadow:0 8px 28px rgba(0,0,0,.28);backdrop-filter:blur(14px) saturate(1.1)}
+    .advancedBooksReaderChromeTop{top:calc(.4rem + env(safe-area-inset-top,0px));min-height:3.15rem;padding:.3rem .38rem;gap:.3rem;border-radius:1.55rem}
+    .advancedBooksReaderMetadata{flex:1 1 0;max-width:none;min-width:0}
+    .advancedBooksReaderSubtitle{font-size:.7rem}
+    .advancedBooksReaderCounter{display:none}
+    .advancedBooksReaderTopSpacer{display:none}
+    .advancedBooksReaderChromeBottom{bottom:calc(.4rem + env(safe-area-inset-bottom,0px));min-height:3.4rem;gap:.3rem;padding:.32rem .38rem;border-radius:1.55rem}
+    .advancedBooksReaderIconButton,.advancedBooksReaderNavButton{inline-size:2.6rem;block-size:2.6rem;min-width:2.6rem;min-height:2.6rem;max-width:2.6rem;max-height:2.6rem;padding:0;flex:0 0 2.6rem}
+    .advancedBooksReaderPageSlider{height:2.4rem}
+    .advancedBooksReaderPageSliderValue{min-width:4.2rem;font-size:.84rem}
+    .advancedBooksReaderProgressRail{height:2px}
+    .advancedBooksReaderSettingsPanel{max-height:min(84dvh,46rem);border-radius:1.25rem 1.25rem 0 0}
     .advancedBooksReaderHelpPanel{position:absolute!important;top:auto;right:0;left:0;bottom:0;width:100%;max-height:min(84dvh,46rem);border-radius:1.25rem 1.25rem 0 0;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
     .advancedBooksReaderHelpGrid{grid-template-columns:1fr;gap:.18rem}
     .advancedBooksReaderHelpKey{margin-top:.5rem}
