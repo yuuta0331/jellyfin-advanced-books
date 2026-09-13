@@ -1084,7 +1084,6 @@
         session.lastSaved = serialize(session.latestPreferences);
         attachSettingsSheet(session);
         attachHelp(session);
-        attachMoreMenu(session);
         installInteractionGuard(session);
 
         session.onControlChange = event => {
