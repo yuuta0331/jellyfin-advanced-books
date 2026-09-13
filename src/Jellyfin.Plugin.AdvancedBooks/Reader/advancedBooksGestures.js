@@ -130,8 +130,11 @@
 
         if (originalApplyTransform) {
             reader.applyTransform = () => {
-                clampPagedPan(reader, session.stage, session.pages);
                 originalApplyTransform();
+                const beforeX = reader.panX;
+                const beforeY = reader.panY;
+                clampPagedPan(reader, session.stage, session.pages);
+                if (reader.panX !== beforeX || reader.panY !== beforeY) originalApplyTransform();
             };
         }
 
