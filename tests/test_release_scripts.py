@@ -31,7 +31,7 @@ class ReleasePackagingTests(unittest.TestCase):
         self.assertEqual(update_manifest.PLUGIN_METADATA["imageUrl"], metadata["image_url"])
         catalog_icon = ROOT / "assets/advanced-books-plugin-icon.png"
         self.assertTrue(catalog_icon.is_file())
-        self.assertEqual(b"\\x89PNG\\r\\n\\x1a\\n", catalog_icon.read_bytes()[:8])
+        self.assertEqual(bytes.fromhex("89504e470d0a1a0a"), catalog_icon.read_bytes()[:8])
         self.assertTrue(metadata["changelog"])
         changelog_lines = [line for line in metadata["changelog"].splitlines() if line.strip()]
         self.assertGreaterEqual(len(changelog_lines), 1)
