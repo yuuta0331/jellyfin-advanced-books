@@ -145,6 +145,15 @@ def main() -> int:
         failures.append("live continuous pinch rewrites unloaded placeholders instead of deferring them to commit")
     if "this.clampPagedPan();" not in text:
         failures.append("paged drag/zoom does not use the Core-owned pan clamp")
+
+    slider_start = text.find("const finishSliderInteraction = () =>")
+    slider_pointerup = text.find("this.pageSlider.addEventListener('pointerup'", slider_start)
+    slider_change = text.find("this.pageSlider.addEventListener('change'", slider_pointerup)
+    slider_value = text.find("this.pageSliderValue = document.createElement('div')", slider_change)
+    if not (slider_start >= 0 and slider_pointerup > slider_start and "this.pageSlider.blur();" in text[slider_start:slider_pointerup]):
+        failures.append("pointer scrub completion does not release range focus")
+    if not (slider_change >= 0 and slider_value > slider_change and "this.pageSlider.blur();" not in text[slider_change:slider_value]):
+        failures.append("keyboard/change scrub path unexpectedly blurs the page slider")
     if "this.syncTouchAction();" not in text or "pan-x pan-y" not in text:
         failures.append("Reader does not resync touch-action for touch-gesture changes")
 
