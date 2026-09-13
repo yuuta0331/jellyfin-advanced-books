@@ -53,4 +53,10 @@ public sealed class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value indicating whether the Advanced Reader Web integration should be enabled.
     /// </summary>
     public bool EnableAdvancedReader { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether supported Jellyfin book Play/Resume actions
+    /// should open Advanced Reader instead of the built-in reader.
+    /// </summary>
+    public bool ReplaceNativeReader { get; set; }
 }
