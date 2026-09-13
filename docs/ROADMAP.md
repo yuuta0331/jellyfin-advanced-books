@@ -70,6 +70,9 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] One-direction metadata marquee with invisible reset instead of ping-pong motion
 - [x] Mobile overflow menu for secondary Fullscreen/Help actions
 - [x] Collapsible Reader Settings with mobile accordion behavior
+- [x] SVG previous/next controls with corrected visual centering
+- [x] Browser/mobile Back closes Advanced Reader through a dedicated history entry
+- [x] Optional replacement of Jellyfin Book Resume/Start-over actions
 
 ## Phase 4 - Continuous reader and progress
 

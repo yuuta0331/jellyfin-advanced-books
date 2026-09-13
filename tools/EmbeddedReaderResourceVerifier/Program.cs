@@ -12,7 +12,8 @@ var expectedResources = new HashSet<string>(StringComparer.Ordinal)
     "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksProgress.js",
     "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksPreferences.js",
     "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksNavigator.js",
-    "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksGestures.js"
+    "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksGestures.js",
+    "Jellyfin.Plugin.AdvancedBooks.Reader.advancedBooksIntegration.js"
 };
 
 if (args.Length is < 1 or > 2)

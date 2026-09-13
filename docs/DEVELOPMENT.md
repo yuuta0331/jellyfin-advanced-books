@@ -51,15 +51,15 @@ To package a local Release build:
 python scripts/package_plugin.py \
   --input-dir src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0 \
   --output-dir artifacts/release \
-  --version 0.14.0.0
+  --version 0.15.0.0
 ```
 
 The generated files are:
 
 ```text
-AdvancedBooks_0.14.0.0.zip
-AdvancedBooks_0.14.0.0.zip.md5
-AdvancedBooks_0.14.0.0.zip.sha256
+AdvancedBooks_0.15.0.0.zip
+AdvancedBooks_0.15.0.0.zip.md5
+AdvancedBooks_0.15.0.0.zip.sha256
 ```
 
 The MD5 value is intentional because Jellyfin 12 verifies plugin repository packages against the manifest checksum using MD5. SHA-256 is published alongside it for stronger manual integrity checking.
@@ -191,7 +191,8 @@ A new user should receive the safe defaults: Single Page, RTL, Fit Screen, 100% 
   "ShowMetadataSeries": true,
   "ShowMetadataIssue": true,
   "ShowMetadataYear": false,
-  "AutoScrollMetadata": true
+  "AutoScrollMetadata": true,
+  "Language": "auto"
 }
 ```
 
@@ -214,7 +215,7 @@ The validation requires all six supported locales in both the reader localizatio
 CI and release validation must inspect the **built plugin DLL**, not only the JavaScript source files. The `EmbeddedReaderResourceVerifier` reads managed manifest resources directly from the PE/CLI resource directory and verifies:
 
 - plugin AssemblyVersion matches the release version;
-- all six reader resources (Localization, Core, Progress, Preferences, Navigator and Gestures) are present;
+- all seven reader resources (Localization, Core, Progress, Preferences, Navigator, Gestures and Jellyfin Integration) are present;
 - every reader resource is strict UTF-8;
 - no unexpected control characters are present; and
 - each resource remains within the 96 KiB JavaScript Injector defensive limit.
@@ -228,7 +229,7 @@ dotnet run \
   --no-build \
   -- \
   src/Jellyfin.Plugin.AdvancedBooks/bin/Release/net10.0/Jellyfin.Plugin.AdvancedBooks.dll \
-  0.14.0.0
+  0.15.0.0
 ```
 
 A source file passing `node --check` is not sufficient evidence if the bytes embedded into the final DLL differ.
@@ -258,12 +259,15 @@ After Advanced Books and JavaScript Injector are both installed and Jellyfin has
 19. drag the bottom page scrubber from the beginning to a distant page in Single, Double, Vertical and Webtoon layouts; verify the thumbnail/page preview stays directly above the active finger/pointer, the loading spinner remains centered inside the preview frame without text leaking beside it, stale preview requests are aborted, and the intended page is reached directly;
 20. hold the scrubber for longer than the normal auto-hide delay and confirm the reader chrome remains visible until scrubbing ends;
 21. open Reader Settings and confirm desktop uses a compact floating panel while a narrow/mobile viewport uses a touch-friendly bottom sheet; on mobile confirm the top/bottom icon and navigation buttons remain square rather than vertically stretched;
-22. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
-23. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
-24. use a book with a deliberately long title, authors and series name. Confirm overflowing metadata automatically scrolls far enough to reveal the complete text, then disable Auto-scroll and confirm it stops. Toggle the metadata header and each Title/Authors/Series/Issue/Year field independently, reopen the reader, and verify every choice restores for the same Jellyfin user;
-25. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
-26. zoom above 100% in a paged mode, drag to pan, then close with Escape;
-27. reopen the reader and verify there are no stale overlays or broken Blob URLs.
+22. confirm Previous/Next use centered SVG chevrons rather than baseline-sensitive text glyphs, and confirm the page position is shown only in the bottom controls while the hidden top counter still updates progress;
+23. open Advanced Reader, then use browser Back / Android back gesture; confirm the reader closes and the same Jellyfin detail page remains visible. Reopen it, use the reader Close button, and confirm the synthetic reader history entry is consumed without navigating away;
+24. enable **Use Advanced Reader for Jellyfin book actions**, restart Jellyfin, and confirm the separate Advanced Reader detail button is hidden when Jellyfin's native Book actions are available. Jellyfin Resume/Play must open Advanced Reader at saved progress, while Start from beginning must open page 1. Disable the option, restart, and confirm Jellyfin's built-in reader actions work normally again;
+25. in Vertical and Webtoon, verify Fit controls, +/-/0, Ctrl+wheel zoom, two-finger pinch zoom and >100% desktop drag panning work without disabling normal one-finger vertical scrolling;
+26. change Side padding and Page gap in Vertical/Webtoon, reopen the reader, and verify both values restore for the same Jellyfin user;
+27. use a book with a deliberately long title, authors and series name. Confirm overflowing metadata automatically scrolls far enough to reveal the complete text, then disable Auto-scroll and confirm it stops. Toggle the metadata header and each Title/Authors/Series/Issue/Year field independently, reopen the reader, and verify every choice restores for the same Jellyfin user;
+28. where the Fullscreen API is available, verify the top fullscreen button and F key enter/exit reader fullscreen without closing the reader;
+29. zoom above 100% in a paged mode, drag to pan, then close with Escape;
+30. reopen the reader and verify there are no stale overlays or broken Blob URLs.
 
 ### Mobile pinch smoke test
 
