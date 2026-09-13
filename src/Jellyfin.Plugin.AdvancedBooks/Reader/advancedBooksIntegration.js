@@ -56,7 +56,7 @@
     function decorateNavigation(overlay) {
         const navigationButtons = Array.from(overlay.querySelectorAll('.advancedBooksReaderNavButton'));
         const previous = overlay.querySelector('button[data-ab-action="previous"]') ?? navigationButtons[0] ?? null;
-        const next = overlay.querySelector('button[data-ab-action="next"]') ?? navigationButtons.at(-1) ?? null;
+        const next = overlay.querySelector('button[data-ab-action="next"]') ?? navigationButtons[navigationButtons.length - 1] ?? null;
 
         if (previous && previous.dataset.abSvgIcon !== 'true') {
             previous.replaceChildren(makeChevron('left'));
