@@ -150,6 +150,7 @@
 
         reader.__advancedBooksZoomControllerInstalled = true;
         reader.__advancedBooksOriginalSetZoom = fallbackSetZoom;
+        reader.clampPan = () => clampPagedPan(reader, session.stage, session.pages);
 
         reader.setZoom = (value, anchor = null, options = null) => {
             if (!session.overlay.isConnected) return;
