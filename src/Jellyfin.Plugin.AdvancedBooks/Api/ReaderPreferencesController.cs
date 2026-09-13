@@ -34,6 +34,7 @@ public sealed class ReaderPreferencesController : ControllerBase
     private const string ShowMetadataIssueKey = "showMetadataIssue";
     private const string ShowMetadataYearKey = "showMetadataYear";
     private const string AutoScrollMetadataKey = "autoScrollMetadata";
+    private const string ShowPagePositionKey = "showPagePosition";
     private const string LanguageKey = "language";
     private const string PreferenceSchemaVersionKey = "schemaVersion";
 
@@ -87,6 +88,7 @@ public sealed class ReaderPreferencesController : ControllerBase
         stored.TryGetValue(ShowMetadataIssueKey, out var showMetadataIssueText);
         stored.TryGetValue(ShowMetadataYearKey, out var showMetadataYearText);
         stored.TryGetValue(AutoScrollMetadataKey, out var autoScrollMetadataText);
+        stored.TryGetValue(ShowPagePositionKey, out var showPagePositionText);
         stored.TryGetValue(LanguageKey, out var language);
         stored.TryGetValue(PreferenceSchemaVersionKey, out var schemaVersionText);
 
@@ -127,6 +129,7 @@ public sealed class ReaderPreferencesController : ControllerBase
         var showMetadataIssue = ParseStoredBoolean(showMetadataIssueText, ReaderPreferenceRules.DefaultShowMetadataIssue);
         var showMetadataYear = ParseStoredBoolean(showMetadataYearText, ReaderPreferenceRules.DefaultShowMetadataYear);
         var autoScrollMetadata = ParseStoredBoolean(autoScrollMetadataText, ReaderPreferenceRules.DefaultAutoScrollMetadata);
+        var showPagePosition = ParseStoredBoolean(showPagePositionText, ReaderPreferenceRules.DefaultShowPagePosition);
 
         var normalizedFit = ReaderPreferenceRules.NormalizeStoredFit(fit, schemaVersion);
 
@@ -147,6 +150,7 @@ public sealed class ReaderPreferencesController : ControllerBase
             showMetadataIssue,
             showMetadataYear,
             autoScrollMetadata,
+            showPagePosition,
             ReaderPreferenceRules.NormalizeLanguage(language)));
     }
 
@@ -226,6 +230,7 @@ public sealed class ReaderPreferencesController : ControllerBase
             [ShowMetadataIssueKey] = request.ShowMetadataIssue.ToString(),
             [ShowMetadataYearKey] = request.ShowMetadataYear.ToString(),
             [AutoScrollMetadataKey] = request.AutoScrollMetadata.ToString(),
+            [ShowPagePositionKey] = request.ShowPagePosition.ToString(),
             [LanguageKey] = request.Language,
             [PreferenceSchemaVersionKey] = ReaderPreferenceRules.CurrentPreferenceSchemaVersion.ToString(CultureInfo.InvariantCulture)
         };
@@ -253,6 +258,7 @@ public sealed class ReaderPreferencesController : ControllerBase
             request.ShowMetadataIssue,
             request.ShowMetadataYear,
             request.AutoScrollMetadata,
+            request.ShowPagePosition,
             request.Language));
     }
 
