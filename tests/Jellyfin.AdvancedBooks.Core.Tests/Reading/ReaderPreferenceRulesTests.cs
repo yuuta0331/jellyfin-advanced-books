@@ -80,7 +80,7 @@ public sealed class ReaderPreferenceRulesTests
     [Fact]
     public void MetadataPreferences_DefaultToVisibleAndAutoScrolling()
     {
-        Assert.Equal(5, ReaderPreferenceRules.CurrentPreferenceSchemaVersion);
+        Assert.Equal(6, ReaderPreferenceRules.CurrentPreferenceSchemaVersion);
         Assert.True(ReaderPreferenceRules.DefaultShowMetadata);
         Assert.True(ReaderPreferenceRules.DefaultShowMetadataTitle);
         Assert.True(ReaderPreferenceRules.DefaultShowMetadataAuthors);
@@ -88,6 +88,7 @@ public sealed class ReaderPreferenceRulesTests
         Assert.True(ReaderPreferenceRules.DefaultShowMetadataIssue);
         Assert.True(ReaderPreferenceRules.DefaultShowMetadataYear);
         Assert.True(ReaderPreferenceRules.DefaultAutoScrollMetadata);
+        Assert.True(ReaderPreferenceRules.DefaultShowPagePosition);
     }
 
     [Theory]
