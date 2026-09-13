@@ -65,6 +65,7 @@ def main() -> int:
         "mobile bottom chrome layout override": "\n    .advancedBooksReaderChromeBottom{",
         "mobile forced More button": ".advancedBooksReaderMoreButton{display:inline-flex}",
         "mobile hidden native chrome actions": ".advancedBooksReaderMoreSource{display:none!important}",
+        "replacement More menu activation": "attachMoreMenu(session);",
     }
 
     failures: list[str] = []
