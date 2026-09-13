@@ -56,6 +56,9 @@ jobs:
       - name: Validate localization coverage
         run: python scripts/validate_localization.py
 
+      - name: Validate Komga metadata sync invariants
+        run: python scripts/validate_komga_sync.py
+
       - name: Validate release metadata
         id: release_meta
         run: >-
