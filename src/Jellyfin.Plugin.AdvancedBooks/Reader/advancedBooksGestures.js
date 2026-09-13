@@ -482,7 +482,6 @@
             }
 
             reader.setZoom?.(target, { clientX, clientY });
-            reader.showControls?.();
         }
 
         handleSingleTap(clientX, clientY) {
