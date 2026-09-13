@@ -16,11 +16,10 @@ owner: "yuuta0331"
 artifacts:
 - "Jellyfin.Plugin.AdvancedBooks.dll"
 - "Jellyfin.AdvancedBooks.Core.dll"
-changelog: >
-  Integrate Advanced Reader more deeply with Jellyfin and improve reading interaction.
-  Add browser/mobile Back handling plus an optional replacement for Jellyfin Book
-  Resume/Start-over actions, centered SVG navigation icons, focal-point pinch/wheel and
-  double-tap zoom, one-finger pan after zoom, compact two-stage bottom navigation,
-  layout-aware left/right and top/bottom click/tap navigation with smooth transitions,
-  and desktop grab-to-pan/scroll behavior. Extend six-language help, integration guards
-  and smoke-test documentation for the new controls.
+changelog: |
+  - Add browser/mobile Back handling and optional Jellyfin Resume/Start-over integration.
+  - Add focal pinch, Ctrl+wheel and double-tap zoom with one-finger pan after zoom.
+  - Add Komga-style left/right paged and top/bottom Vertical/Webtoon navigation.
+  - Add smooth directional page transitions and reduced-motion-aware scrolling.
+  - Add desktop grab-to-pan/scroll and centered SVG page-navigation icons.
+  - Add compact two-stage bottom navigation and updated six-language interaction help.
