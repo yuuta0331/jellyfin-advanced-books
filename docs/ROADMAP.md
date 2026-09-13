@@ -77,6 +77,9 @@ The roadmap is ordered to keep the media library safe while progressively replac
 - [x] Double-tap 200% zoom with second-double-tap restore
 - [x] One-finger touch pan after zoom on paged and continuous layouts
 - [x] Two-stage bottom navigation with compact idle page position
+- [x] Layout-aware left/right and top/bottom click/tap navigation
+- [x] Directional paged transitions and smooth Vertical/Webtoon tap scrolling
+- [x] Desktop grab-to-pan/scroll interaction
 
 ## Phase 4 - Continuous reader and progress
 

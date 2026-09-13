@@ -13,7 +13,7 @@ Advanced comic, manga, magazine and book support for **Jellyfin 12**.
 - Single Page, Double Page, Vertical Continuous and Webtoon reading modes
 - Smart spreads with RTL/LTR reading direction
 - Fit Screen / Width / Height / Original sizing and 50%-400% zoom
-- Mouse, keyboard, touch, swipe, focal-point pinch/wheel zoom, double-tap zoom and one-finger pan
+- Mode-aware click/tap navigation, mouse grab-to-pan, touch swipe/pan, focal-point pinch/wheel zoom and double-tap zoom
 - Thumbnail page navigator and direct page scrubber
 - Per-user reading progress and reader preferences stored in Jellyfin
 - Jellyfin title, author, series, issue and year display with visibility controls
