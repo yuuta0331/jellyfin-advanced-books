@@ -17,6 +17,8 @@ REQUIRED_READER_KEYS = (
     "Advanced Reader",
     "Pages",
     "Reader settings",
+    "More options",
+    "Reader language",
     "Reading",
     "Appearance",
     "Behavior",
@@ -111,6 +113,14 @@ def main() -> int:
             "Reader preferences do not apply language changes live")
     require("advancedBooksReaderSettingsSections" in preferences,
             "Reader settings are not organized into sections")
+    require("document.createElement('details')" in preferences
+            and "document.createElement('summary')" in preferences,
+            "Reader settings sections are not collapsible")
+    require("advancedBooksReaderMoreMenu" in preferences
+            and "advancedBooksReaderMoreSource" in preferences,
+            "Mobile secondary reader actions are not grouped into an overflow menu")
+    require("session.openHelp" in preferences and "fullscreenButton?.click()" in preferences,
+            "Overflow menu does not reuse the existing Help/Fullscreen actions")
     require('button[data-ab-action="zoom-reset"]' in gestures,
             "Gestures still depends only on localized zoom title")
     require("advancedBooksReaderTitle" in reader and "return;" in reader,
