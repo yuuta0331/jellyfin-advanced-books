@@ -164,10 +164,23 @@ def main() -> int:
             "Metadata localization must translate only structured metadata segments")
     require("history.pushState" in integration and "popstate" in integration,
             "Reader integration does not provide browser/mobile back navigation")
-    require("btnPlay" in integration and "btnReplay" in integration,
-            "Reader integration does not bridge Jellyfin Resume/Start actions")
-    require("advancedBooksStartMode" in integration,
-            "Native Jellyfin actions do not preserve resume/start-over semantics")
+    require("btnPlay" in integration and "btnReplay" in integration
+            and "btnPlayOrResume" in integration,
+            "Reader integration does not bridge legacy and modern Jellyfin detail actions")
+    require("itemAction[data-action=\"play\"]" in integration
+            and "itemAction[data-action=\"resume\"]" in integration,
+            "Reader integration does not bridge Jellyfin card/list Play/Resume actions")
+    require("actionSheetMenuItem[data-id=\"play\"]" in integration
+            and "actionSheetMenuItem[data-id=\"resume\"]" in integration,
+            "Reader integration does not bridge Jellyfin context-menu Play/Resume actions")
+    require("handleNativeCommand" in integration and "replayCommand" in integration,
+            "Reader integration does not bridge keyboard/remote Play/Resume commands")
+    require("openItem: openReaderItem" in reader
+            and "supportsItem: supportsReaderItem" in reader
+            and "advancedbooks:reader-opening" in reader,
+            "Core reader does not expose the direct item-opening bridge")
+    require("advancedbooks:reader-opening" in (ROOT / "src/Jellyfin.Plugin.AdvancedBooks/Reader/advancedBooksProgress.js").read_text(encoding="utf-8"),
+            "Progress bridge is still tied only to the detail-page Advanced Reader button")
     require("createElementNS" in integration and "advancedBooksReaderNavButton" in integration,
             "Reader navigation still lacks stable SVG icon replacement")
 
