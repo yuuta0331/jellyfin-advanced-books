@@ -18,7 +18,7 @@ artifacts:
 - "Jellyfin.AdvancedBooks.Core.dll"
 changelog: |
   - Harden final reading-position persistence on tab/app backgrounding and page exit with authenticated keepalive progress saves.
-  - Preserve the newest queued reading position even when an earlier progress request is still in flight.
+  - Mark the newest queued reading position for keepalive delivery when an earlier progress request is still in flight.
   - Keep two-way page and played-state interoperability with Jellyfin's built-in ComicsPlayer.
   - Retain complete Advanced Reader replacement across detail, Home/Library, list, remote and context-menu actions.
   - Include the Reader UI, zoom/pinch, page-position and Catalog icon improvements from the independently reviewed v0.16.1 line.
