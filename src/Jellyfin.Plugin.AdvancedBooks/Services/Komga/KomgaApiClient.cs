@@ -46,6 +46,21 @@ internal sealed class KomgaApiClient : IKomgaApiClient
         request.Content = JsonContent();
         using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var payload = await JsonSerializer.DeserializeAsync<KomgaPage<KomgaBookDto>>(
+            stream,
+            JsonOptions,
+            cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException("Komga returned an empty connection-test response.");
+
+        var sampleUrl = payload.Content.FirstOrDefault()?.Url;
+        if (!string.IsNullOrWhiteSpace(sampleUrl)
+            && IsLikelyRestrictedBookUrl(sampleUrl))
+        {
+            throw new InvalidOperationException(
+                "Komga hides full Book file URLs from non-admin users. Use an API key or Basic-auth account with Komga administrator access for path-based metadata synchronization.");
+        }
     }
 
     public async Task<IReadOnlyList<KomgaBookDto>> GetBooksAsync(
@@ -105,7 +120,7 @@ internal sealed class KomgaApiClient : IKomgaApiClient
             using var request = CreateRequest(
                 configuration,
                 HttpMethod.Post,
-                $"api/v1/series/list?page={page}&size={PageSize}");
+                $"api/v1/series/list?page={page}&size={PageSize}&sort=createdDate,asc&sort=name,asc");
             request.Content = JsonContent();
 
             using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -174,6 +189,22 @@ internal sealed class KomgaApiClient : IKomgaApiClient
 
     private static StringContent JsonContent()
         => new("{}", Encoding.UTF8, "application/json");
+
+    private static bool IsLikelyRestrictedBookUrl(string value)
+    {
+        var candidate = value.Trim();
+        if (candidate.StartsWith("file:", StringComparison.OrdinalIgnoreCase)
+            || candidate.Contains('/', StringComparison.Ordinal)
+            || candidate.Contains('\\', StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return !(candidate.Length >= 3
+            && char.IsAsciiLetter(candidate[0])
+            && candidate[1] == ':'
+            && (candidate[2] == '/' || candidate[2] == '\\'));
+    }
 
     private static Uri ParseBaseUri(string value)
     {
